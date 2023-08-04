@@ -44,7 +44,7 @@ async def logout(request: Request, response: Response, services: ServiceFactory 
 @router.post('/refresh_tokens', response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
 async def refresh(request: Request, response: Response, services: ServiceFactory = Depends(get_services)):
     """
-    Обновить токены jwt вручную
+    Обновить токены jwt
 
     Роль: Все кроме GUEST.ONE
     Состояние: ACTIVE
