@@ -1,7 +1,7 @@
 import uuid
 from typing import Generic, Type, TypeVar, Optional
 
-from sqlalchemy import insert, update, delete, func, select, text
+from sqlalchemy import update, delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 T = TypeVar('T')
