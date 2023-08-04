@@ -125,7 +125,7 @@ class AuthApplicationService:
 
         code = randint(100000, 999999)
         await self._redis_client.set(f"verify:{email}:{int(time.time())}:0", code, expire=60 * 60)
-        await self._email_service.send_mail(email, "Подтверждение почты", f"Код подтверждения: <b>{code}</b>")
+        await self._email.send_mail(email, "Подтверждение почты", f"Код подтверждения: <b>{code}</b>")
 
     @role_filter(Role(M.GUEST, A.ONE))
     async def verify_email(self, email: str, code: int) -> None:
@@ -139,7 +139,7 @@ class AuthApplicationService:
         :raise AccessDenied: if user is banned
         """
 
-        if not is_valid_email(email):
+        if not validators.is_valid_email(email):
             raise exceptions.BadRequest("Неверный формат почты")
 
         user: tables.User = await self._user_repo.get(email=email)
@@ -196,7 +196,7 @@ class AuthApplicationService:
 
         code = randint(100000, 999999)
         await self._redis_client.set(f"reset:{email}:{int(time.time())}:0", code, expire=60 * 60)
-        await self._email_service.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
+        await self._email.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
 
     @role_filter(Role(M.GUEST, A.ONE))
     async def confirm_reset_password(self, email: str, code: int, new_password: str) -> None:
