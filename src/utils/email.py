@@ -4,7 +4,7 @@ from src.config import Email as EmailConfig
 
 
 class EmailSender:
-    def __init__(self, rmq: aio_pika.RobustConnection, config: EmailConfig):
+    def __init__(self, rmq: aio_pika.abc.AbstractRobustConnection, config: EmailConfig):
         self._rmq = rmq
         self._config = config
 
