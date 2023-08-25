@@ -1,29 +1,18 @@
 from functools import wraps
 
 from src.exceptions import AccessDenied
-from src.models.role import Role, RoleRange
+from src.models.access import AccessTags
 from src.models.state import UserState
 
 
-def role_filter(*roles: Role | RoleRange, exclude: list[Role | RoleRange] = None, min_role: Role = None):
+def access_filter(*tags: AccessTags):
     """
-    Role Filter decorator for ApplicationServices
+    Access Tag Filter decorator for ApplicationServices
     It is necessary that the class of the method being decorated has a field '_current_user'
 
-    :param roles: user roles
-    :param exclude: exclude roles
-    :param min_role: minimum role
+    :param tags: tuple of tags
     :return: decorator
     """
-
-    if not roles:
-        roles = [RoleRange("*")]
-
-    if exclude is None:
-        exclude = []
-
-    if min_role is None:
-        min_role = 0
 
     def decorator(func):
         @wraps(func)
@@ -34,7 +23,7 @@ def role_filter(*roles: Role | RoleRange, exclude: list[Role | RoleRange] = None
             if not current_user:
                 raise ValueError('AuthMiddleware not found')
 
-            if current_user.role in roles and current_user.role not in exclude and current_user.role >= min_role:
+            if {tag.value for tag in tags}.issubset(current_user.access):
                 return await func(*args, **kwargs)
             else:
                 raise AccessDenied('У Вас нет прав для выполнения этого действия')

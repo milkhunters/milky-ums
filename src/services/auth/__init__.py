@@ -9,13 +9,13 @@ from src.models import tables
 from src.models import schemas
 from src.models.auth import BaseUser
 from src.models.state import UserState
-from src.models.role import Role, MainRole as M, AdditionalRole as A, RoleRange
+from src.models.access import AccessTags
 from src.services.repository import UserRepo
 
 from .jwt import JWTManager
 from .password import verify_password, get_hashed_password
 from .session import SessionManager
-from .filters import role_filter, state_filter
+from .filters import access_filter, state_filter
 
 from src.utils import EmailSender
 from src.utils import RedisClient
@@ -40,7 +40,7 @@ class AuthApplicationService:
         self._redis_client = redis_client
         self._email = email
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_CREATE_USER)
     async def create_user(self, user: schemas.UserCreate) -> None:
         """
         Создание нового пользователя
@@ -62,7 +62,7 @@ class AuthApplicationService:
         hashed_password = get_hashed_password(user.password)
         await self._user_repo.create(**user.model_dump(exclude={"password"}), hashed_password=hashed_password)
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_AUTHENTICATE)
     async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.User:
         """
         Аутентификация пользователя
@@ -95,7 +95,7 @@ class AuthApplicationService:
         await self._session_manager.set_session_id(response, tokens.refresh_token)
         return schemas.User.model_validate(user)
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_SEND_VERIFY_CODE)
     async def send_verify_code(self, email: str) -> None:
         """
         Отправка кода подтверждения на почту
@@ -127,7 +127,7 @@ class AuthApplicationService:
         await self._redis_client.set(f"verify:{email}:{int(time.time())}:0", code, expire=60 * 60)
         await self._email.send_mail(email, "Подтверждение почты", f"Код подтверждения: <b>{code}</b>")
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_VERIFY_EMAIL)
     async def verify_email(self, email: str, code: int) -> None:
         """
         Подтверждение почты
@@ -172,7 +172,7 @@ class AuthApplicationService:
         await self._user_repo.update(user.id, state=UserState.ACTIVE)
         await self._redis_client.delete(keys[0])
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_RESET_PASSWORD)
     async def reset_password(self, email: str) -> None:
         """
         Отправка кода восстановления пароля на почту
@@ -198,7 +198,7 @@ class AuthApplicationService:
         await self._redis_client.set(f"reset:{email}:{int(time.time())}:0", code, expire=60 * 60)
         await self._email.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_CONFIRM_RESET_PASSWORD)
     async def confirm_reset_password(self, email: str, code: int, new_password: str) -> None:
         """
         Восстановление пароля
@@ -239,14 +239,14 @@ class AuthApplicationService:
         await self._user_repo.update(user.id, hashed_password=get_hashed_password(new_password))
         await self._redis_client.delete(keys[0])
 
-    @role_filter(RoleRange("*"), exclude=[Role(M.GUEST, A.ONE)])
+    @access_filter(AccessTags.CAN_LOGOUT)
     async def logout(self, request: Request, response: Response) -> None:
         self._jwt_manager.delete_jwt_cookie(response)
         session_id = self._session_manager.get_session_id(request)
         if session_id:
             await self._session_manager.delete_session_id(session_id, response)
 
-    @role_filter(RoleRange("*"), exclude=[Role(M.GUEST, A.ONE)])
+    @access_filter(AccessTags.CAN_REFRESH_TOKENS)
     @state_filter(UserState.ACTIVE)
     async def refresh_tokens(self, request: Request, response: Response) -> None:
         """
