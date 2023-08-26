@@ -24,13 +24,15 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
         # States
         session_id = session.get_session_id(request)
         current_tokens = jwt.get_jwt_cookie(request)
+        is_valid_access_token = False
+        is_valid_refresh_token = False
+        is_valid_session = False
         is_auth = False
 
         # ----- pre_process -----
         if current_tokens:
             is_valid_access_token = jwt.is_valid_access_token(current_tokens.access_token)
             is_valid_refresh_token = jwt.is_valid_refresh_token(current_tokens.refresh_token)
-            is_valid_session = False
 
             if is_valid_refresh_token:
                 # Проверка валидности сессии
@@ -42,10 +44,21 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
         # Установка данных авторизации
         if is_auth:
             payload = jwt.decode_access_token(current_tokens.access_token)
-            request.scope["user"] = AuthenticatedUser(**payload.model_dump(), ip=request.client.host)
+            request.scope["user"] = AuthenticatedUser(
+                **payload.model_dump(),
+                ip=request.client.host,
+                is_valid_access_token=is_valid_access_token,
+                is_valid_refresh_token=is_valid_refresh_token,
+                is_valid_session=is_valid_session
+            )
             request.scope["auth"] = AuthCredentials(["authenticated"])
         else:
-            request.scope["user"] = UnauthenticatedUser(ip=request.client.host)
+            request.scope["user"] = UnauthenticatedUser(
+                ip=request.client.host,
+                is_valid_access_token=is_valid_access_token,
+                is_valid_refresh_token=is_valid_refresh_token,
+                is_valid_session=is_valid_session
+            )
             request.scope["auth"] = AuthCredentials()
 
         response = await call_next(request)
