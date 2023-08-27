@@ -11,7 +11,7 @@ from src.views import RolesResponse, RoleResponse, AccessResponse, AccessesRespo
 router = APIRouter()
 
 
-@router.post("/list", response_model=RolesResponse, status_code=http_status.HTTP_200_OK)
+@router.get("/list", response_model=RolesResponse, status_code=http_status.HTTP_200_OK)
 async def role_list(services: ServiceFactory = Depends(get_services)):
     """
     Получить список ролей
@@ -22,7 +22,7 @@ async def role_list(services: ServiceFactory = Depends(get_services)):
     return RolesResponse(content=await services.role.get_roles())
 
 
-@router.post("/access_list", response_model=AccessesResponse, status_code=http_status.HTTP_200_OK)
+@router.get("/access_list", response_model=AccessesResponse, status_code=http_status.HTTP_200_OK)
 async def role_access_list(services: ServiceFactory = Depends(get_services)):
     """
     Получить список доступов
@@ -142,3 +142,13 @@ async def role_guest_access(services: ServiceFactory = Depends(get_services)):
     Требуемые права доступа: None
     """
     return await services.role.guest_access()
+
+
+@router.get("/app_access", response_model=list[str], status_code=http_status.HTTP_200_OK)
+async def role_app_access(services: ServiceFactory = Depends(get_services)):
+    """
+    Список доступов приложения
+
+    Требуемые права доступа: None
+    """
+    return await services.role.app_access()
