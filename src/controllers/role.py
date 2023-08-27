@@ -1,10 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
-from fastapi.requests import Request
-from fastapi.responses import Response
 from fastapi import status as http_status
-from pydantic import EmailStr
 
 from src.dependencies.services import get_services
 from src.models import schemas
