@@ -1,25 +1,22 @@
 import uuid
-from typing import Optional
 
 from fastapi import Request, Response
-from fastapi.websockets import WebSocket
 
+from src.config import Config
 from src.utils import RedisClient
 
 
 class SessionManager:
-    COOKIE_EXP = 31536000
-    REDIS_EXP = 2592000
     COOKIE_PATH = "/api"
     COOKIE_DOMAIN = None
     COOKIE_SESSION_KEY = "session_id"
 
-    def __init__(self, redis_client: RedisClient, config, debug: bool = False):
+    def __init__(self, redis_client: RedisClient, config: Config, debug: bool = False):
         self._redis_client = redis_client
         self._config = config
         self._debug = debug
 
-    def get_session_id(self, req_obj: Request | WebSocket) -> str | None:
+    def get_session_id(self, req_obj: Request) -> str | None:
         """
         Получить идентификатор сессии из куков
 
@@ -51,10 +48,10 @@ class SessionManager:
             secure=self._config.IS_SECURE_COOKIE,
             httponly=True,
             samesite="strict",
-            max_age=self.COOKIE_EXP,
+            max_age=self._config.JWT.ACCESS_EXPIRE_SECONDS,
             path=self.COOKIE_PATH
         )
-        await self._redis_client.set(session_id, refresh_token, expire=self.REDIS_EXP)
+        await self._redis_client.set(session_id, refresh_token, expire=self._config.JWT.REFRESH_EXPIRE_SECONDS)
         return session_id
 
     async def delete_session_id(self, session_id: str, response: Response) -> None:

@@ -1,20 +1,17 @@
 import time
-from typing import Optional
+import uuid
 
 import jwt
 from fastapi import Response, Request
-from fastapi.websockets import WebSocket
 
 from src.config import Config
 from src.models import schemas
+from src.models.state import UserState
 
 
 class JWTManager:
     ALGORITHM = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES = 15  # 15 minutes
-    REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
-    COOKIE_EXP = 31536000
     COOKIE_PATH = "/api"
     COOKIE_DOMAIN = None
     COOKIE_ACCESS_KEY = "access_token"
@@ -58,31 +55,31 @@ class JWTManager:
         """
         return self._decode_jwt(token, self.JWT_REFRESH_SECRET_KEY)
 
-    def generate_tokens(self, id: str, username: str, role_id: int, state_id: int) -> schemas.Tokens:
+    def generate_tokens(self, id: uuid.UUID, username: str, access: list[str], state: UserState) -> schemas.Tokens:
         """
         Генерирует access- и refresh-токены
         :param id:
         :param username:
-        :param role_id:
-        :param state_id:
+        :param access:
+        :param state:
         :return:
         """
         return schemas.Tokens(
             access_token=self._generate_token(
-                exp_minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES,
+                exp=self._config.JWT.ACCESS_EXPIRE_SECONDS,
                 secret_key=self.JWT_ACCESS_SECRET_KEY,
-                id=id,
+                id=str(id),
                 username=username,
-                role_id=role_id,
-                state_id=state_id,
+                access=access,
+                state_id=state.value,
             ),
             refresh_token=self._generate_token(
-                exp_minutes=self.REFRESH_TOKEN_EXPIRE_MINUTES,
+                exp=self._config.JWT.REFRESH_EXPIRE_SECONDS,
                 secret_key=self.JWT_REFRESH_SECRET_KEY,
-                id=id,
+                id=str(id),
                 username=username,
-                role_id=role_id,
-                state_id=state_id,
+                access=access,
+                state_id=state.value,
             )
         )
 
@@ -99,7 +96,7 @@ class JWTManager:
             secure=self._config.IS_SECURE_COOKIE,
             httponly=True,
             samesite="strict",
-            max_age=self.COOKIE_EXP,
+            max_age=self._config.JWT.ACCESS_EXPIRE_SECONDS,
             path=self.COOKIE_PATH,
             domain=self.COOKIE_DOMAIN
         )
@@ -109,12 +106,12 @@ class JWTManager:
             secure=self._config.IS_SECURE_COOKIE,
             httponly=True,
             samesite="strict",
-            max_age=self.COOKIE_EXP,
+            max_age=self._config.JWT.REFRESH_EXPIRE_SECONDS,
             path=self.COOKIE_PATH,
             domain=self.COOKIE_DOMAIN
         )
 
-    def get_jwt_cookie(self, req_obj: Request | WebSocket) -> Optional[schemas.Tokens]:
+    def get_jwt_cookie(self, req_obj: Request) -> schemas.Tokens | None:
         """
         Получает из кук access и refresh-токены
         :param req_obj:
@@ -142,14 +139,14 @@ class JWTManager:
             return False
         return True
 
-    def _generate_token(self, exp_minutes: int, secret_key: str, **kwargs) -> str:
+    def _generate_token(self, exp: int, secret_key: str, **kwargs) -> str:
         """
-        param: exp_minutes: время жизни токена в минутах
+        param: exp: время жизни токена
         param: secret_key: секретный ключ
         param: kwargs: параметры для payload
         :return: токен
         """
-        payload = schemas.TokenPayload(**kwargs, exp=int(time.time() + exp_minutes * 60))
+        payload = schemas.TokenPayload(**kwargs, exp=int(time.time() + exp))
         return jwt.encode(payload.model_dump(), secret_key, algorithm=self.ALGORITHM)
 
     def _decode_jwt(self, token: str, secret_key: str) -> schemas.TokenPayload:
@@ -158,7 +155,7 @@ class JWTManager:
         param: secret_key: секретный ключ
         :return: payload
         """
-        return schemas.TokenPayload.parse_obj(jwt.decode(
+        return schemas.TokenPayload.model_validate(jwt.decode(
             token,
             secret_key,
             algorithms=self.ALGORITHM,

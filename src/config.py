@@ -37,6 +37,8 @@ class Contact:
 
 @dataclass
 class JWT:
+    ACCESS_EXPIRE_SECONDS: int
+    REFRESH_EXPIRE_SECONDS: int
     ACCESS_SECRET_KEY: str
     REFRESH_SECRET_KEY: str
 
@@ -136,6 +138,8 @@ def load_consul_config(
             ),
         ),
         JWT=JWT(
+            ACCESS_EXPIRE_SECONDS=config("JWT", "ACCESS_EXPIRE_SECONDS"),
+            REFRESH_EXPIRE_SECONDS=config("JWT", "REFRESH_EXPIRE_SECONDS"),
             ACCESS_SECRET_KEY=config("JWT", "ACCESS_SECRET_KEY"),
             REFRESH_SECRET_KEY=config("JWT", "REFRESH_SECRET_KEY")
         ),
