@@ -60,7 +60,11 @@ class AuthApplicationService:
             raise exceptions.AlreadyExists(f"Пользователь с email {user.email!r} уже существует")
 
         hashed_password = get_hashed_password(user.password)
-        await self._user_repo.create(**user.model_dump(exclude={"password"}), hashed_password=hashed_password)
+        await self._user_repo.create(
+            **user.model_dump(exclude={"password"}),
+            role_id="00000000-0000-0000-0000-000000000000",
+            hashed_password=hashed_password
+        )
 
     @access_filter(AccessTags.CAN_AUTHENTICATE)
     async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.User:
@@ -77,7 +81,7 @@ class AuthApplicationService:
         :raise AccessDenied: if user is banned
         """
 
-        user: tables.User = await self._user_repo.get_by_username_insensitive(username=data.username)
+        user: tables.User = await self._user_repo.get_by_username_insensitive(username=data.username, as_full=True)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
         if not verify_password(data.password, user.hashed_password):
@@ -90,7 +94,8 @@ class AuthApplicationService:
             raise exceptions.AccessDenied("Пользователь удален")
 
         # Генерация и установка токенов
-        tokens = self._jwt_manager.generate_tokens(str(user.id), user.username, user.role_id, user.state.value)
+        access_title_list = [obj.title for obj in user.role.access]
+        tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, tokens)
         await self._session_manager.set_session_id(response, tokens.refresh_token)
         return schemas.User.model_validate(user)
@@ -138,9 +143,6 @@ class AuthApplicationService:
         :raise NotFound: if user not found
         :raise AccessDenied: if user is banned
         """
-
-        if not validators.is_valid_email(email):
-            raise exceptions.BadRequest("Неверный формат почты")
 
         user: tables.User = await self._user_repo.get(email=email)
         if not user:
@@ -247,7 +249,6 @@ class AuthApplicationService:
             await self._session_manager.delete_session_id(session_id, response)
 
     @access_filter(AccessTags.CAN_REFRESH_TOKENS)
-    @state_filter(UserState.ACTIVE)
     async def refresh_tokens(self, request: Request, response: Response) -> None:
         """
         Обновление токенов
@@ -263,20 +264,21 @@ class AuthApplicationService:
         current_tokens = self._jwt_manager.get_jwt_cookie(request)
         session_id = self._session_manager.get_session_id(request)
 
-        if not await self._session_manager.is_valid_session(session_id, current_tokens.refresh_token):
+        if not self._current_user.is_valid_session:
             raise exceptions.AccessDenied("Invalid session")
 
-        user = await self._user_repo.get(id=self._jwt_manager.decode_refresh_token(current_tokens.refresh_token).id)
+        if not self._current_user.is_valid_refresh_token:
+            raise exceptions.AccessDenied("Invalid refresh token")
+
+        old_payload = self._jwt_manager.decode_refresh_token(current_tokens.refresh_token)
+        user = await self._user_repo.get(id=old_payload.id)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
         if user.state == UserState.BLOCKED:
             raise exceptions.AccessDenied("Пользователь заблокирован")
 
-        new_tokens = self._jwt_manager.generate_tokens(str(user.id), user.username, user.role_id, user.state.value)
+        access_title_list = [obj.title for obj in user.role.access]
+        new_tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, new_tokens)
-        # Для бесшовного обновления токенов:
-        request.cookies["access_token"] = new_tokens.access_token
-        request.cookies["refresh_token"] = new_tokens.refresh_token
-
         await self._session_manager.set_session_id(response, new_tokens.refresh_token, session_id)
