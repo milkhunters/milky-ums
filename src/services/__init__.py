@@ -15,12 +15,14 @@ class ServiceFactory:
             current_user: BaseUser,
             config,
             redis_client,
+            redis_client_for_kick_list,
             email_sender: EmailSender,
     ):
         self._repo = repo_factory
         self._current_user = current_user
         self._config = config
         self._redis_client = redis_client
+        self._redis_client_for_kick_list = redis_client_for_kick_list
         self._email_sender = email_sender
 
     @property
@@ -36,7 +38,13 @@ class ServiceFactory:
 
     @property
     def user(self) -> UserApplicationService:
-        return UserApplicationService(self._current_user, user_repo=self._repo.user, email=self._email_sender)
+        return UserApplicationService(
+            self._current_user,
+            user_repo=self._repo.user,
+            email=self._email_sender,
+            redis_client=self._redis_client_for_kick_list,
+            config=self._config
+        )
 
     @property
     def stats(self) -> StatsApplicationService:

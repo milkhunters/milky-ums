@@ -37,6 +37,9 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
 
         is_auth = (is_valid_access_token and is_valid_refresh_token and is_valid_session)
 
+        if is_auth:
+            ...
+
         # Установка данных авторизации
         if is_auth:
             payload = jwt.decode_access_token(current_tokens.access_token)

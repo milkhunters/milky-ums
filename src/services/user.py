@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime
 
 from src import exceptions
-from src.utils import EmailSender
+from src.config import Config
+from src.utils import EmailSender, RedisClient
 from src.services.repository import UserRepo
 from src.services.auth.filters import access_filter, state_filter
 from src.services.auth.password import verify_password, get_hashed_password
@@ -16,10 +17,20 @@ from src.utils.validators import is_valid_password
 
 class UserApplicationService:
 
-    def __init__(self, current_user: BaseUser, *, user_repo: UserRepo, email: EmailSender):
+    def __init__(
+            self,
+            current_user: BaseUser,
+            *,
+            user_repo: UserRepo,
+            email: EmailSender,
+            redis_client: RedisClient,
+            config: Config
+    ):
         self._current_user = current_user
         self._repo = user_repo
         self._email = email
+        self._redis_client = redis_client
+        self._config = config
 
     @access_filter(AccessTags.CAN_GET_SELF)
     @state_filter(UserState.ACTIVE)
@@ -48,6 +59,9 @@ class UserApplicationService:
         user = await self._repo.get(id=user_id)
         if not user:
             raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
+
+        if data.state:
+            await self._redis_client.set("kick", user_id, expire=self._config.JWT.ACCESS_EXPIRE_SECONDS)
 
         await self._repo.update(
             id=user_id,

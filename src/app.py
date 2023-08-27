@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 
@@ -7,6 +8,7 @@ from fastapi.exceptions import RequestValidationError
 import aio_pika
 import redis.asyncio as redis
 from sqlalchemy import select, insert
+from grpc import aio
 
 from src.models import tables
 from src.models.access import AccessTags
@@ -49,13 +51,19 @@ async def init_db(app: FastAPI):
     app.state.db_session = session
 
 
-async def init_redis_pool(app: FastAPI, db: int = 0):
-    pool = await redis.from_url(
-        f"redis://:{config.DB.REDIS.PASSWORD}@{config.DB.REDIS.HOST}:{config.DB.REDIS.PORT}/{db}",
+async def init_redis_pool(app: FastAPI):
+    pool_0 = await redis.from_url(
+        f"redis://:{config.DB.REDIS.PASSWORD}@{config.DB.REDIS.HOST}:{config.DB.REDIS.PORT}/0",
         encoding="utf-8",
         decode_responses=True,
     )
-    app.state.redis = RedisClient(pool)
+    pool_1 = await redis.from_url(
+        f"redis://:{config.DB.REDIS.PASSWORD}@{config.DB.REDIS.HOST}:{config.DB.REDIS.PORT}/1",
+        encoding="utf-8",
+        decode_responses=True,
+    )
+    app.state.redis = RedisClient(pool_0)
+    app.state.redis_for_kick_list = RedisClient(pool_1)
 
 
 async def init_email(app: FastAPI, config: EmailConfig):
@@ -81,7 +89,7 @@ async def init_default_role(app: FastAPI):
             await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=default_id))
             can_edit_id = "00000000-0000-0000-0000-000000000001"
             await session.execute(
-                insert(tables.Access).values(id=can_edit_id, title=AccessTags.CAN_EDIT_ROLE.value)
+                insert(tables.Access).values(id=can_edit_id, title=AccessTags.CAN_UPDATE_ROLE.value)
             )
             await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_edit_id))
             can_get_id = "00000000-0000-0000-0000-000000000002"
@@ -102,6 +110,14 @@ async def init_default_role(app: FastAPI):
             await session.commit()
 
 
+async def grpc_server():
+    server = aio.server()
+    helloworld_pb2_grpc.add_GreeterServicer_to_server(Greeter(), server)
+    listen_addr = '[::]:50051'
+    server.add_insecure_port(listen_addr)
+    logging.info("Starting server on %s", listen_addr)
+    await server.start()
+
 @app.on_event("startup")
 async def on_startup():
     log.debug("Выполнение FastAPI startup event handler.")
@@ -109,6 +125,7 @@ async def on_startup():
     await init_redis_pool(app)
     await init_email(app, config.EMAIL)
     await init_default_role(app)
+    asyncio.run(grpc_server())
     log.info("FastAPI Успешно запущен.")
 
 
