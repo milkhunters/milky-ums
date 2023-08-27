@@ -12,7 +12,7 @@ async def version(details: bool = False, services: ServiceFactory = Depends(get_
     """
     Получить информацию о приложении
 
-    Ограничений по роли нет
+    Ограничений по доступу нет
     """
     return await services.stats.get_stats(details)
 
@@ -22,7 +22,7 @@ async def ping_redis(services: ServiceFactory = Depends(get_services)):
     """
     Получить состояние redis
 
-    Ограничений по роли нет
+    Ограничений по доступу нет
     """
     return await services.stats.redis_ping()
 

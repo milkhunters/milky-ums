@@ -19,7 +19,7 @@ async def get_current_user(services: ServiceFactory = Depends(get_services)):
     """
     Получить модель текущего пользователя
 
-    Минимальная роль: USER.ONE
+    Требуемые права доступа: CAN_GET_SELF
 
     Состояние: ACTIVE
     """
@@ -31,7 +31,7 @@ async def update_current_user(data: schemas.UserUpdate, services: ServiceFactory
     """
     Обновить данные текущего пользователя
 
-    Минимальная роль: USER.ONE
+    Требуемые права доступа: CAN_UPDATE_SELF
 
     Состояние: ACTIVE
     """
@@ -43,7 +43,7 @@ async def update_password(old_password: str, new_password: str, services: Servic
     """
     Обновить пароль текущего пользователя
 
-    Минимальная роль: USER.ONE
+    Требуемые права доступа: CAN_UPDATE_SELF
 
     Состояние: ACTIVE
 
@@ -60,7 +60,7 @@ async def update_user(
     """
     Обновить данные пользователя по id
 
-    Минимальная роль: ADMIN.ONE
+    Требуемые права доступа: CAN_UPDATE_USER
 
     Состояние: ACTIVE
     """
@@ -72,7 +72,7 @@ async def get_user(user_id: uuid.UUID, services: ServiceFactory = Depends(get_se
     """
     Получить модель пользователя по id
 
-    Минимальная роль: GUEST.ONE
+    Требуемые права доступа: CAN_GET_USER
     """
     return UserSmallResponse(content=await services.user.get_user(user_id))
 
@@ -87,7 +87,7 @@ async def delete_current_user(
     """
     Удалить текущего пользователя
 
-    Минимальная роль: USER.ONE
+    Требуемые права доступа: CAN_DELETE_SELF, CAN_LOGOUT
 
     Состояние: ACTIVE
     """
