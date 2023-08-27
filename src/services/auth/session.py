@@ -48,7 +48,7 @@ class SessionManager:
             secure=self._config.IS_SECURE_COOKIE,
             httponly=True,
             samesite="strict",
-            max_age=self._config.JWT.ACCESS_EXPIRE_SECONDS,
+            max_age=self._config.JWT.REFRESH_EXPIRE_SECONDS,
             path=self.COOKIE_PATH
         )
         await self._redis_client.set(session_id, refresh_token, expire=self._config.JWT.REFRESH_EXPIRE_SECONDS)

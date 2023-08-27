@@ -24,22 +24,18 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
         # States
         session_id = session.get_session_id(request)
         current_tokens = jwt.get_jwt_cookie(request)
-        is_valid_access_token = False
-        is_valid_refresh_token = False
         is_valid_session = False
-        is_auth = False
 
         # ----- pre_process -----
-        if current_tokens:
-            is_valid_access_token = jwt.is_valid_access_token(current_tokens.access_token)
-            is_valid_refresh_token = jwt.is_valid_refresh_token(current_tokens.refresh_token)
+        is_valid_access_token = jwt.is_valid_access_token(current_tokens.access_token)
+        is_valid_refresh_token = jwt.is_valid_refresh_token(current_tokens.refresh_token)
 
-            if is_valid_refresh_token:
-                # Проверка валидности сессии
-                if await session.is_valid_session(session_id, current_tokens.refresh_token):
-                    is_valid_session = True
+        if is_valid_refresh_token and session_id:
+            # Проверка валидности сессии
+            if await session.is_valid_session(session_id, current_tokens.refresh_token):
+                is_valid_session = True
 
-            is_auth = (is_valid_access_token and is_valid_refresh_token and is_valid_session)
+        is_auth = (is_valid_access_token and is_valid_refresh_token and is_valid_session)
 
         # Установка данных авторизации
         if is_auth:

@@ -23,20 +23,26 @@ class JWTManager:
         self.JWT_ACCESS_SECRET_KEY = config.JWT.ACCESS_SECRET_KEY
         self.JWT_REFRESH_SECRET_KEY = config.JWT.REFRESH_SECRET_KEY
 
-    def is_valid_refresh_token(self, token: str) -> bool:
+    def is_valid_refresh_token(self, token: str | None) -> bool:
         """
         Проверяет refresh-токен на валидность
         :param token:
         :return:
         """
+        if not token:
+            return False
+
         return self._is_valid_jwt(token, self.JWT_REFRESH_SECRET_KEY)
 
-    def is_valid_access_token(self, token: str) -> bool:
+    def is_valid_access_token(self, token: str | None) -> bool:
         """
         Проверяет access-токен на валидность
         :param token:
         :return:
         """
+        if not token:
+            return False
+
         return self._is_valid_jwt(token, self.JWT_ACCESS_SECRET_KEY)
 
     def decode_access_token(self, token: str) -> schemas.TokenPayload:
@@ -111,7 +117,7 @@ class JWTManager:
             domain=self.COOKIE_DOMAIN
         )
 
-    def get_jwt_cookie(self, req_obj: Request) -> schemas.Tokens | None:
+    def get_jwt_cookie(self, req_obj: Request) -> schemas.Tokens:
         """
         Получает из кук access и refresh-токены
         :param req_obj:
@@ -119,8 +125,6 @@ class JWTManager:
         """
         access_token = req_obj.cookies.get(self.COOKIE_ACCESS_KEY)
         refresh_token = req_obj.cookies.get(self.COOKIE_REFRESH_KEY)
-        if not access_token or not refresh_token:
-            return None
         return schemas.Tokens(access_token=access_token, refresh_token=refresh_token)
 
     def delete_jwt_cookie(self, response: Response) -> None:
