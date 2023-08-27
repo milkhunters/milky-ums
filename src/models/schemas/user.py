@@ -103,5 +103,5 @@ class UserUpdate(BaseModel):
 
 class UserUpdateByAdmin(UserUpdate):
     email: EmailStr = None
-    role_id: int = None
+    role_id: uuid.UUID = None
     state: UserState = None
