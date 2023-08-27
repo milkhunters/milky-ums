@@ -4,9 +4,12 @@ import os
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
-import redis.asyncio as redis
 import aio_pika
+import redis.asyncio as redis
+from sqlalchemy import select, insert
 
+from src.models import tables
+from src.models.access import AccessTags
 from src.config import load_consul_config, Email as EmailConfig
 from src.db import create_psql_async_session
 from src.exceptions import APIError, handle_api_error, handle_404_error, handle_pydantic_error
@@ -45,10 +48,6 @@ async def init_db(app: FastAPI):
     )
     app.state.db_session = session
 
-    # async with engine.begin() as conn:
-    #     # await conn.run_sync(tables.Base.metadata.drop_all)
-    #     await conn.run_sync(tables.Base.metadata.create_all)
-
 
 async def init_redis_pool(app: FastAPI, db: int = 0):
     pool = await redis.from_url(
@@ -67,7 +66,40 @@ async def init_email(app: FastAPI, config: EmailConfig):
         password=config.RabbitMQ.PASSWORD,
         virtualhost=config.RabbitMQ.VIRTUALHOST,
     )
-    app.state.email = EmailSender(app.state.rmq, config)
+    app.state.email_sender = EmailSender(app.state.rmq, config)
+
+
+async def init_default_role(app: FastAPI):
+    default_id = "00000000-0000-0000-0000-000000000000"
+    async with app.state.db_session() as session:
+        role = await session.execute(select(tables.Role).where(tables.Role.id == default_id))
+        if not role.scalar():
+            await session.execute(insert(tables.Role).values(id=default_id, title="default"))
+            await session.execute(
+                insert(tables.Access).values(id=default_id, title=AccessTags.CAN_REFRESH_TOKENS.value)
+            )
+            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=default_id))
+            can_edit_id = "00000000-0000-0000-0000-000000000001"
+            await session.execute(
+                insert(tables.Access).values(id=can_edit_id, title=AccessTags.CAN_EDIT_ROLE.value)
+            )
+            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_edit_id))
+            can_get_id = "00000000-0000-0000-0000-000000000002"
+            await session.execute(
+                insert(tables.Access).values(id=can_get_id, title=AccessTags.CAN_GET_ROLE.value)
+            )
+            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_get_id))
+            can_delete_id = "00000000-0000-0000-0000-000000000003"
+            await session.execute(
+                insert(tables.Access).values(id=can_delete_id, title=AccessTags.CAN_DELETE_ROLE.value)
+            )
+            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_delete_id))
+            can_create_id = "00000000-0000-0000-0000-000000000004"
+            await session.execute(
+                insert(tables.Access).values(id=can_create_id, title=AccessTags.CAN_CREATE_ROLE.value)
+            )
+            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_create_id))
+            await session.commit()
 
 
 @app.on_event("startup")
@@ -76,6 +108,7 @@ async def on_startup():
     await init_db(app)
     await init_redis_pool(app)
     await init_email(app, config.EMAIL)
+    await init_default_role(app)
     log.info("FastAPI Успешно запущен.")
 
 
