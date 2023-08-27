@@ -271,7 +271,7 @@ class AuthApplicationService:
             raise exceptions.AccessDenied("Invalid refresh token")
 
         old_payload = self._jwt_manager.decode_refresh_token(current_tokens.refresh_token)
-        user = await self._user_repo.get(id=old_payload.id)
+        user = await self._user_repo.get(id=old_payload.id, as_full=True)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
