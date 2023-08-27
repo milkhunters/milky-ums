@@ -17,6 +17,7 @@ class Role(Base):
     title = Column(VARCHAR(32), unique=True, nullable=False)
 
     access = relationship('models.tables.access.Access', secondary='role_access', back_populates='roles')
+    users = relationship('models.tables.user.User', back_populates='role')
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
