@@ -21,7 +21,7 @@ class BaseUser(ABC, authentication.BaseUser):
 
     @property
     @abstractmethod
-    def access(self) -> set[AccessTags]:
+    def access(self) -> set[str]:
         pass
 
     @property
@@ -161,14 +161,15 @@ class UnauthenticatedUser(BaseUser):
         return None
 
     @property
-    def access(self) -> set[AccessTags]:
+    def access(self) -> set[str]:
         return {
-            AccessTags.CAN_AUTHENTICATE,
-            AccessTags.CAN_SEND_VERIFY_CODE,
-            AccessTags.CAN_VERIFY_EMAIL,
-            AccessTags.CAN_RESET_PASSWORD,
-            AccessTags.CAN_CONFIRM_RESET_PASSWORD,
-            AccessTags.CAN_REFRESH_TOKENS
+            AccessTags.CAN_AUTHENTICATE.value,
+            AccessTags.CAN_CREATE_USER.value,
+            AccessTags.CAN_SEND_VERIFY_CODE.value,
+            AccessTags.CAN_VERIFY_EMAIL.value,
+            AccessTags.CAN_RESET_PASSWORD.value,
+            AccessTags.CAN_CONFIRM_RESET_PASSWORD.value,
+            AccessTags.CAN_REFRESH_TOKENS.value
         }
 
     @property
