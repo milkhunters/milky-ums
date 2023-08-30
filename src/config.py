@@ -70,7 +70,6 @@ class Base:
 @dataclass
 class Config:
     DEBUG: bool
-    IS_SECURE_COOKIE: bool
     JWT: JWT
     BASE: Base
     DB: DbConfig
@@ -126,7 +125,6 @@ def load_consul_config(
     )
     return Config(
         DEBUG=to_bool(os.getenv('DEBUG', 1)),
-        IS_SECURE_COOKIE=to_bool(config("IS_SECURE_COOKIE")),
         BASE=Base(
             TITLE=config("BASE", "TITLE"),
             DESCRIPTION=config("BASE", "DESCRIPTION"),

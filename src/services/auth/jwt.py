@@ -99,9 +99,9 @@ class JWTManager:
         response.set_cookie(
             key=self.COOKIE_ACCESS_KEY,
             value=tokens.access_token,
-            secure=self._config.IS_SECURE_COOKIE,
+            secure=True,
             httponly=True,
-            samesite="strict",
+            samesite="none",
             max_age=self._config.JWT.ACCESS_EXPIRE_SECONDS,
             path=self.COOKIE_PATH,
             domain=self.COOKIE_DOMAIN
@@ -109,9 +109,9 @@ class JWTManager:
         response.set_cookie(
             key=self.COOKIE_REFRESH_KEY,
             value=tokens.refresh_token,
-            secure=self._config.IS_SECURE_COOKIE,
+            secure=True,
             httponly=True,
-            samesite="strict",
+            samesite="none",
             max_age=self._config.JWT.REFRESH_EXPIRE_SECONDS,
             path=self.COOKIE_PATH,
             domain=self.COOKIE_DOMAIN

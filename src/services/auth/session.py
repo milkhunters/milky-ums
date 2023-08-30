@@ -45,9 +45,9 @@ class SessionManager:
         response.set_cookie(
             key=self.COOKIE_SESSION_KEY,
             value=session_id,
-            secure=self._config.IS_SECURE_COOKIE,
+            secure=True,
             httponly=True,
-            samesite="strict",
+            samesite="none",
             max_age=self._config.JWT.REFRESH_EXPIRE_SECONDS,
             path=self.COOKIE_PATH
         )
@@ -64,9 +64,9 @@ class SessionManager:
         await self._redis_client.delete(session_id)
         response.delete_cookie(
             key=self.COOKIE_SESSION_KEY,
-            secure=self._config.IS_SECURE_COOKIE,
+            secure=True,
             httponly=True,
-            samesite="strict",
+            samesite="none",
             path=self.COOKIE_PATH
         )
 
