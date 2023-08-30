@@ -169,7 +169,8 @@ class UnauthenticatedUser(BaseUser):
             AccessTags.CAN_VERIFY_EMAIL.value,
             AccessTags.CAN_RESET_PASSWORD.value,
             AccessTags.CAN_CONFIRM_RESET_PASSWORD.value,
-            AccessTags.CAN_REFRESH_TOKENS.value
+            AccessTags.CAN_REFRESH_TOKENS.value,
+            AccessTags.CAN_GET_USER.value,
         }
 
     @property
