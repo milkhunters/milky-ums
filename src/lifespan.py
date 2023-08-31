@@ -3,7 +3,6 @@ import logging
 from typing import Callable
 
 import aio_pika
-import grpc
 from fastapi import FastAPI
 from grpc import aio
 
