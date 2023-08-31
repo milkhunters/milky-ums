@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package greet;
+
+// The greeting service definition.
+service UserManagement {
+	// Unary
+	rpc GetListOfReauth (GetListRequest) returns (ListOfDictReply);
+
+
+}
+
+// The request message containing the user's name.
+message GetListRequest {}
+
+message Dictionary {
+	string key = 1;
+	string value = 2;
+}
+
+// The response message containing the greetings.
+message ListOfDictReply {
+   repeated Dictionary dicts = 1;
+}
