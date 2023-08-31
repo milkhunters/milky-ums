@@ -2,6 +2,7 @@ import uuid
 from abc import ABC, abstractmethod
 
 from starlette import authentication
+from user_agents.parsers import UserAgent
 
 from src.models.access import AccessTags
 from src.models.state import UserState
@@ -41,6 +42,11 @@ class BaseUser(ABC, authentication.BaseUser):
 
     @property
     @abstractmethod
+    def user_agent(self) -> UserAgent:
+        pass
+
+    @property
+    @abstractmethod
     def is_valid_access_token(self) -> bool:
         pass
 
@@ -70,6 +76,7 @@ class AuthenticatedUser(BaseUser):
         self._state_id = state_id
         self._exp = exp
         self._ip = kwargs.get('ip')
+        self._user_agent = kwargs.get('user_agent')
         self._is_valid_access_token = kwargs.get('is_valid_access_token')
         self._is_valid_refresh_token = kwargs.get('is_valid_refresh_token')
         self._is_valid_session = kwargs.get('is_valid_session')
@@ -111,6 +118,10 @@ class AuthenticatedUser(BaseUser):
         return self._ip
 
     @property
+    def user_agent(self) -> UserAgent:
+        return self._user_agent
+
+    @property
     def is_valid_access_token(self) -> bool:
         return self._is_valid_access_token
 
@@ -136,6 +147,7 @@ class UnauthenticatedUser(BaseUser):
     def __init__(self, exp: int = None, **kwargs):
         self._exp = exp
         self._ip = kwargs.get('ip')
+        self._user_agent = kwargs.get('user_agent')
         self._is_valid_access_token = kwargs.get('is_valid_access_token')
         self._is_valid_refresh_token = kwargs.get('is_valid_refresh_token')
         self._is_valid_session = kwargs.get('is_valid_session')
@@ -169,7 +181,6 @@ class UnauthenticatedUser(BaseUser):
             AccessTags.CAN_VERIFY_EMAIL.value,
             AccessTags.CAN_RESET_PASSWORD.value,
             AccessTags.CAN_CONFIRM_RESET_PASSWORD.value,
-            AccessTags.CAN_REFRESH_TOKENS.value,
             AccessTags.CAN_GET_USER.value,
         }
 
@@ -184,6 +195,10 @@ class UnauthenticatedUser(BaseUser):
     @property
     def ip(self) -> str:
         return self._ip
+
+    @property
+    def user_agent(self) -> UserAgent:
+        return self._user_agent
 
     @property
     def is_valid_access_token(self) -> bool:
