@@ -25,6 +25,20 @@ class Role(BaseModel):
         from_attributes = True
 
 
+class RoleMedium(BaseModel):
+    id: uuid.UUID
+    title: str
+    access: list[str] | None
+
+
+class RoleSmall(BaseModel):
+    id: uuid.UUID
+    title: str
+
+    class Config:
+        from_attributes = True
+
+
 class UpdateRole(BaseModel):
     title: str
 
