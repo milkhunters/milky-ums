@@ -42,15 +42,15 @@ async def logout(request: Request, response: Response, services: ServiceFactory 
     await services.auth.logout(request, response)
 
 
-@router.post('/refresh_tokens', response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
+@router.post('/refresh_tokens', response_model=UserResponse, status_code=http_status.HTTP_200_OK)
 async def refresh(request: Request, response: Response, services: ServiceFactory = Depends(get_services)):
     """
     Обновить токены jwt
 
-    Требуемые права доступа: CAN_REFRESH_TOKENS
+    Требуемые права доступа: None
     Состояние: ACTIVE
     """
-    await services.auth.refresh_tokens(request, response)
+    return UserResponse(content=await services.auth.refresh_tokens(request, response))
 
 
 @router.post("/send/{email}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
