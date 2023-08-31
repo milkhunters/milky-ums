@@ -137,3 +137,49 @@ class UserApplicationService:
             id=self._current_user.id,
             state=UserState.DELETED
         )
+
+    @access_filter(AccessTags.CAN_GET_SELF_SESSIONS)
+    @state_filter(UserState.ACTIVE)
+    async def get_my_sessions(self) -> list[schemas.Session]:
+        session_id_list = await self._session.get_user_sessions(self._current_user.id)
+        return [
+            schemas.Session(
+                id=session_id,
+                ip=data["ip"],
+                time=data["time"],
+                user_agent=data["user_agent"]
+            )
+            for session_id, data in session_id_list.items()
+        ]
+
+    @access_filter(AccessTags.CAN_GET_USER_SESSIONS)
+    @state_filter(UserState.ACTIVE)
+    async def get_user_sessions(self, user_id: uuid.UUID) -> list[schemas.Session]:
+        session_id_list = await self._session.get_user_sessions(user_id)
+        return [
+            schemas.Session(
+                id=session_id,
+                ip=data["ip"],
+                time=data["time"],
+                user_agent=data["user_agent"]
+            )
+            for session_id, data in session_id_list.items()
+        ]
+
+    @access_filter(AccessTags.CAN_DELETE_SELF_SESSION)
+    @state_filter(UserState.ACTIVE)
+    async def delete_my_session(self, session_id: str) -> None:
+        session_data = await self._session.get_data_from_session(str(self._current_user.id), session_id)
+        await self._session.delete_session(self._current_user.id, session_id)
+        await self._redis_client_reauth.set(
+            session_id, session_data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
+        )
+
+    @access_filter(AccessTags.CAN_DELETE_USER_SESSION)
+    @state_filter(UserState.ACTIVE)
+    async def delete_user_session(self, user_id: uuid.UUID, session_id: str) -> None:
+        session_data = await self._session.get_data_from_session(str(user_id), session_id)
+        await self._session.delete_session(user_id, session_id)
+        await self._redis_client_reauth.set(
+            session_id, session_data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
+        )
