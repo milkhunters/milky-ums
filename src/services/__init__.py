@@ -15,14 +15,14 @@ class ServiceFactory:
             current_user: BaseUser,
             config,
             redis_client,
-            redis_client_for_kick_list,
+            redis_client_reauth,
             email_sender: EmailSender,
     ):
         self._repo = repo_factory
         self._current_user = current_user
         self._config = config
         self._redis_client = redis_client
-        self._redis_client_for_kick_list = redis_client_for_kick_list
+        self._redis_client_reauth = redis_client_reauth
         self._email_sender = email_sender
 
     @property
@@ -33,6 +33,7 @@ class ServiceFactory:
             session_manager=SessionManager(redis_client=self._redis_client, config=self._config),
             user_repo=self._repo.user,
             redis_client=self._redis_client,
+            redis_client_reauth=self._redis_client_reauth,
             email=self._email_sender
         )
 
@@ -41,8 +42,10 @@ class ServiceFactory:
         return UserApplicationService(
             self._current_user,
             user_repo=self._repo.user,
+            role_repo=self._repo.role,
             email=self._email_sender,
-            redis_client=self._redis_client_for_kick_list,
+            redis_client_reauth=self._redis_client_reauth,
+            session=SessionManager(redis_client=self._redis_client, config=self._config),
             config=self._config
         )
 
