@@ -58,9 +58,9 @@ class RoleApplicationService:
         if not role:
             raise exceptions.NotFound(f"Роль с id:{role_id} не найдена!")
 
-        access = await self._access_repo.get(tag=access_tag)
+        access = await self._access_repo.get(title=access_tag)
         if not access:
-            raise exceptions.NotFound(f"Доступ с тегом:{access_tag} не найден!")
+            raise exceptions.NotFound(f"Доступ с тегом: {access_tag} не найден!")
 
         await self._role_access_repo.create(role_id=role_id, access_id=access.id)
 
@@ -69,15 +69,15 @@ class RoleApplicationService:
     async def create_role(self, data: schemas.CreateRole) -> schemas.Role:
         role = await self._role_repo.get(title=data.title)
         if role:
-            raise exceptions.BadRequest(f"Роль с названием:{data.title} уже существует!")
+            raise exceptions.BadRequest(f"Роль с названием: {data.title!r} уже существует!")
         return await self._role_repo.create(**data.model_dump())
 
     @access_filter(AccessTags.CAN_CREATE_ROLE)
     @state_filter(UserState.ACTIVE)
     async def create_access(self, data: schemas.CreateAccess) -> schemas.Access:
-        access = await self._access_repo.get(tag=data.tag)
+        access = await self._access_repo.get(title=data.title)
         if access:
-            raise exceptions.BadRequest(f"Доступ с тегом:{data.tag} уже существует!")
+            raise exceptions.BadRequest(f"Доступ с тегом: {data.title!r} уже существует!")
         return await self._access_repo.create(**data.model_dump())
 
     @access_filter(AccessTags.CAN_DELETE_ROLE)
