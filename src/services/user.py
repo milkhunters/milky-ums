@@ -1,10 +1,12 @@
+import asyncio
 import uuid
 from datetime import datetime
 
 from src import exceptions
 from src.config import Config
+from src.services import SessionManager
 from src.utils import EmailSender, RedisClient
-from src.services.repository import UserRepo
+from src.services.repository import UserRepo, RoleRepo
 from src.services.auth.filters import access_filter, state_filter
 from src.services.auth.password import verify_password, get_hashed_password
 
@@ -22,21 +24,28 @@ class UserApplicationService:
             current_user: BaseUser,
             *,
             user_repo: UserRepo,
+            role_repo: RoleRepo,
             email: EmailSender,
-            redis_client: RedisClient,
+            redis_client_reauth: RedisClient,
+            session: SessionManager,
             config: Config
     ):
         self._current_user = current_user
         self._repo = user_repo
+        self._role_repo = role_repo
         self._email = email
-        self._redis_client = redis_client
+        self._redis_client_reauth = redis_client_reauth
+        self._session = session
         self._config = config
 
     @access_filter(AccessTags.CAN_GET_SELF)
     @state_filter(UserState.ACTIVE)
-    async def get_me(self) -> schemas.User:
-        user = await self._repo.get(id=self._current_user.id)
-        return schemas.User.model_validate(user)
+    async def get_me(self) -> schemas.UserMedium:
+        user = await self._repo.get(id=self._current_user.id, as_full=True)
+        access_list = [access.title for access in user.role.access]
+        user_model = schemas.User.model_validate(user)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_list)
+        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
 
     @access_filter(AccessTags.CAN_GET_USER)
     async def get_user(self, user_id: uuid.UUID) -> schemas.UserSmall:
@@ -60,8 +69,18 @@ class UserApplicationService:
         if not user:
             raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
 
-        if data.state:
-            await self._redis_client.set("kick", user_id, expire=self._config.JWT.ACCESS_EXPIRE_SECONDS)
+        if data.role_id:
+            role = await self._role_repo.get(id=data.role_id)
+            if not role:
+                raise exceptions.NotFound(f"Роль с id:{data.role_id} не найдена!")
+
+        if data.state or data.role_id:
+            session_id_list = await self._session.get_user_sessions(user_id)
+            await asyncio.gather(
+                self._redis_client_reauth.set(
+                    session_id, data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
+                ) for session_id, data in session_id_list.items()
+            )
 
         await self._repo.update(
             id=user_id,
