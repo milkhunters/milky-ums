@@ -3,7 +3,7 @@ import uuid
 from pydantic import BaseModel, field_validator, EmailStr
 from datetime import datetime
 
-from .role import Role
+from .role import RoleMedium, RoleSmall, Role
 from src.models.state import UserState
 from src.utils import validators
 
@@ -28,12 +28,28 @@ class User(BaseModel):
         from_attributes = True
 
 
+class UserMedium(BaseModel):
+    """
+    Модель пользователя
+
+    """
+    id: uuid.UUID
+    username: str
+    email: EmailStr
+    first_name: str | None
+    last_name: str | None
+    role: RoleMedium
+    state: UserState
+
+    created_at: datetime
+
+
 class UserSmall(BaseModel):
     id: uuid.UUID
     username: str
     first_name: str | None
     last_name: str | None
-    role: Role
+    role: RoleSmall
     state: UserState
 
     created_at: datetime
