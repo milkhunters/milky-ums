@@ -5,21 +5,18 @@ from fastapi.requests import Request
 from fastapi.responses import Response
 
 from src import exceptions
-from src.models import tables
 from src.models import schemas
+from src.models import tables
+from src.models.access import AccessTags
 from src.models.auth import BaseUser
 from src.models.state import UserState
-from src.models.access import AccessTags
 from src.services.repository import UserRepo
-
+from src.utils import EmailSender
+from src.utils import RedisClient
+from .filters import access_filter, state_filter
 from .jwt import JWTManager
 from .password import verify_password, get_hashed_password
 from .session import SessionManager
-from .filters import access_filter, state_filter
-
-from src.utils import EmailSender
-from src.utils import RedisClient
-from src.utils import validators
 
 
 class AuthApplicationService:
@@ -31,6 +28,7 @@ class AuthApplicationService:
             session_manager: SessionManager,
             user_repo: UserRepo,
             redis_client: RedisClient,
+            redis_client_reauth: RedisClient,
             email: EmailSender,
     ):
         self._current_user = current_user
@@ -38,6 +36,7 @@ class AuthApplicationService:
         self._session_manager = session_manager
         self._user_repo = user_repo
         self._redis_client = redis_client
+        self._redis_client_reauth = redis_client_reauth
         self._email = email
 
     @access_filter(AccessTags.CAN_CREATE_USER)
@@ -67,7 +66,7 @@ class AuthApplicationService:
         )
 
     @access_filter(AccessTags.CAN_AUTHENTICATE)
-    async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.User:
+    async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.UserMedium:
         """
         Аутентификация пользователя
 
@@ -97,8 +96,16 @@ class AuthApplicationService:
         access_title_list = [obj.title for obj in user.role.access]
         tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, tokens)
-        await self._session_manager.set_session_id(response, tokens.refresh_token)
-        return schemas.User.model_validate(user)
+        await self._session_manager.set_session_id(
+            response=response,
+            refresh_token=tokens.refresh_token,
+            user_id=user.id,
+            ip_address=self._current_user.ip,
+            user_agent=str(self._current_user.user_agent)
+        )
+        user_model = schemas.User.model_validate(user)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_title_list)
+        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
 
     @access_filter(AccessTags.CAN_SEND_VERIFY_CODE)
     async def send_verify_code(self, email: str) -> None:
@@ -245,11 +252,10 @@ class AuthApplicationService:
     async def logout(self, request: Request, response: Response) -> None:
         self._jwt_manager.delete_jwt_cookie(response)
         session_id = self._session_manager.get_session_id(request)
-        if session_id:
-            await self._session_manager.delete_session_id(session_id, response)
+        if session_id and self._current_user.id:
+            await self._session_manager.delete_session(self._current_user.id, session_id, response)
 
-    @access_filter(AccessTags.CAN_REFRESH_TOKENS)
-    async def refresh_tokens(self, request: Request, response: Response) -> None:
+    async def refresh_tokens(self, request: Request, response: Response) -> schemas.UserMedium:
         """
         Обновление токенов
         :param request:
@@ -281,4 +287,15 @@ class AuthApplicationService:
         access_title_list = [obj.title for obj in user.role.access]
         new_tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, new_tokens)
-        await self._session_manager.set_session_id(response, new_tokens.refresh_token, session_id)
+        await self._session_manager.set_session_id(
+            response=response,
+            user_id=user.id,
+            refresh_token=new_tokens.refresh_token,
+            ip_address=self._current_user.ip,
+            user_agent=str(self._current_user.user_agent),
+            session_id=session_id
+        )
+        await self._redis_client_reauth.delete(session_id)
+        user_model = schemas.User.model_validate(user)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_title_list)
+        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
