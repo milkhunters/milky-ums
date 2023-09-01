@@ -1,5 +1,6 @@
 import logging
-from typing import Any
+from datetime import timedelta
+from typing import Any, Mapping
 
 import redis.asyncio as redis
 from redis.exceptions import RedisError
@@ -16,13 +17,12 @@ class RedisClient:
 
     def __init__(self, pool: redis.Redis = None):
         self.redis_client = pool
-        self.log = logging.getLogger(__name__)
 
     async def close(self):
         """Закрыть соединение с Redis.
         Закрывает соединение с Redis.
         """
-        self.log.debug("Закрытие соединения с Redis.")
+        logging.debug("Закрытие соединения с Redis.")
         await self.redis_client.close()
 
     async def ping(self):
@@ -34,11 +34,11 @@ class RedisClient:
             aioredis.RedisError: Если клиент Redis дал сбой при выполнении команды.
         """
 
-        self.log.debug("Сформирована Redis PING команда")
+        logging.debug("Сформирована Redis PING команда")
         try:
             return await self.redis_client.ping()
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis PING завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
@@ -60,12 +60,12 @@ class RedisClient:
             aioredis.RedisError: Если клиент Redis дал сбой при выполнении команды.
         """
 
-        self.log.debug(f"Сформирована Redis SET команда, key: {key}, value: {value}")
+        logging.debug(f"Сформирована Redis SET команда, key: {key}, value: {value}")
         try:
             await self.redis_client.set(key, value)
             await self.redis_client.expire(key, expire)
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis SET завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
@@ -86,11 +86,11 @@ class RedisClient:
             aioredis.RedisError: Если клиент Redis дал сбой при выполнении команды.
         """
 
-        self.log.debug(f"Сформирована Redis RPUSH команда, key: {key}, value: {value}")
+        logging.debug(f"Сформирована Redis RPUSH команда, key: {key}, value: {value}")
         try:
             await self.redis_client.rpush(key, value)
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis RPUSH завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
@@ -107,11 +107,11 @@ class RedisClient:
             aioredis.RedisError: Если клиент Redis дал сбой при выполнении команды.
         """
 
-        self.log.debug(f"Сформирована Redis EXISTS команда, key: {key}, exists")
+        logging.debug(f"Сформирована Redis EXISTS команда, key: {key}, exists")
         try:
             return await self.redis_client.exists(key)
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis EXISTS завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
@@ -130,11 +130,11 @@ class RedisClient:
             aioredis.RedisError: Если клиент Redis дал сбой при выполнении команды.
         """
 
-        self.log.debug(f"Сформирована Redis GET команда, key: {key}")
+        logging.debug(f"Сформирована Redis GET команда, key: {key}")
         try:
             return await self.redis_client.get(key)
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis GET завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
@@ -158,11 +158,11 @@ class RedisClient:
             aioredis.RedisError: Если клиент Redis дал сбой при выполнении команды.
         """
 
-        self.log.debug(f"Сформирована Redis LRANGE команда, key: {key}, start: {start}, end: {end}")
+        logging.debug(f"Сформирована Redis LRANGE команда, key: {key}, start: {start}, end: {end}")
         try:
             return await self.redis_client.lrange(key, start, end)
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis LRANGE завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
@@ -170,11 +170,11 @@ class RedisClient:
 
     async def delete(self, key: str):
 
-        self.log.debug(f"Сформирована Redis DELETE команда, key: {key}")
+        logging.debug(f"Сформирована Redis DELETE команда, key: {key}")
         try:
             return await self.redis_client.delete(key)
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis DELETE завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
@@ -182,12 +182,82 @@ class RedisClient:
 
     async def keys(self, pattern: str, **kwargs):
 
-        self.log.debug(f"Сформирована Redis KEYS команда, key: {pattern}")
+        logging.debug(f"Сформирована Redis KEYS команда, key: {pattern}")
         try:
             return await self.redis_client.keys(pattern, **kwargs)
         except RedisError as ex:
-            self.log.exception(
+            logging.exception(
                 "Команда Redis KEYS завершена с исключением",
+                exc_info=(type(ex), ex, ex.__traceback__),
+            )
+            raise ex
+
+    async def hset(self, name: Any, key: Any, value: Any, mapping: Mapping = None, items: Any = None):
+        logging.debug(f"Сформирована Redis HSET команда, name: {name}, key: {key}, value: {value}")
+        try:
+            await self.redis_client.hset(name, key, value, mapping, items)
+        except RedisError as ex:
+            logging.exception(
+                "Команда Redis HSET завершена с исключением",
+                exc_info=(type(ex), ex, ex.__traceback__),
+            )
+            raise ex
+
+    async def expire(
+            self,
+            name: Any,
+            time: int | timedelta,
+    ):
+        logging.debug(f"Сформирована Redis EXPIRE команда, name: {name}, time: {time}")
+        try:
+            await self.redis_client.expire(name, time)
+        except RedisError as ex:
+            logging.exception(
+                "Команда Redis EXPIRE завершена с исключением",
+                exc_info=(type(ex), ex, ex.__traceback__),
+            )
+            raise ex
+
+    async def hgetall(self, name: Any):
+        logging.debug(f"Сформирована Redis HGETALL команда, name: {name}")
+        try:
+            return await self.redis_client.hgetall(name)
+        except RedisError as ex:
+            logging.exception(
+                "Команда Redis HGETALL завершена с исключением",
+                exc_info=(type(ex), ex, ex.__traceback__),
+            )
+            raise ex
+
+    async def hexists(self, name: Any, key: Any):
+        logging.debug(f"Сформирована Redis HEXISTS команда, name: {name}, key: {key}")
+        try:
+            return await self.redis_client.hexists(name, key)
+        except RedisError as ex:
+            logging.exception(
+                "Команда Redis HEXISTS завершена с исключением",
+                exc_info=(type(ex), ex, ex.__traceback__),
+            )
+            raise ex
+
+    async def hdel(self, name: Any, *keys: Any):
+        logging.debug(f"Сформирована Redis HDEL команда, name: {name}, keys: {keys}")
+        try:
+            return await self.redis_client.hdel(name, *keys)
+        except RedisError as ex:
+            logging.exception(
+                "Команда Redis HDEL завершена с исключением",
+                exc_info=(type(ex), ex, ex.__traceback__),
+            )
+            raise ex
+
+    async def hget(self, name: Any, key: Any):
+        logging.debug(f"Сформирована Redis HGET команда, name: {name}, key: {key}")
+        try:
+            return await self.redis_client.hget(name, key)
+        except RedisError as ex:
+            logging.exception(
+                "Команда Redis HGET завершена с исключением",
                 exc_info=(type(ex), ex, ex.__traceback__),
             )
             raise ex

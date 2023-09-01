@@ -5,21 +5,18 @@ from fastapi.requests import Request
 from fastapi.responses import Response
 
 from src import exceptions
-from src.models import tables
 from src.models import schemas
+from src.models import tables
+from src.models.access import AccessTags
 from src.models.auth import BaseUser
 from src.models.state import UserState
-from src.models.role import Role, MainRole as M, AdditionalRole as A, RoleRange
 from src.services.repository import UserRepo
-
+from src.utils import EmailSender
+from src.utils import RedisClient
+from .filters import access_filter, state_filter
 from .jwt import JWTManager
 from .password import verify_password, get_hashed_password
 from .session import SessionManager
-from .filters import role_filter, state_filter
-
-from src.utils import EmailSender
-from src.utils import RedisClient
-from src.utils import validators
 
 
 class AuthApplicationService:
@@ -31,6 +28,7 @@ class AuthApplicationService:
             session_manager: SessionManager,
             user_repo: UserRepo,
             redis_client: RedisClient,
+            redis_client_reauth: RedisClient,
             email: EmailSender,
     ):
         self._current_user = current_user
@@ -38,9 +36,10 @@ class AuthApplicationService:
         self._session_manager = session_manager
         self._user_repo = user_repo
         self._redis_client = redis_client
+        self._redis_client_reauth = redis_client_reauth
         self._email = email
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_CREATE_USER)
     async def create_user(self, user: schemas.UserCreate) -> None:
         """
         Создание нового пользователя
@@ -60,10 +59,14 @@ class AuthApplicationService:
             raise exceptions.AlreadyExists(f"Пользователь с email {user.email!r} уже существует")
 
         hashed_password = get_hashed_password(user.password)
-        await self._user_repo.create(**user.model_dump(exclude={"password"}), hashed_password=hashed_password)
+        await self._user_repo.create(
+            **user.model_dump(exclude={"password"}),
+            role_id="00000000-0000-0000-0000-000000000000",
+            hashed_password=hashed_password
+        )
 
-    @role_filter(Role(M.GUEST, A.ONE))
-    async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.User:
+    @access_filter(AccessTags.CAN_AUTHENTICATE)
+    async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.UserMedium:
         """
         Аутентификация пользователя
 
@@ -77,7 +80,7 @@ class AuthApplicationService:
         :raise AccessDenied: if user is banned
         """
 
-        user: tables.User = await self._user_repo.get_by_username_insensitive(username=data.username)
+        user: tables.User = await self._user_repo.get_by_username_insensitive(username=data.username, as_full=True)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
         if not verify_password(data.password, user.hashed_password):
@@ -90,12 +93,21 @@ class AuthApplicationService:
             raise exceptions.AccessDenied("Пользователь удален")
 
         # Генерация и установка токенов
-        tokens = self._jwt_manager.generate_tokens(str(user.id), user.username, user.role_id, user.state.value)
+        access_title_list = [obj.title for obj in user.role.access]
+        tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, tokens)
-        await self._session_manager.set_session_id(response, tokens.refresh_token)
-        return schemas.User.model_validate(user)
+        await self._session_manager.set_session_id(
+            response=response,
+            refresh_token=tokens.refresh_token,
+            user_id=user.id,
+            ip_address=self._current_user.ip,
+            user_agent=str(self._current_user.user_agent)
+        )
+        user_model = schemas.User.model_validate(user)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_title_list)
+        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_SEND_VERIFY_CODE)
     async def send_verify_code(self, email: str) -> None:
         """
         Отправка кода подтверждения на почту
@@ -125,9 +137,9 @@ class AuthApplicationService:
 
         code = randint(100000, 999999)
         await self._redis_client.set(f"verify:{email}:{int(time.time())}:0", code, expire=60 * 60)
-        await self._email_service.send_mail(email, "Подтверждение почты", f"Код подтверждения: <b>{code}</b>")
+        await self._email.send_mail(email, "Подтверждение почты", f"Код подтверждения: <b>{code}</b>")
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_VERIFY_EMAIL)
     async def verify_email(self, email: str, code: int) -> None:
         """
         Подтверждение почты
@@ -138,9 +150,6 @@ class AuthApplicationService:
         :raise NotFound: if user not found
         :raise AccessDenied: if user is banned
         """
-
-        if not is_valid_email(email):
-            raise exceptions.BadRequest("Неверный формат почты")
 
         user: tables.User = await self._user_repo.get(email=email)
         if not user:
@@ -172,7 +181,7 @@ class AuthApplicationService:
         await self._user_repo.update(user.id, state=UserState.ACTIVE)
         await self._redis_client.delete(keys[0])
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_RESET_PASSWORD)
     async def reset_password(self, email: str) -> None:
         """
         Отправка кода восстановления пароля на почту
@@ -196,9 +205,9 @@ class AuthApplicationService:
 
         code = randint(100000, 999999)
         await self._redis_client.set(f"reset:{email}:{int(time.time())}:0", code, expire=60 * 60)
-        await self._email_service.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
+        await self._email.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
 
-    @role_filter(Role(M.GUEST, A.ONE))
+    @access_filter(AccessTags.CAN_CONFIRM_RESET_PASSWORD)
     async def confirm_reset_password(self, email: str, code: int, new_password: str) -> None:
         """
         Восстановление пароля
@@ -239,16 +248,14 @@ class AuthApplicationService:
         await self._user_repo.update(user.id, hashed_password=get_hashed_password(new_password))
         await self._redis_client.delete(keys[0])
 
-    @role_filter(RoleRange("*"), exclude=[Role(M.GUEST, A.ONE)])
+    @access_filter(AccessTags.CAN_LOGOUT)
     async def logout(self, request: Request, response: Response) -> None:
         self._jwt_manager.delete_jwt_cookie(response)
         session_id = self._session_manager.get_session_id(request)
-        if session_id:
-            await self._session_manager.delete_session_id(session_id, response)
+        if session_id and self._current_user.id:
+            await self._session_manager.delete_session(self._current_user.id, session_id, response)
 
-    @role_filter(RoleRange("*"), exclude=[Role(M.GUEST, A.ONE)])
-    @state_filter(UserState.ACTIVE)
-    async def refresh_tokens(self, request: Request, response: Response) -> None:
+    async def refresh_tokens(self, request: Request, response: Response) -> schemas.UserMedium:
         """
         Обновление токенов
         :param request:
@@ -263,20 +270,32 @@ class AuthApplicationService:
         current_tokens = self._jwt_manager.get_jwt_cookie(request)
         session_id = self._session_manager.get_session_id(request)
 
-        if not await self._session_manager.is_valid_session(session_id, current_tokens.refresh_token):
+        if not self._current_user.is_valid_session:
             raise exceptions.AccessDenied("Invalid session")
 
-        user = await self._user_repo.get(id=self._jwt_manager.decode_refresh_token(current_tokens.refresh_token).id)
+        if not self._current_user.is_valid_refresh_token:
+            raise exceptions.AccessDenied("Invalid refresh token")
+
+        old_payload = self._jwt_manager.decode_refresh_token(current_tokens.refresh_token)
+        user = await self._user_repo.get(id=old_payload.id, as_full=True)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
         if user.state == UserState.BLOCKED:
             raise exceptions.AccessDenied("Пользователь заблокирован")
 
-        new_tokens = self._jwt_manager.generate_tokens(str(user.id), user.username, user.role_id, user.state.value)
+        access_title_list = [obj.title for obj in user.role.access]
+        new_tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, new_tokens)
-        # Для бесшовного обновления токенов:
-        request.cookies["access_token"] = new_tokens.access_token
-        request.cookies["refresh_token"] = new_tokens.refresh_token
-
-        await self._session_manager.set_session_id(response, new_tokens.refresh_token, session_id)
+        await self._session_manager.set_session_id(
+            response=response,
+            user_id=user.id,
+            refresh_token=new_tokens.refresh_token,
+            ip_address=self._current_user.ip,
+            user_agent=str(self._current_user.user_agent),
+            session_id=session_id
+        )
+        await self._redis_client_reauth.delete(session_id)
+        user_model = schemas.User.model_validate(user)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_title_list)
+        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)

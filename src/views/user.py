@@ -3,7 +3,7 @@ from src.models import schemas
 
 
 class UserResponse(BaseView):
-    content: schemas.User
+    content: schemas.UserMedium
 
 
 class UserSmallResponse(BaseView):

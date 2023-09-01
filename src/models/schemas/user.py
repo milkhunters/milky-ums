@@ -1,9 +1,9 @@
 import uuid
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, EmailStr
 from datetime import datetime
 
-from src.models.role import Role
+from .role import RoleMedium, RoleSmall, Role
 from src.models.state import UserState
 from src.utils import validators
 
@@ -15,10 +15,10 @@ class User(BaseModel):
     """
     id: uuid.UUID
     username: str
-    email: str
+    email: EmailStr
     first_name: str | None
     last_name: str | None
-    role_id: int
+    role: Role
     state: UserState
 
     created_at: datetime
@@ -28,12 +28,28 @@ class User(BaseModel):
         from_attributes = True
 
 
+class UserMedium(BaseModel):
+    """
+    Модель пользователя
+
+    """
+    id: uuid.UUID
+    username: str
+    email: EmailStr
+    first_name: str | None
+    last_name: str | None
+    role: RoleMedium
+    state: UserState
+
+    created_at: datetime
+
+
 class UserSmall(BaseModel):
     id: uuid.UUID
     username: str
     first_name: str | None
     last_name: str | None
-    role_id: int
+    role: RoleSmall
     state: UserState
 
     created_at: datetime
@@ -44,19 +60,13 @@ class UserSmall(BaseModel):
 
 class UserCreate(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     password: str
 
     @field_validator('username')
     def username_must_be_valid(cls, value):
         if not validators.is_valid_username(value):
             raise ValueError("Имя пользователя должно быть валидным")
-        return value
-
-    @field_validator('email')
-    def email_must_be_valid(cls, value):
-        if not validators.is_valid_email(value):
-            raise ValueError("Email должен быть валидным")
         return value
 
     @field_validator('password')
@@ -108,18 +118,6 @@ class UserUpdate(BaseModel):
 
 
 class UserUpdateByAdmin(UserUpdate):
-    email: str = None
-    role_id: int = None
+    email: EmailStr = None
+    role_id: uuid.UUID = None
     state: UserState = None
-
-    @field_validator('email')
-    def email_must_be_valid(cls, value):
-        if value and not validators.is_valid_email(value):
-            raise ValueError("Email должен быть валидным")
-        return value
-
-    @field_validator('role_id')
-    def role_id_must_be_valid(cls, value):
-        if value:
-            Role.from_int(value)
-        return value

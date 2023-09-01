@@ -24,6 +24,11 @@ class AccessDenied(APIError):
         super().__init__(message=message, status_code=403)
 
 
+class Unauthorized(APIError):
+    def __init__(self, message: str = "Unauthorized") -> None:
+        super().__init__(message=message, status_code=401)
+
+
 class NotFound(APIError):
     def __init__(self, message: str = "Not Found") -> None:
         super().__init__(message=message, status_code=404)
