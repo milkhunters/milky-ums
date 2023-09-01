@@ -15,7 +15,6 @@ class StatsApplicationService:
             info.update(
                 {
                     "DEBUG": self._config.DEBUG,
-                    "IS_SECURE_COOKIE": self._config.IS_SECURE_COOKIE,
                     "build": os.getenv("BUILD", "unknown"),
                     "branch": os.getenv("BRANCH", "unknown"),
                 }
