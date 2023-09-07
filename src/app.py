@@ -12,7 +12,7 @@ from src.router import register_api_router
 from src.utils import custom_openapi
 
 
-config = load_consul_config(os.getenv('CONSUL_ROOT'), host="192.168.3.41")
+config = load_consul_config(os.getenv('CONSUL_ROOT'), host=os.getenv("CONSUL_HOST"))
 logging.basicConfig(level=logging.DEBUG if config.DEBUG else logging.INFO)
 
 app = FastAPI(
