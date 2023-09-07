@@ -12,7 +12,7 @@ from src.router import register_api_router
 from src.utils import custom_openapi
 
 
-config = load_consul_config(os.getenv('CONSUL_ROOT'), host="192.168.3.41")
+config = load_consul_config(os.getenv('CONSUL_ROOT'), host=os.getenv("CONSUL_HOST"))
 logging.basicConfig(level=logging.DEBUG if config.DEBUG else logging.INFO)
 
 app = FastAPI(
@@ -20,7 +20,7 @@ app = FastAPI(
     debug=config.DEBUG,
     version=config.BASE.VERSION,
     description=config.BASE.DESCRIPTION,
-    root_path="/api/v1" if not config.DEBUG else "",
+    root_path="/api/ums" if not config.DEBUG else "",
     docs_url="/api/docs" if config.DEBUG else "/docs",
     redoc_url="/api/redoc" if config.DEBUG else "/redoc",
     swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"},
