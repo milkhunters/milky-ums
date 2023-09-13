@@ -93,9 +93,9 @@ async def init_default_role(app: FastAPI):
 async def grpc_server(app_state):
     server = aio.server()
     ums_control_pb2_grpc.add_UserManagementServicer_to_server(UMService(app_state), server)
-    listen_addr = '[::]:50051'
+    listen_addr = "0.0.0.0:50051"
     server.add_insecure_port(listen_addr)
-    logging.info("Starting server on %s", listen_addr)
+    logging.info(f"Starting gRPC server on {listen_addr}", )
     await server.start()
     await server.wait_for_termination()
 
