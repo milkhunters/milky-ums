@@ -15,69 +15,17 @@ from src.views.user import UserResponse, UserSmallResponse, UserAvatarResponse
 router = APIRouter()
 
 
-@router.get("/current", response_model=UserResponse, status_code=http_status.HTTP_200_OK)
-async def get_current_user(services: ServiceFactory = Depends(get_services)):
+@router.get("/{user_id}", response_model=UserSmallResponse, status_code=http_status.HTTP_200_OK)
+async def get_user(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
     """
-    Получить модель текущего пользователя
+    Получить модель пользователя по id
 
-    Требуемые права доступа: CAN_GET_SELF
-
-    Состояние: ACTIVE
+    Требуемые права доступа: CAN_GET_USER
     """
-    return UserResponse(content=await services.user.get_me())
+    return UserSmallResponse(content=await services.user.get_user(user_id))
 
 
-@router.put("/update", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def update_current_user(data: schemas.UserUpdate, services: ServiceFactory = Depends(get_services)):
-    """
-    Обновить данные текущего пользователя
-
-    Требуемые права доступа: CAN_UPDATE_SELF
-
-    Состояние: ACTIVE
-    """
-    await services.user.update_me(data)
-
-
-@router.put("/update/avatar", response_model=None, status_code=http_status.HTTP_200_OK)
-async def update_avatar(file: UploadFile, services: ServiceFactory = Depends(get_services)):
-    """
-    Обновить аватар текущего пользователя
-
-    Требуемые права доступа: CAN_UPDATE_SELF
-
-    Состояние: ACTIVE
-    """
-    await services.user.update_avatar(file)
-
-
-@router.put("/update/password", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def update_password(old_password: str, new_password: str, services: ServiceFactory = Depends(get_services)):
-    """
-    Обновить пароль текущего пользователя
-
-    Требуемые права доступа: CAN_UPDATE_SELF
-
-    Состояние: ACTIVE
-
-    """
-    await services.user.update_password(old_password, new_password)
-
-
-@router.put("/update/avatar/{user_id}", response_model=None, status_code=http_status.HTTP_200_OK)
-async def update_user_avatar(file: UploadFile, user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
-    """
-    Обновить пароль текущего пользователя
-
-    Требуемые права доступа: CAN_UPDATE_USER
-
-    Состояние: ACTIVE
-
-    """
-    await services.user.update_user_avatar(user_id, file)
-
-
-@router.put("/update/{user_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
+@router.put("/{user_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
 async def update_user(
         user_id: uuid.UUID,
         data: schemas.UserUpdateByAdmin,
@@ -93,24 +41,41 @@ async def update_user(
     await services.user.update_user(user_id, data)
 
 
-@router.get("/{user_id}", response_model=UserSmallResponse, status_code=http_status.HTTP_200_OK)
-async def get_user(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
+@router.get("/current", response_model=UserResponse, status_code=http_status.HTTP_200_OK)
+async def get_current_user(services: ServiceFactory = Depends(get_services)):
     """
-    Получить модель пользователя по id
+    Получить модель текущего пользователя
 
-    Требуемые права доступа: CAN_GET_USER
+    Требуемые права доступа: CAN_GET_SELF
+
+    Состояние: ACTIVE
     """
-    return UserSmallResponse(content=await services.user.get_user(user_id))
+    return UserResponse(content=await services.user.get_me())
 
 
-@router.get("/avatar/{user_id}", response_model=UserAvatarResponse, status_code=http_status.HTTP_200_OK)
-async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
+@router.put("", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
+async def update_current_user(data: schemas.UserUpdate, services: ServiceFactory = Depends(get_services)):
     """
-    Получить URL пользовательского аватара по id
+    Обновить данные текущего пользователя
 
-    Требуемые права доступа: CAN_GET_USER
+    Требуемые права доступа: CAN_UPDATE_SELF
+
+    Состояние: ACTIVE
     """
-    return UserAvatarResponse(content=await services.user.get_avatar_url(user_id))
+    await services.user.update_me(data)
+
+
+@router.put("/password", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
+async def update_password(old_password: str, new_password: str, services: ServiceFactory = Depends(get_services)):
+    """
+    Обновить пароль текущего пользователя
+
+    Требуемые права доступа: CAN_UPDATE_SELF
+
+    Состояние: ACTIVE
+
+    """
+    await services.user.update_password(old_password, new_password)
 
 
 @router.delete("", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
@@ -129,6 +94,41 @@ async def delete_current_user(
     """
     await services.user.delete_me(password)
     await services.auth.logout(request, response)
+
+
+@router.get("/avatar/{user_id}", response_model=UserAvatarResponse, status_code=http_status.HTTP_200_OK)
+async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
+    """
+    Получить URL пользовательского аватара по id
+
+    Требуемые права доступа: CAN_GET_USER
+    """
+    return UserAvatarResponse(content=await services.user.get_avatar_url(user_id))
+
+
+@router.put("/avatar", response_model=None, status_code=http_status.HTTP_200_OK)
+async def update_avatar(file: UploadFile, services: ServiceFactory = Depends(get_services)):
+    """
+    Обновить аватар текущего пользователя
+
+    Требуемые права доступа: CAN_UPDATE_SELF
+
+    Состояние: ACTIVE
+    """
+    await services.user.update_avatar(file)
+
+
+@router.put("/avatar/{user_id}", response_model=None, status_code=http_status.HTTP_200_OK)
+async def update_user_avatar(file: UploadFile, user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
+    """
+    Обновить пароль текущего пользователя
+
+    Требуемые права доступа: CAN_UPDATE_USER
+
+    Состояние: ACTIVE
+
+    """
+    await services.user.update_user_avatar(user_id, file)
 
 
 @router.get("/session/list", response_model=SessionsResponse, status_code=http_status.HTTP_200_OK)

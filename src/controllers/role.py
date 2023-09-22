@@ -11,6 +11,20 @@ from src.views import RolesResponse, RoleResponse, AccessResponse, AccessesRespo
 router = APIRouter()
 
 
+@router.post("/new", response_model=RoleResponse, status_code=http_status.HTTP_200_OK)
+async def role_create(
+        data: schemas.CreateRole,
+        services: ServiceFactory = Depends(get_services),
+):
+    """
+    Создать роль
+
+    Требуемое состояние: ACTIVE
+    Требуемые права доступа: CAN_CREATE_ROLE
+    """
+    return RoleResponse(content=await services.role.create_role(data=data))
+
+
 @router.get("/list", response_model=RolesResponse, status_code=http_status.HTTP_200_OK)
 async def role_list(services: ServiceFactory = Depends(get_services)):
     """
@@ -22,7 +36,7 @@ async def role_list(services: ServiceFactory = Depends(get_services)):
     return RolesResponse(content=await services.role.get_roles())
 
 
-@router.post("/update", status_code=http_status.HTTP_200_OK)
+@router.put("", status_code=http_status.HTTP_200_OK)
 async def role_update(
         role_id: uuid.UUID,
         data: schemas.UpdateRole,
@@ -36,20 +50,6 @@ async def role_update(
     Требуемые права доступа: CAN_UPDATE_ROLE
     """
     await services.role.update_role(role_id=role_id, data=data)
-
-
-@router.post("/create", response_model=RoleResponse, status_code=http_status.HTTP_200_OK)
-async def role_create(
-        data: schemas.CreateRole,
-        services: ServiceFactory = Depends(get_services),
-):
-    """
-    Создать роль
-
-    Требуемое состояние: ACTIVE
-    Требуемые права доступа: CAN_CREATE_ROLE
-    """
-    return RoleResponse(content=await services.role.create_role(data=data))
 
 
 @router.delete("", status_code=http_status.HTTP_200_OK)
@@ -66,23 +66,7 @@ async def role_delete(
     await services.role.delete_role(role_id=role_id)
 
 
-@router.delete("/role_access", status_code=http_status.HTTP_200_OK)
-async def role_delete_role_access(
-        role_id: uuid.UUID,
-        access_id: uuid.UUID,
-        services: ServiceFactory = Depends(get_services),
-):
-    """
-    Удалить доступ у роли
-
-    Требуемое состояние: ACTIVE
-
-    Требуемые права доступа: CAN_DELETE_ROLE
-    """
-    await services.role.delete_role_access(role_id=role_id, access_id=access_id)
-
-
-@router.post("/set_access", status_code=http_status.HTTP_204_NO_CONTENT)
+@router.post("/link/new", status_code=http_status.HTTP_204_NO_CONTENT)
 async def role_set_access(
         role_id: uuid.UUID,
         access_tag: str,
@@ -96,6 +80,22 @@ async def role_set_access(
     Требуемые права доступа: CAN_UPDATE_ROLE
     """
     await services.role.set_role_access(role_id=role_id, access_tag=access_tag)
+
+
+@router.delete("/link", status_code=http_status.HTTP_200_OK)
+async def role_delete_role_access(
+        role_id: uuid.UUID,
+        access_id: uuid.UUID,
+        services: ServiceFactory = Depends(get_services),
+):
+    """
+    Удалить доступ у роли
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: CAN_DELETE_ROLE
+    """
+    await services.role.delete_role_access(role_id=role_id, access_id=access_id)
 
 
 @router.post("/access/new", response_model=AccessResponse, status_code=http_status.HTTP_200_OK)
@@ -125,21 +125,6 @@ async def role_access_list(services: ServiceFactory = Depends(get_services)):
     return AccessesResponse(content=await services.role.get_accesses())
 
 
-@router.delete("/access", status_code=http_status.HTTP_204_NO_CONTENT)
-async def role_delete_access(
-        access_id: uuid.UUID,
-        services: ServiceFactory = Depends(get_services),
-):
-    """
-    Удалить доступ
-
-    Требуемое состояние: ACTIVE
-
-    Требуемые права доступа: CAN_DELETE_ROLE
-    """
-    await services.role.delete_access(access_id=access_id)
-
-
 @router.get("/access/guest", response_model=list[str], status_code=http_status.HTTP_200_OK)
 async def role_guest_access(services: ServiceFactory = Depends(get_services)):
     """
@@ -158,3 +143,18 @@ async def role_app_access(services: ServiceFactory = Depends(get_services)):
     Требуемые права доступа: None
     """
     return await services.role.app_access()
+
+
+@router.delete("/access", status_code=http_status.HTTP_204_NO_CONTENT)
+async def role_delete_access(
+        access_id: uuid.UUID,
+        services: ServiceFactory = Depends(get_services),
+):
+    """
+    Удалить доступ
+
+    Требуемое состояние: ACTIVE
+
+    Требуемые права доступа: CAN_DELETE_ROLE
+    """
+    await services.role.delete_access(access_id=access_id)
