@@ -83,13 +83,13 @@ class UserCreate(BaseModel):
 
     @field_validator('first_name')
     def first_name_must_be_valid(cls, value):
-        if value and len(value.strip()) > 100:
+        if value and validators.is_valid_first_name(value):
             raise ValueError("Имя должно быть валидным")
         return value.strip()
 
     @field_validator('last_name')
     def last_name_must_be_valid(cls, value):
-        if value and len(value.strip()) > 100:
+        if value and validators.is_valid_last_name(value):
             raise ValueError("Фамилия должна быть валидной")
         return value.strip()
 
@@ -124,13 +124,13 @@ class UserUpdate(BaseModel):
 
     @field_validator('first_name')
     def first_name_must_be_valid(cls, value):
-        if value and len(value.strip()) > 100:
+        if value and validators.is_valid_first_name(value):
             raise ValueError("Имя должно быть валидным")
         return value.strip()
 
     @field_validator('last_name')
     def last_name_must_be_valid(cls, value):
-        if value and len(value.strip()) > 100:
+        if value and validators.is_valid_last_name(value):
             raise ValueError("Фамилия должна быть валидной")
         return value.strip()
 
