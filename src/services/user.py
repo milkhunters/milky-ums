@@ -58,7 +58,7 @@ class UserApplicationService:
 
     @access_filter(AccessTags.CAN_GET_USER)
     async def get_user(self, user_id: uuid.UUID) -> schemas.UserSmall:
-        user = await self._repo.get(id=user_id)
+        user = await self._repo.get(id=user_id, as_full=True)
         if not user:
             raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
         return schemas.UserSmall.model_validate(user)
