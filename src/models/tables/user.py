@@ -26,11 +26,6 @@ class User(Base):
     state = Column(Enum(UserState), default=UserState.NOT_CONFIRMED)
     hashed_password = Column(VARCHAR(255))
 
-    # articles = relationship("models.tables.article.Article", back_populates="owner")
-    # comments = relationship("models.tables.comment.Comment", back_populates="owner")
-    # notifications = relationship("models.tables.notification.Notification", back_populates="owner")
-    # files = relationship("models.tables.file.File", back_populates="owner")
-
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

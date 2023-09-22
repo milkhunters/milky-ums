@@ -12,6 +12,7 @@ from sqlalchemy import select, insert
 from src.config import Config, Email as EmailConfig
 from src.models.access import AccessTags
 from src.protos.ums_control import ums_control_pb2_grpc
+from src.services.storage.s3 import S3Storage
 from src.services.ums_control import UMService
 
 from src.utils import RedisClient, EmailSender
@@ -55,6 +56,19 @@ async def init_email(app: FastAPI, config: EmailConfig):
         virtualhost=config.RabbitMQ.VIRTUALHOST,
     )
     app.state.email_sender = EmailSender(app.state.rmq, config)
+
+
+async def init_s3_storage(app: FastAPI, config: Config):
+    app.state.file_storage = await S3Storage(
+        bucket=config.DB.S3.BUCKET,
+        external_host=config.DB.S3.PUBLIC_ENDPOINT_URL
+    ).create_session(
+        service_name=config.DB.S3.SERVICE_NAME,
+        endpoint_url=config.DB.S3.ENDPOINT_URL,
+        region_name=config.DB.S3.REGION,
+        access_key_id=config.DB.S3.ACCESS_KEY_ID,
+        secret_access_key=config.DB.S3.ACCESS_KEY,
+    )
 
 
 async def init_default_role(app: FastAPI):
@@ -107,6 +121,7 @@ def create_start_app_handler(app: FastAPI, config: Config) -> Callable:
         await init_redis_pool(app, config)
         await init_email(app, config.EMAIL)
         await init_default_role(app)
+        await init_s3_storage(app, config)
         asyncio.get_running_loop().create_task(grpc_server(app.state))
         logging.info("FastAPI Успешно запущен.")
 

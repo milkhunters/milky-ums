@@ -11,7 +11,11 @@ from src.models.tables import Base
 
 
 # App Config
-app_config = load_consul_config(os.getenv('CONSUL_ROOT'), host="192.168.3.41")
+app_config = load_consul_config(
+    os.getenv('CONSUL_ROOT'),
+    host=os.getenv('CONSUL_HOST'),
+    port=int(os.getenv('CONSUL_PORT'))
+)
 
 
 # this is the Alembic Config object, which provides

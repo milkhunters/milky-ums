@@ -17,4 +17,6 @@ async def get_services(request: Request, repos: RepoFactory = Depends(get_repos)
         redis_client_reauth=global_scope.redis_client_reauth,
         config=global_scope.config,
         email_sender=global_scope.email_sender,
+        file_storage=global_scope.file_storage,
+        lazy_session=global_scope.db_session
     )

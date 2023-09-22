@@ -8,3 +8,7 @@ class UserResponse(BaseView):
 
 class UserSmallResponse(BaseView):
     content: schemas.UserSmall
+
+
+class UserAvatarResponse(BaseView):
+    content: schemas.UserAvatar

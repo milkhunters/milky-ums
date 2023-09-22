@@ -5,6 +5,7 @@ from src.controllers import user
 from src.controllers import stats
 from src.controllers import role
 
+
 def register_api_router(is_debug: bool) -> APIRouter:
     root_api_router = APIRouter(prefix="/api/v1" if is_debug else "")
 

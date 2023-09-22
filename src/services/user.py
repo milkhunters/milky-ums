@@ -1,10 +1,15 @@
 import asyncio
+import typing
 import uuid
 from datetime import datetime
 
+from fastapi import UploadFile
+
 from src import exceptions
 from src.config import Config
+from src.models.file_type import FileType
 from src.services import SessionManager
+from src.services.storage.base import AbstractStorage, MetaData
 from src.utils import EmailSender, RedisClient
 from src.services.repository import UserRepo, RoleRepo
 from src.services.auth.filters import access_filter, state_filter
@@ -28,7 +33,9 @@ class UserApplicationService:
             email: EmailSender,
             redis_client_reauth: RedisClient,
             session: SessionManager,
-            config: Config
+            config: Config,
+            file_storage: AbstractStorage,
+            lazy_session: typing.Callable[[], typing.AsyncGenerator],
     ):
         self._current_user = current_user
         self._repo = user_repo
@@ -37,6 +44,8 @@ class UserApplicationService:
         self._redis_client_reauth = redis_client_reauth
         self._session = session
         self._config = config
+        self._file_storage = file_storage
+        self._lazy_session = lazy_session
 
     @access_filter(AccessTags.CAN_GET_SELF)
     @state_filter(UserState.ACTIVE)
@@ -49,7 +58,7 @@ class UserApplicationService:
 
     @access_filter(AccessTags.CAN_GET_USER)
     async def get_user(self, user_id: uuid.UUID) -> schemas.UserSmall:
-        user = await self._repo.get(id=user_id)
+        user = await self._repo.get(id=user_id, as_full=True)
         if not user:
             raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
         return schemas.UserSmall.model_validate(user)
@@ -182,4 +191,54 @@ class UserApplicationService:
         await self._session.delete_session(user_id, session_id)
         await self._redis_client_reauth.set(
             session_id, session_data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
+        )
+
+    @access_filter(AccessTags.CAN_UPDATE_SELF)
+    @state_filter(UserState.ACTIVE)
+    async def update_avatar(self, obj: UploadFile) -> None:
+        await self._repo.session.close()
+
+        if not FileType.has_value(obj.content_type):
+            raise exceptions.BadRequest(f"Неизвестный тип файла {obj.content_type!r}")
+
+        await self._file_storage.save(
+            file_id=self._current_user.id,
+            file=obj.file,
+            metadata=MetaData(
+                filename=obj.filename,
+                content_type=obj.content_type
+            )
+        )
+
+    @access_filter(AccessTags.CAN_UPDATE_USER)
+    @state_filter(UserState.ACTIVE)
+    async def update_user_avatar(self, user_id: uuid.UUID, obj: UploadFile) -> None:
+        if not FileType.has_value(obj.content_type):
+            raise exceptions.BadRequest(f"Неизвестный тип файла {obj.content_type!r}")
+
+        if not await self._repo.get(id=user_id):
+            raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
+        await self._repo.session.close()
+
+        await self._file_storage.save(
+            file_id=user_id,
+            file=obj.file,
+            metadata=MetaData(
+                filename=obj.filename,
+                content_type=obj.content_type
+            )
+        )
+
+    @access_filter(AccessTags.CAN_GET_USER)
+    async def get_avatar_url(self, user_id: uuid.UUID) -> schemas.UserAvatar:
+        await self._repo.session.close()
+
+        if (info := await self._file_storage.info(file_id=user_id)) is None:
+            raise exceptions.NotFound(f"Аватар пользователя с id:{user_id} не найден!")
+
+        return schemas.UserAvatar(avatar_url=self._file_storage.generate_url(
+                file_id=user_id,
+                content_type=info.content_type,
+                rcd="inline"
+            )
         )

@@ -28,6 +28,10 @@ class User(BaseModel):
         from_attributes = True
 
 
+class UserAvatar(BaseModel):
+    avatar_url: str
+
+
 class UserMedium(BaseModel):
     """
     Модель пользователя
@@ -62,6 +66,8 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
+    first_name: str = None
+    last_name: str = None
 
     @field_validator('username')
     def username_must_be_valid(cls, value):
@@ -74,6 +80,18 @@ class UserCreate(BaseModel):
         if not validators.is_valid_password(value):
             raise ValueError("Пароль должен быть валидным")
         return value
+
+    @field_validator('first_name')
+    def first_name_must_be_valid(cls, value):
+        if value and validators.is_valid_first_name(value):
+            raise ValueError("Имя должно быть валидным")
+        return value.strip()
+
+    @field_validator('last_name')
+    def last_name_must_be_valid(cls, value):
+        if value and validators.is_valid_last_name(value):
+            raise ValueError("Фамилия должна быть валидной")
+        return value.strip()
 
 
 class UserAuth(BaseModel):
@@ -106,13 +124,13 @@ class UserUpdate(BaseModel):
 
     @field_validator('first_name')
     def first_name_must_be_valid(cls, value):
-        if value and len(value.strip()) > 100:
+        if value and validators.is_valid_first_name(value):
             raise ValueError("Имя должно быть валидным")
         return value.strip()
 
     @field_validator('last_name')
     def last_name_must_be_valid(cls, value):
-        if value and len(value.strip()) > 100:
+        if value and validators.is_valid_last_name(value):
             raise ValueError("Фамилия должна быть валидной")
         return value.strip()
 
