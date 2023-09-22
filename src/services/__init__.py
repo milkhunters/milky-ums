@@ -1,8 +1,12 @@
+from typing import AsyncGenerator, Callable
+
+from src.config import Config
 from src.models.auth import BaseUser
 from src.services.auth import AuthApplicationService, JWTManager, SessionManager
 from src.services.repository import RepoFactory
 from src.services.role import RoleApplicationService
 from src.services.stats import StatsApplicationService
+from src.services.storage.base import AbstractStorage
 from src.services.user import UserApplicationService
 from src.utils import EmailSender
 
@@ -13,10 +17,12 @@ class ServiceFactory:
             repo_factory: RepoFactory,
             *,
             current_user: BaseUser,
-            config,
+            config: Config,
             redis_client,
             redis_client_reauth,
             email_sender: EmailSender,
+            file_storage: AbstractStorage,
+            lazy_session: Callable[[], AsyncGenerator],
     ):
         self._repo = repo_factory
         self._current_user = current_user
@@ -24,6 +30,8 @@ class ServiceFactory:
         self._redis_client = redis_client
         self._redis_client_reauth = redis_client_reauth
         self._email_sender = email_sender
+        self._file_storage = file_storage
+        self._lazy_session = lazy_session
 
     @property
     def auth(self) -> AuthApplicationService:
@@ -46,7 +54,9 @@ class ServiceFactory:
             email=self._email_sender,
             redis_client_reauth=self._redis_client_reauth,
             session=SessionManager(redis_client=self._redis_client, config=self._config),
-            config=self._config
+            config=self._config,
+            file_storage=self._file_storage,
+            lazy_session=self._lazy_session
         )
 
     @property

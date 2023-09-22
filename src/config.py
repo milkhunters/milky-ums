@@ -23,9 +23,21 @@ class PostgresConfig:
 
 
 @dataclass
+class S3Config:
+    BUCKET: str
+    ENDPOINT_URL: str
+    PUBLIC_ENDPOINT_URL: str
+    REGION: str
+    ACCESS_KEY_ID: str
+    ACCESS_KEY: str
+    SERVICE_NAME: str = "s3"
+
+
+@dataclass
 class DbConfig:
-    POSTGRESQL: PostgresConfig = None
-    REDIS: RedisConfig = None
+    POSTGRESQL: PostgresConfig
+    REDIS: RedisConfig
+    S3: S3Config
 
 
 @dataclass
@@ -148,13 +160,21 @@ def load_consul_config(
                 USERNAME=config("DATABASE", "POSTGRESQL", "USERNAME"),
                 PASSWORD=config("DATABASE", "POSTGRESQL", "PASSWORD"),
                 DATABASE=config("DATABASE", "POSTGRESQL", "DATABASE")
-            ) if to_bool(config("DATABASE", "POSTGRESQL", "is_used")) else None,
+            ),
             REDIS=RedisConfig(
                 HOST=config("DATABASE", "REDIS", "HOST"),
                 USERNAME=config("DATABASE", "REDIS", "USERNAME"),
                 PASSWORD=config("DATABASE", "REDIS", "PASSWORD"),
                 PORT=config("DATABASE", "REDIS", "PORT")
-            ) if to_bool(config("DATABASE", "REDIS", "is_used")) else None,
+            ),
+            S3=S3Config(
+                ENDPOINT_URL=config("DATABASE", "S3", "ENDPOINT_URL"),
+                REGION=config("DATABASE", "S3", "REGION"),
+                ACCESS_KEY_ID=config("DATABASE", "S3", "ACCESS_KEY_ID"),
+                ACCESS_KEY=config("DATABASE", "S3", "ACCESS_KEY"),
+                BUCKET=config("DATABASE", "S3", "BUCKET"),
+                PUBLIC_ENDPOINT_URL=config("DATABASE", "S3", "PUBLIC_ENDPOINT_URL")
+            ),
         ),
         EMAIL=Email(
             RabbitMQ=RabbitMQ(
