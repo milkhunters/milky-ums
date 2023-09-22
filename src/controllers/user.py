@@ -15,32 +15,6 @@ from src.views.user import UserResponse, UserSmallResponse, UserAvatarResponse
 router = APIRouter()
 
 
-@router.get("/{user_id}", response_model=UserSmallResponse, status_code=http_status.HTTP_200_OK)
-async def get_user(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
-    """
-    Получить модель пользователя по id
-
-    Требуемые права доступа: CAN_GET_USER
-    """
-    return UserSmallResponse(content=await services.user.get_user(user_id))
-
-
-@router.put("/{user_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def update_user(
-        user_id: uuid.UUID,
-        data: schemas.UserUpdateByAdmin,
-        services: ServiceFactory = Depends(get_services)
-):
-    """
-    Обновить данные пользователя по id
-
-    Требуемые права доступа: CAN_UPDATE_USER
-
-    Состояние: ACTIVE
-    """
-    await services.user.update_user(user_id, data)
-
-
 @router.get("/current", response_model=UserResponse, status_code=http_status.HTTP_200_OK)
 async def get_current_user(services: ServiceFactory = Depends(get_services)):
     """
@@ -96,6 +70,30 @@ async def delete_current_user(
     await services.auth.logout(request, response)
 
 
+@router.get("/session/list", response_model=SessionsResponse, status_code=http_status.HTTP_200_OK)
+async def get_self_sessions(services: ServiceFactory = Depends(get_services)):
+    """
+    Получить список сессий текущего пользователя
+
+    Требуемые права доступа: CAN_GET_SELF_SESSIONS
+
+    Состояние: ACTIVE
+    """
+    return SessionsResponse(content=await services.user.get_my_sessions())
+
+
+@router.get("/session/list/{user_id}", response_model=SessionsResponse, status_code=http_status.HTTP_200_OK)
+async def get_user_sessions(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
+    """
+    Получить список сессий пользователя по id
+
+    Требуемые права доступа: CAN_GET_USER_SESSIONS
+
+    Состояние: ACTIVE
+    """
+    return SessionsResponse(content=await services.user.get_user_sessions(user_id))
+
+
 @router.get("/avatar/{user_id}", response_model=UserAvatarResponse, status_code=http_status.HTTP_200_OK)
 async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
     """
@@ -121,7 +119,7 @@ async def update_avatar(file: UploadFile, services: ServiceFactory = Depends(get
 @router.put("/avatar/{user_id}", response_model=None, status_code=http_status.HTTP_200_OK)
 async def update_user_avatar(file: UploadFile, user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
     """
-    Обновить пароль текущего пользователя
+    Обновить аватар пользователя по id
 
     Требуемые права доступа: CAN_UPDATE_USER
 
@@ -129,30 +127,6 @@ async def update_user_avatar(file: UploadFile, user_id: uuid.UUID, services: Ser
 
     """
     await services.user.update_user_avatar(user_id, file)
-
-
-@router.get("/session/list", response_model=SessionsResponse, status_code=http_status.HTTP_200_OK)
-async def get_self_sessions(services: ServiceFactory = Depends(get_services)):
-    """
-    Получить список сессий текущего пользователя
-
-    Требуемые права доступа: CAN_GET_SELF_SESSIONS
-
-    Состояние: ACTIVE
-    """
-    return SessionsResponse(content=await services.user.get_my_sessions())
-
-
-@router.get("/session/list/{user_id}", response_model=SessionsResponse, status_code=http_status.HTTP_200_OK)
-async def get_user_sessions(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
-    """
-    Получить список сессий пользователя по id
-
-    Требуемые права доступа: CAN_GET_USER_SESSIONS
-
-    Состояние: ACTIVE
-    """
-    return SessionsResponse(content=await services.user.get_user_sessions(user_id))
 
 
 @router.delete("/session", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
@@ -177,3 +151,29 @@ async def delete_user_session(user_id: uuid.UUID, session_id: str, services: Ser
     Состояние: ACTIVE
     """
     await services.user.delete_user_session(user_id, session_id)
+
+
+@router.get("/{user_id}", response_model=UserSmallResponse, status_code=http_status.HTTP_200_OK)
+async def get_user(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
+    """
+    Получить модель пользователя по id
+
+    Требуемые права доступа: CAN_GET_USER
+    """
+    return UserSmallResponse(content=await services.user.get_user(user_id))
+
+
+@router.put("/{user_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
+async def update_user(
+        user_id: uuid.UUID,
+        data: schemas.UserUpdateByAdmin,
+        services: ServiceFactory = Depends(get_services)
+):
+    """
+    Обновить данные пользователя по id
+
+    Требуемые права доступа: CAN_UPDATE_USER
+
+    Состояние: ACTIVE
+    """
+    await services.user.update_user(user_id, data)
