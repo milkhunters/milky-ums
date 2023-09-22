@@ -28,6 +28,10 @@ class User(BaseModel):
         from_attributes = True
 
 
+class UserAvatar(BaseModel):
+    avatar_url: str
+
+
 class UserMedium(BaseModel):
     """
     Модель пользователя
