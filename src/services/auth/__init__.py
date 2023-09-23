@@ -107,7 +107,7 @@ class AuthApplicationService:
         role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_title_list)
         return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
 
-    @access_filter(AccessTags.CAN_SEND_VERIFY_CODE)
+    @access_filter(AccessTags.CAN_VERIFY_EMAIL)
     async def send_verify_code(self, email: str) -> None:
         """
         Отправка кода подтверждения на почту
@@ -207,7 +207,7 @@ class AuthApplicationService:
         await self._redis_client.set(f"reset:{email}:{int(time.time())}:0", code, expire=60 * 60)
         await self._email.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
 
-    @access_filter(AccessTags.CAN_CONFIRM_RESET_PASSWORD)
+    @access_filter(AccessTags.CAN_RESET_PASSWORD)
     async def confirm_reset_password(self, email: str, code: int, new_password: str) -> None:
         """
         Восстановление пароля

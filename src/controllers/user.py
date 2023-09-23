@@ -15,7 +15,7 @@ from src.views.user import UserResponse, UserSmallResponse, UserAvatarResponse
 router = APIRouter()
 
 
-@router.get("/current", response_model=UserResponse, status_code=http_status.HTTP_200_OK)
+@router.get("", response_model=UserResponse, status_code=http_status.HTTP_200_OK)
 async def get_current_user(services: ServiceFactory = Depends(get_services)):
     """
     Получить модель текущего пользователя
