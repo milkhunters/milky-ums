@@ -58,7 +58,7 @@ async def send_email(email: str, services: ServiceFactory = Depends(get_services
     """
     Отправить письмо с кодом для подтверждения email
 
-    Требуемые права доступа: CAN_SEND_VERIFY_CODE
+    Требуемые права доступа: CAN_VERIFY_EMAIL
     """
     await services.auth.send_verify_code(email)
 
@@ -88,6 +88,6 @@ async def confirm_reset_password(email: EmailStr, code: int, password: str, serv
     """
     Сбросить пароль
 
-    Требуемые права доступа: CAN_CONFIRM_RESET_PASSWORD
+    Требуемые права доступа: CAN_RESET_PASSWORD
     """
     await services.auth.confirm_reset_password(email, code, password)
