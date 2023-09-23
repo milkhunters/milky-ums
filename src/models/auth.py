@@ -177,10 +177,8 @@ class UnauthenticatedUser(BaseUser):
         return {
             AccessTags.CAN_AUTHENTICATE.value,
             AccessTags.CAN_CREATE_USER.value,
-            AccessTags.CAN_SEND_VERIFY_CODE.value,
             AccessTags.CAN_VERIFY_EMAIL.value,
             AccessTags.CAN_RESET_PASSWORD.value,
-            AccessTags.CAN_CONFIRM_RESET_PASSWORD.value,
             AccessTags.CAN_GET_USER.value,
         }
 
