@@ -94,6 +94,18 @@ async def get_user_sessions(user_id: uuid.UUID, services: ServiceFactory = Depen
     return SessionsResponse(content=await services.user.get_user_sessions(user_id))
 
 
+@router.get("/avatar", response_model=UserAvatarResponse, status_code=http_status.HTTP_200_OK)
+async def get_avatar_url(services: ServiceFactory = Depends(get_services)):
+    """
+    Получить URL своего аватара
+
+    Требуемые права доступа: CAN_GET_SELF
+
+    Состояние: ACTIVE
+    """
+    return UserAvatarResponse(content=await services.user.get_self_avatar_url())
+
+
 @router.get("/avatar/{user_id}", response_model=UserAvatarResponse, status_code=http_status.HTTP_200_OK)
 async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
     """
@@ -101,7 +113,7 @@ async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(
 
     Требуемые права доступа: CAN_GET_USER
     """
-    return UserAvatarResponse(content=await services.user.get_avatar_url(user_id))
+    return UserAvatarResponse(content=await services.user.get_user_avatar_url(user_id))
 
 
 @router.put("/avatar", response_model=None, status_code=http_status.HTTP_200_OK)
