@@ -29,7 +29,7 @@ class User(BaseModel):
 
 
 class UserAvatar(BaseModel):
-    avatar_url: str
+    avatar_url: str | None
 
 
 class UserMedium(BaseModel):
