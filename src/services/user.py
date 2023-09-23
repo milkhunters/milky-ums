@@ -230,7 +230,7 @@ class UserApplicationService:
         )
 
     @access_filter(AccessTags.CAN_GET_USER)
-    async def get_avatar_url(self, user_id: uuid.UUID) -> schemas.UserAvatar:
+    async def get_user_avatar_url(self, user_id: uuid.UUID) -> schemas.UserAvatar:
         await self._repo.session.close()
 
         if (info := await self._file_storage.info(file_id=user_id)) is None:
@@ -238,6 +238,21 @@ class UserApplicationService:
 
         return schemas.UserAvatar(avatar_url=self._file_storage.generate_url(
                 file_id=user_id,
+                content_type=info.content_type,
+                rcd="inline"
+            )
+        )
+
+    @access_filter(AccessTags.CAN_GET_SELF)
+    @state_filter(UserState.ACTIVE)
+    async def get_self_avatar_url(self) -> schemas.UserAvatar:
+        await self._repo.session.close()
+
+        if (info := await self._file_storage.info(file_id=self._current_user.id)) is None:
+            raise exceptions.NotFound(f"Аватар пользователя с id:{self._current_user.id} не найден!")
+
+        return schemas.UserAvatar(avatar_url=self._file_storage.generate_url(
+                file_id=self._current_user.id,
                 content_type=info.content_type,
                 rcd="inline"
             )
