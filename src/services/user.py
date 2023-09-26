@@ -12,13 +12,13 @@ from src.services import SessionManager
 from src.services.storage.base import AbstractStorage, MetaData
 from src.utils import EmailSender, RedisClient
 from src.services.repository import UserRepo, RoleRepo
-from src.services.auth.filters import access_filter, state_filter
+from src.services.auth.filters import permission_filter, state_filter
 from src.services.auth.password import verify_password, get_hashed_password
 
 from src.models import schemas
 from src.models.auth import BaseUser
 from src.models.state import UserState
-from src.models.access import AccessTags
+from src.models.permission import Permission
 from src.utils.validators import is_valid_password
 
 
@@ -47,7 +47,7 @@ class UserApplicationService:
         self._file_storage = file_storage
         self._lazy_session = lazy_session
 
-    @access_filter(AccessTags.CAN_GET_SELF)
+    @permission_filter(Permission.GET_SELF)
     @state_filter(UserState.ACTIVE)
     async def get_me(self) -> schemas.UserMedium:
         user = await self._repo.get(id=self._current_user.id, as_full=True)
@@ -56,14 +56,14 @@ class UserApplicationService:
         role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_list)
         return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
 
-    @access_filter(AccessTags.CAN_GET_USER)
+    @permission_filter(Permission.GET_USER)
     async def get_user(self, user_id: uuid.UUID) -> schemas.UserSmall:
         user = await self._repo.get(id=user_id, as_full=True)
         if not user:
             raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
         return schemas.UserSmall.model_validate(user)
 
-    @access_filter(AccessTags.CAN_UPDATE_SELF)
+    @permission_filter(Permission.UPDATE_SELF)
     @state_filter(UserState.ACTIVE)
     async def update_me(self, data: schemas.UserUpdate) -> None:
         await self._repo.update(
@@ -71,7 +71,7 @@ class UserApplicationService:
             **data.model_dump(exclude_unset=True)
         )
 
-    @access_filter(AccessTags.CAN_UPDATE_USER)
+    @permission_filter(Permission.UPDATE_USER)
     @state_filter(UserState.ACTIVE)
     async def update_user(self, user_id: uuid.UUID, data: schemas.UserUpdateByAdmin) -> None:
         user = await self._repo.get(id=user_id)
@@ -96,7 +96,7 @@ class UserApplicationService:
             **data.model_dump(exclude_unset=True)
         )
 
-    @access_filter(AccessTags.CAN_UPDATE_SELF)
+    @permission_filter(Permission.UPDATE_SELF)
     @state_filter(UserState.ACTIVE)
     async def update_password(self, old_password: str, new_password: str) -> None:
         if old_password == new_password:
@@ -135,7 +135,7 @@ class UserApplicationService:
             """
         )
 
-    @access_filter(AccessTags.CAN_DELETE_SELF)
+    @permission_filter(Permission.DELETE_SELF)
     @state_filter(UserState.ACTIVE)
     async def delete_me(self, password: str) -> None:
         user = await self._repo.get(id=self._current_user.id)
@@ -147,7 +147,7 @@ class UserApplicationService:
             state=UserState.DELETED
         )
 
-    @access_filter(AccessTags.CAN_GET_SELF_SESSIONS)
+    @permission_filter(Permission.GET_SELF_SESSIONS)
     @state_filter(UserState.ACTIVE)
     async def get_my_sessions(self) -> list[schemas.Session]:
         session_id_list = await self._session.get_user_sessions(self._current_user.id)
@@ -161,7 +161,7 @@ class UserApplicationService:
             for session_id, data in session_id_list.items()
         ]
 
-    @access_filter(AccessTags.CAN_GET_USER_SESSIONS)
+    @permission_filter(Permission.GET_USER_SESSIONS)
     @state_filter(UserState.ACTIVE)
     async def get_user_sessions(self, user_id: uuid.UUID) -> list[schemas.Session]:
         session_id_list = await self._session.get_user_sessions(user_id)
@@ -175,7 +175,7 @@ class UserApplicationService:
             for session_id, data in session_id_list.items()
         ]
 
-    @access_filter(AccessTags.CAN_DELETE_SELF_SESSION)
+    @permission_filter(Permission.DELETE_SELF_SESSION)
     @state_filter(UserState.ACTIVE)
     async def delete_my_session(self, session_id: str) -> None:
         session_data = await self._session.get_data_from_session(str(self._current_user.id), session_id)
@@ -184,7 +184,7 @@ class UserApplicationService:
             session_id, session_data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
         )
 
-    @access_filter(AccessTags.CAN_DELETE_USER_SESSION)
+    @permission_filter(Permission.DELETE_USER_SESSION)
     @state_filter(UserState.ACTIVE)
     async def delete_user_session(self, user_id: uuid.UUID, session_id: str) -> None:
         session_data = await self._session.get_data_from_session(str(user_id), session_id)
@@ -193,7 +193,7 @@ class UserApplicationService:
             session_id, session_data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
         )
 
-    @access_filter(AccessTags.CAN_UPDATE_SELF)
+    @permission_filter(Permission.UPDATE_SELF)
     @state_filter(UserState.ACTIVE)
     async def update_avatar(self, obj: UploadFile) -> None:
         await self._repo.session.close()
@@ -210,7 +210,7 @@ class UserApplicationService:
             )
         )
 
-    @access_filter(AccessTags.CAN_UPDATE_USER)
+    @permission_filter(Permission.UPDATE_USER)
     @state_filter(UserState.ACTIVE)
     async def update_user_avatar(self, user_id: uuid.UUID, obj: UploadFile) -> None:
         if not FileType.has_value(obj.content_type):
@@ -229,7 +229,7 @@ class UserApplicationService:
             )
         )
 
-    @access_filter(AccessTags.CAN_GET_USER)
+    @permission_filter(Permission.GET_USER)
     async def get_user_avatar_url(self, user_id: uuid.UUID) -> schemas.UserAvatar:
         await self._repo.session.close()
 
@@ -243,7 +243,7 @@ class UserApplicationService:
             )
         )
 
-    @access_filter(AccessTags.CAN_GET_SELF)
+    @permission_filter(Permission.GET_SELF)
     @state_filter(UserState.ACTIVE)
     async def get_self_avatar_url(self) -> schemas.UserAvatar:
         await self._repo.session.close()

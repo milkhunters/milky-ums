@@ -5,7 +5,7 @@ from .user import UserSmallResponse
 
 from .role import RoleResponse
 from .role import RolesResponse
-from .role import AccessResponse
-from .role import AccessesResponse
+from .role import PermissionResponse
+from .role import PermissionsResponse
 
 from .session import SessionsResponse

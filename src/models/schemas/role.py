@@ -4,7 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-class Access(BaseModel):
+class Permission(BaseModel):
     id: uuid.UUID
     title: str
     created_at: datetime
@@ -17,7 +17,7 @@ class Access(BaseModel):
 class Role(BaseModel):
     id: uuid.UUID
     title: str
-    access: list[Access] | None
+    permissions: list[Permission] | None
     created_at: datetime
     updated_at: datetime | None
 
@@ -28,7 +28,7 @@ class Role(BaseModel):
 class RoleMedium(BaseModel):
     id: uuid.UUID
     title: str
-    access: list[str] | None
+    permissions: list[str] | None
 
 
 class RoleSmall(BaseModel):
@@ -47,5 +47,5 @@ class CreateRole(BaseModel):
     title: str
 
 
-class CreateAccess(BaseModel):
+class CreatePermission(BaseModel):
     title: str

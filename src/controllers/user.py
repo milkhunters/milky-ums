@@ -20,7 +20,7 @@ async def get_current_user(services: ServiceFactory = Depends(get_services)):
     """
     Получить модель текущего пользователя
 
-    Требуемые права доступа: CAN_GET_SELF
+    Требуемые права доступа: GET_SELF
 
     Состояние: ACTIVE
     """
@@ -32,7 +32,7 @@ async def update_current_user(data: schemas.UserUpdate, services: ServiceFactory
     """
     Обновить данные текущего пользователя
 
-    Требуемые права доступа: CAN_UPDATE_SELF
+    Требуемые права доступа: UPDATE_SELF
 
     Состояние: ACTIVE
     """
@@ -44,7 +44,7 @@ async def update_password(old_password: str, new_password: str, services: Servic
     """
     Обновить пароль текущего пользователя
 
-    Требуемые права доступа: CAN_UPDATE_SELF
+    Требуемые права доступа: UPDATE_SELF
 
     Состояние: ACTIVE
 
@@ -62,7 +62,7 @@ async def delete_current_user(
     """
     Удалить текущего пользователя
 
-    Требуемые права доступа: CAN_DELETE_SELF, CAN_LOGOUT
+    Требуемые права доступа: DELETE_SELF, LOGOUT
 
     Состояние: ACTIVE
     """
@@ -75,7 +75,7 @@ async def get_self_sessions(services: ServiceFactory = Depends(get_services)):
     """
     Получить список сессий текущего пользователя
 
-    Требуемые права доступа: CAN_GET_SELF_SESSIONS
+    Требуемые права доступа: GET_SELF_SESSIONS
 
     Состояние: ACTIVE
     """
@@ -87,7 +87,7 @@ async def get_user_sessions(user_id: uuid.UUID, services: ServiceFactory = Depen
     """
     Получить список сессий пользователя по id
 
-    Требуемые права доступа: CAN_GET_USER_SESSIONS
+    Требуемые права доступа: GET_USER_SESSIONS
 
     Состояние: ACTIVE
     """
@@ -99,7 +99,7 @@ async def get_avatar_url(services: ServiceFactory = Depends(get_services)):
     """
     Получить URL своего аватара
 
-    Требуемые права доступа: CAN_GET_SELF
+    Требуемые права доступа: GET_SELF
 
     Состояние: ACTIVE
     """
@@ -111,7 +111,7 @@ async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(
     """
     Получить URL пользовательского аватара по id
 
-    Требуемые права доступа: CAN_GET_USER
+    Требуемые права доступа: GET_USER
     """
     return UserAvatarResponse(content=await services.user.get_user_avatar_url(user_id))
 
@@ -121,7 +121,7 @@ async def update_avatar(file: UploadFile, services: ServiceFactory = Depends(get
     """
     Обновить аватар текущего пользователя
 
-    Требуемые права доступа: CAN_UPDATE_SELF
+    Требуемые права доступа: UPDATE_SELF
 
     Состояние: ACTIVE
     """
@@ -133,7 +133,7 @@ async def update_user_avatar(file: UploadFile, user_id: uuid.UUID, services: Ser
     """
     Обновить аватар пользователя по id
 
-    Требуемые права доступа: CAN_UPDATE_USER
+    Требуемые права доступа: UPDATE_USER
 
     Состояние: ACTIVE
 
@@ -146,7 +146,7 @@ async def delete_current_session(session_id: str, services: ServiceFactory = Dep
     """
     Удалить свою сессию по id
 
-    Требуемые права доступа: CAN_DELETE_SELF_SESSION
+    Требуемые права доступа: DELETE_SELF_SESSION
 
     Состояние: ACTIVE
     """
@@ -158,7 +158,7 @@ async def delete_user_session(user_id: uuid.UUID, session_id: str, services: Ser
     """
     Удалить сессию пользователя по id
 
-    Требуемые права доступа: CAN_DELETE_USER_SESSION
+    Требуемые права доступа: DELETE_USER_SESSION
 
     Состояние: ACTIVE
     """
@@ -170,7 +170,7 @@ async def get_user(user_id: uuid.UUID, services: ServiceFactory = Depends(get_se
     """
     Получить модель пользователя по id
 
-    Требуемые права доступа: CAN_GET_USER
+    Требуемые права доступа: GET_USER
     """
     return UserSmallResponse(content=await services.user.get_user(user_id))
 
@@ -184,7 +184,7 @@ async def update_user(
     """
     Обновить данные пользователя по id
 
-    Требуемые права доступа: CAN_UPDATE_USER
+    Требуемые права доступа: UPDATE_USER
 
     Состояние: ACTIVE
     """
