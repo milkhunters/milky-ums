@@ -3,21 +3,18 @@ import logging
 from typing import Callable
 
 import aio_pika
+import redis.asyncio as redis
 from fastapi import FastAPI
 from grpc import aio
 
-import redis.asyncio as redis
-from sqlalchemy import select, insert
-
 from src.config import Config, Email as EmailConfig
-from src.models.access import AccessTags
+from src.db import create_psql_async_session
 from src.protos.ums_control import ums_control_pb2_grpc
+from src.services.repository import RoleRepo, AccessRepo, RoleAccessRepo
 from src.services.storage.s3 import S3Storage
 from src.services.ums_control import UMService
-
 from src.utils import RedisClient, EmailSender
-from src.db import create_psql_async_session
-from src.models import tables
+from src.utils.role import load_roles
 
 
 async def init_db(app: FastAPI, config: Config):
@@ -71,37 +68,37 @@ async def init_s3_storage(app: FastAPI, config: Config):
     )
 
 
-async def init_default_role(app: FastAPI):
+async def init_role(app: FastAPI):
+    logging.debug("Инициализация ролей.")
+
+    roles = load_roles("src/models/roles")
+
     default_id = "00000000-0000-0000-0000-000000000000"
+    default_role_model = next((role for role in roles if role.id == default_id), None)
+
+    if not default_role_model:
+        raise FileNotFoundError(f"Роль по умолчанию с default_id:{default_id} не найдена.")
+
     async with app.state.db_session() as session:
-        role = await session.execute(select(tables.Role).where(tables.Role.id == default_id))
-        if not role.scalar():
-            await session.execute(insert(tables.Role).values(id=default_id, title="default"))
-            await session.execute(
-                insert(tables.Access).values(id=default_id, title=AccessTags.CAN_GET_SELF.value)
-            )
-            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=default_id))
-            can_edit_id = "00000000-0000-0000-0000-000000000001"
-            await session.execute(
-                insert(tables.Access).values(id=can_edit_id, title=AccessTags.CAN_UPDATE_ROLE.value)
-            )
-            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_edit_id))
-            can_get_id = "00000000-0000-0000-0000-000000000002"
-            await session.execute(
-                insert(tables.Access).values(id=can_get_id, title=AccessTags.CAN_GET_ROLE.value)
-            )
-            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_get_id))
-            can_delete_id = "00000000-0000-0000-0000-000000000003"
-            await session.execute(
-                insert(tables.Access).values(id=can_delete_id, title=AccessTags.CAN_DELETE_ROLE.value)
-            )
-            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_delete_id))
-            can_create_id = "00000000-0000-0000-0000-000000000004"
-            await session.execute(
-                insert(tables.Access).values(id=can_create_id, title=AccessTags.CAN_CREATE_ROLE.value)
-            )
-            await session.execute(insert(tables.RoleAccess).values(role_id=default_id, access_id=can_create_id))
-            await session.commit()
+        role_repo = RoleRepo(session)
+        access_repo = AccessRepo(session)
+        role_access_repo = RoleAccessRepo(session)
+
+        for _ in roles:
+            role = await role_repo.get(id=_.id, as_full=True)
+            if not role:
+                await role_repo.create(id=_.id, title=_.title)
+                await session.commit()
+
+            for access_tag in _.access:
+                access = await access_repo.get(title=access_tag)
+                if not access:
+                    access = await access_repo.create(title=access_tag)
+                    await session.commit()
+                link = await role_access_repo.get(role_id=_.id, access_id=access.id)
+                if not link:
+                    await role_access_repo.create(role_id=_.id, access_id=access.id)
+                    await session.commit()
 
 
 async def grpc_server(app_state):
@@ -120,7 +117,7 @@ def create_start_app_handler(app: FastAPI, config: Config) -> Callable:
         await init_db(app, config)
         await init_redis_pool(app, config)
         await init_email(app, config.EMAIL)
-        await init_default_role(app)
+        await init_role(app)
         await init_s3_storage(app, config)
         asyncio.get_running_loop().create_task(grpc_server(app.state))
         logging.info("FastAPI Успешно запущен.")

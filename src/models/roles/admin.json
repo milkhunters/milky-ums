@@ -1,0 +1,11 @@
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "title": "Admin",
+  "access": [
+    "CAN_GET_SELF",
+    "CAN_GET_ROLE",
+    "CAN_UPDATE_ROLE",
+    "CAN_DELETE_ROLE",
+    "CAN_CREATE_ROLE"
+  ]
+}
