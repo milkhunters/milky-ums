@@ -10,9 +10,9 @@ class RolesResponse(BaseView):
     content: list[schemas.Role]
 
 
-class AccessResponse(BaseView):
-    content: schemas.Access
+class PermissionResponse(BaseView):
+    content: schemas.Permission
 
 
-class AccessesResponse(BaseView):
-    content: list[schemas.Access]
+class PermissionsResponse(BaseView):
+    content: list[schemas.Permission]

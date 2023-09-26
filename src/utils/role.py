@@ -8,7 +8,7 @@ from dataclasses import dataclass
 class RoleModel:
     id: str
     title: str
-    access: list[str]
+    permissions: list[str]
 
 
 def load_roles(path: str) -> list[RoleModel]:

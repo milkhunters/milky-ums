@@ -1,14 +1,14 @@
 from functools import wraps
 
 from src.exceptions import AccessDenied, Unauthorized
-from src.models.access import AccessTags
+from src.models.permission import Permission
 from src.models.auth import UnauthenticatedUser
 from src.models.state import UserState
 
 
-def access_filter(*tags: AccessTags):
+def permission_filter(*tags: Permission):
     """
-    Access Tag Filter decorator for ApplicationServices
+    Permission Tag Filter decorator for ApplicationServices
     It is necessary that the class of the method being decorated has a field '_current_user'
 
     :param tags: tuple of tags
@@ -24,7 +24,7 @@ def access_filter(*tags: AccessTags):
             if not current_user:
                 raise ValueError('AuthMiddleware not found')
 
-            if {tag.value for tag in tags}.issubset(current_user.access):
+            if {tag.value for tag in tags}.issubset(current_user.permissions):
                 return await func(*args, **kwargs)
 
             if isinstance(current_user, UnauthenticatedUser):

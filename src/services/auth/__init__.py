@@ -7,13 +7,13 @@ from fastapi.responses import Response
 from src import exceptions
 from src.models import schemas
 from src.models import tables
-from src.models.access import AccessTags
+from src.models.permission import Permission
 from src.models.auth import BaseUser
 from src.models.state import UserState
 from src.services.repository import UserRepo
 from src.utils import EmailSender
 from src.utils import RedisClient
-from .filters import access_filter, state_filter
+from .filters import permission_filter, state_filter
 from .jwt import JWTManager
 from .password import verify_password, get_hashed_password
 from .session import SessionManager
@@ -39,7 +39,7 @@ class AuthApplicationService:
         self._redis_client_reauth = redis_client_reauth
         self._email = email
 
-    @access_filter(AccessTags.CAN_CREATE_USER)
+    @permission_filter(Permission.CREATE_USER)
     async def create_user(self, user: schemas.UserCreate) -> None:
         """
         Создание нового пользователя
@@ -65,7 +65,7 @@ class AuthApplicationService:
             hashed_password=hashed_password
         )
 
-    @access_filter(AccessTags.CAN_AUTHENTICATE)
+    @permission_filter(Permission.AUTHENTICATE)
     async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.UserMedium:
         """
         Аутентификация пользователя
@@ -93,8 +93,8 @@ class AuthApplicationService:
             raise exceptions.AccessDenied("Пользователь удален")
 
         # Генерация и установка токенов
-        access_title_list = [obj.title for obj in user.role.access]
-        tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
+        permission_title_list = [obj.title for obj in user.role.permissions]
+        tokens = self._jwt_manager.generate_tokens(user.id, user.username, permission_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, tokens)
         await self._session_manager.set_session_id(
             response=response,
@@ -104,10 +104,10 @@ class AuthApplicationService:
             user_agent=str(self._current_user.user_agent)
         )
         user_model = schemas.User.model_validate(user)
-        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_title_list)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, permissions=permission_title_list)
         return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
 
-    @access_filter(AccessTags.CAN_VERIFY_EMAIL)
+    @permission_filter(Permission.VERIFY_EMAIL)
     async def send_verify_code(self, email: str) -> None:
         """
         Отправка кода подтверждения на почту
@@ -139,7 +139,7 @@ class AuthApplicationService:
         await self._redis_client.set(f"verify:{email}:{int(time.time())}:0", code, expire=60 * 60)
         await self._email.send_mail(email, "Подтверждение почты", f"Код подтверждения: <b>{code}</b>")
 
-    @access_filter(AccessTags.CAN_VERIFY_EMAIL)
+    @permission_filter(Permission.VERIFY_EMAIL)
     async def verify_email(self, email: str, code: int) -> None:
         """
         Подтверждение почты
@@ -181,7 +181,7 @@ class AuthApplicationService:
         await self._user_repo.update(user.id, state=UserState.ACTIVE)
         await self._redis_client.delete(keys[0])
 
-    @access_filter(AccessTags.CAN_RESET_PASSWORD)
+    @permission_filter(Permission.RESET_PASSWORD)
     async def reset_password(self, email: str) -> None:
         """
         Отправка кода восстановления пароля на почту
@@ -207,7 +207,7 @@ class AuthApplicationService:
         await self._redis_client.set(f"reset:{email}:{int(time.time())}:0", code, expire=60 * 60)
         await self._email.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
 
-    @access_filter(AccessTags.CAN_RESET_PASSWORD)
+    @permission_filter(Permission.RESET_PASSWORD)
     async def confirm_reset_password(self, email: str, code: int, new_password: str) -> None:
         """
         Восстановление пароля
@@ -248,7 +248,7 @@ class AuthApplicationService:
         await self._user_repo.update(user.id, hashed_password=get_hashed_password(new_password))
         await self._redis_client.delete(keys[0])
 
-    @access_filter(AccessTags.CAN_LOGOUT)
+    @permission_filter(Permission.LOGOUT)
     async def logout(self, request: Request, response: Response) -> None:
         self._jwt_manager.delete_jwt_cookie(response)
         session_id = self._session_manager.get_session_id(request)
@@ -284,8 +284,8 @@ class AuthApplicationService:
         if user.state == UserState.BLOCKED:
             raise exceptions.AccessDenied("Пользователь заблокирован")
 
-        access_title_list = [obj.title for obj in user.role.access]
-        new_tokens = self._jwt_manager.generate_tokens(user.id, user.username, access_title_list, user.state)
+        permission_title_list = [obj.title for obj in user.role.permissions]
+        new_tokens = self._jwt_manager.generate_tokens(user.id, user.username, permission_title_list, user.state)
         self._jwt_manager.set_jwt_cookie(response, new_tokens)
         await self._session_manager.set_session_id(
             response=response,
@@ -297,5 +297,5 @@ class AuthApplicationService:
         )
         await self._redis_client_reauth.delete(session_id)
         user_model = schemas.User.model_validate(user)
-        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_title_list)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, permissions=permission_title_list)
         return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)

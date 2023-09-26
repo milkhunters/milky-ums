@@ -1,7 +1,7 @@
 from .user import UserRepo
 from .role import RoleRepo
-from .access import AccessRepo
-from .role_access import RoleAccessRepo
+from .access import PermissionRepo
+from .role_permission import RolePermissionRepo
 
 
 class RepoFactory:
@@ -17,9 +17,9 @@ class RepoFactory:
         return RoleRepo(self._session)
 
     @property
-    def access(self) -> AccessRepo:
-        return AccessRepo(self._session)
+    def permission(self) -> PermissionRepo:
+        return PermissionRepo(self._session)
 
     @property
-    def role_access(self) -> RoleAccessRepo:
-        return RoleAccessRepo(self._session)
+    def role_permission(self) -> RolePermissionRepo:
+        return RolePermissionRepo(self._session)

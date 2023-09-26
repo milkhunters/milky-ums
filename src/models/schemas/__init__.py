@@ -15,10 +15,10 @@ from .user import UserAuth
 from .role import Role
 from .role import RoleMedium
 from .role import RoleSmall
-from .role import Access
+from .role import Permission
 from .role import UpdateRole
 from .role import CreateRole
-from .role import CreateAccess
+from .role import CreatePermission
 
 from .error import Error
 from .error import FieldErrorItem

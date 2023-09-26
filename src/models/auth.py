@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from starlette import authentication
 from user_agents.parsers import UserAgent
 
-from src.models.access import AccessTags
+from src.models.permission import Permission
 from src.models.state import UserState
 
 
@@ -22,7 +22,7 @@ class BaseUser(ABC, authentication.BaseUser):
 
     @property
     @abstractmethod
-    def access(self) -> set[str]:
+    def permissions(self) -> set[str]:
         pass
 
     @property
@@ -69,10 +69,10 @@ class BaseUser(ABC, authentication.BaseUser):
 
 
 class AuthenticatedUser(BaseUser):
-    def __init__(self, id: str, username: str, access: list[AccessTags], state_id: int, exp: int, **kwargs):
+    def __init__(self, id: str, username: str, permissions: list[Permission], state_id: int, exp: int, **kwargs):
         self._id = uuid.UUID(id)
         self._username = username
-        self._access = access
+        self._permissions = permissions
         self._state_id = state_id
         self._exp = exp
         self._ip = kwargs.get('ip')
@@ -102,8 +102,8 @@ class AuthenticatedUser(BaseUser):
         return self.username
 
     @property
-    def access(self) -> set[AccessTags]:
-        return set(self._access)
+    def permissions(self) -> set[Permission]:
+        return set(self._permissions)
 
     @property
     def state(self) -> UserState:
@@ -173,13 +173,13 @@ class UnauthenticatedUser(BaseUser):
         return None
 
     @property
-    def access(self) -> set[str]:
+    def permissions(self) -> set[str]:
         return {
-            AccessTags.CAN_AUTHENTICATE.value,
-            AccessTags.CAN_CREATE_USER.value,
-            AccessTags.CAN_VERIFY_EMAIL.value,
-            AccessTags.CAN_RESET_PASSWORD.value,
-            AccessTags.CAN_GET_USER.value,
+            Permission.AUTHENTICATE.value,
+            Permission.CREATE_USER.value,
+            Permission.VERIFY_EMAIL.value,
+            Permission.RESET_PASSWORD.value,
+            Permission.GET_USER.value,
         }
 
     @property
