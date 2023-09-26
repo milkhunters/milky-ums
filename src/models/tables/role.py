@@ -16,7 +16,9 @@ class Role(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(VARCHAR(32), unique=True, nullable=False)
 
-    access = relationship('models.tables.access.Access', secondary='role_access', back_populates='roles')
+    permissions = relationship(
+        'models.tables.permission.Permission', secondary='role_permission', back_populates='roles'
+    )
     users = relationship('models.tables.user.User', back_populates='role')
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -26,15 +28,15 @@ class Role(Base):
         return f'<{self.__class__.__name__}: {self.id}>'
 
 
-class RoleAccess(Base):
+class RolePermission(Base):
     """
-    Many-to-many table for Role and Access
+    Many-to-many table for Role and Permission
     """
-    __tablename__ = "role_access"
+    __tablename__ = "role_permission"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
-    access_id = Column(UUID(as_uuid=True), ForeignKey("access.id"), nullable=False)
+    permission_id = Column(UUID(as_uuid=True), ForeignKey("permissions.id"), nullable=False)
 
     def __repr__(self):
         return f'<{self.__class__.__name__}: {self.id}>'

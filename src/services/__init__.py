@@ -68,6 +68,6 @@ class ServiceFactory:
         return RoleApplicationService(
             self._current_user,
             role_repo=self._repo.role,
-            access_repo=self._repo.access,
-            role_access_repo=self._repo.role_access
+            permission_repo=self._repo.permission,
+            role_permission_repo=self._repo.role_permission
         )

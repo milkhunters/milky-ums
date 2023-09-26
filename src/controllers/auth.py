@@ -17,7 +17,7 @@ async def sign_up(data: schemas.UserCreate, services: ServiceFactory = Depends(g
     """
     Регистрация нового пользователя
 
-    Требуемые права доступа: CAN_CREATE_USER
+    Требуемые права доступа: CREATE_USER
     """
     await services.auth.create_user(data)
 
@@ -27,7 +27,7 @@ async def sign_in(user: schemas.UserAuth, response: Response, services: ServiceF
     """
     Вход в систему
 
-    Требуемые права доступа: CAN_AUTHENTICATE
+    Требуемые права доступа: AUTHENTICATE
     """
     return UserResponse(content=await services.auth.authenticate(user, response))
 
@@ -37,7 +37,7 @@ async def logout(request: Request, response: Response, services: ServiceFactory 
     """
     Выход из системы
 
-    Требуемые права доступа: CAN_LOGOUT
+    Требуемые права доступа: LOGOUT
     """
     await services.auth.logout(request, response)
 
@@ -58,7 +58,7 @@ async def send_email(email: str, services: ServiceFactory = Depends(get_services
     """
     Отправить письмо с кодом для подтверждения email
 
-    Требуемые права доступа: CAN_VERIFY_EMAIL
+    Требуемые права доступа: VERIFY_EMAIL
     """
     await services.auth.send_verify_code(email)
 
@@ -68,7 +68,7 @@ async def confirm_email(email: EmailStr, code: int, services: ServiceFactory = D
     """
     Подтвердить email
 
-    Требуемые права доступа: CAN_VERIFY_EMAIL
+    Требуемые права доступа: VERIFY_EMAIL
     """
     await services.auth.verify_email(email, code)
 
@@ -78,16 +78,21 @@ async def reset_password(email: EmailStr, services: ServiceFactory = Depends(get
     """
     Отправить письмо с кодом для сброса пароля
 
-    Требуемые права доступа: CAN_RESET_PASSWORD
+    Требуемые права доступа: RESET_PASSWORD
     """
     await services.auth.reset_password(email)
 
 
 @router.post("/reset/{email}/{code}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def confirm_reset_password(email: EmailStr, code: int, password: str, services: ServiceFactory = Depends(get_services)):
+async def confirm_reset_password(
+        email: EmailStr,
+        code: int,
+        password: str,
+        services: ServiceFactory = Depends(get_services)
+):
     """
     Сбросить пароль
 
-    Требуемые права доступа: CAN_RESET_PASSWORD
+    Требуемые права доступа: RESET_PASSWORD
     """
     await services.auth.confirm_reset_password(email, code, password)

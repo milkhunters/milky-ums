@@ -10,7 +10,7 @@ from grpc import aio
 from src.config import Config, Email as EmailConfig
 from src.db import create_psql_async_session
 from src.protos.ums_control import ums_control_pb2_grpc
-from src.services.repository import RoleRepo, AccessRepo, RoleAccessRepo
+from src.services.repository import RoleRepo, PermissionRepo, RolePermissionRepo
 from src.services.storage.s3 import S3Storage
 from src.services.ums_control import UMService
 from src.utils import RedisClient, EmailSender
@@ -81,8 +81,8 @@ async def init_role(app: FastAPI):
 
     async with app.state.db_session() as session:
         role_repo = RoleRepo(session)
-        access_repo = AccessRepo(session)
-        role_access_repo = RoleAccessRepo(session)
+        permission_repo = PermissionRepo(session)
+        role_permission_repo = RolePermissionRepo(session)
 
         for _ in roles:
             role = await role_repo.get(id=_.id, as_full=True)
@@ -90,14 +90,14 @@ async def init_role(app: FastAPI):
                 await role_repo.create(id=_.id, title=_.title)
                 await session.commit()
 
-            for access_tag in _.access:
-                access = await access_repo.get(title=access_tag)
-                if not access:
-                    access = await access_repo.create(title=access_tag)
+            for permission_tag in _.permissions:
+                permission = await permission_repo.get(title=permission_tag)
+                if not permission:
+                    permission = await permission_repo.create(title=permission_tag)
                     await session.commit()
-                link = await role_access_repo.get(role_id=_.id, access_id=access.id)
+                link = await role_permission_repo.get(role_id=_.id, permission_id=permission.id)
                 if not link:
-                    await role_access_repo.create(role_id=_.id, access_id=access.id)
+                    await role_permission_repo.create(role_id=_.id, permission_id=permission.id)
                     await session.commit()
 
 

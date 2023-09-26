@@ -1,4 +1,4 @@
-from sqlalchemy import insert, update, delete, func, select, text
+from sqlalchemy import select, text
 from sqlalchemy.orm import joinedload
 
 from src.models import tables
@@ -11,7 +11,7 @@ class RoleRepo(BaseRepository[tables.Role]):
     async def get(self, as_full: bool = False, **kwargs) -> tables.Role | None:
         req = select(self.table).filter_by(**kwargs)
         if as_full:
-            req = req.options(joinedload(self.table.access))
+            req = req.options(joinedload(self.table.permissions))
         return (await self._session.execute(req)).scalars().first()
 
     async def get_all(
@@ -23,7 +23,7 @@ class RoleRepo(BaseRepository[tables.Role]):
     ) -> list[tables.Role]:
         req = select(self.table).filter_by(**kwargs)
         if as_full:
-            req = req.options(joinedload(self.table.access))
+            req = req.options(joinedload(self.table.permissions))
 
         result = (await self._session.execute(req.order_by(text(order_by)).limit(limit).offset(offset))).unique()
         return result.scalars().all()
