@@ -1,8 +1,13 @@
 FROM python:3.11
 
+
+RUN pip install poetry
+
 COPY . /code
 WORKDIR /code
 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi
 
-CMD ["uvicorn", "src.app:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["uvicorn", "src.app:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
