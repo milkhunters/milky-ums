@@ -51,9 +51,9 @@ class UserApplicationService:
     @state_filter(UserState.ACTIVE)
     async def get_me(self) -> schemas.UserMedium:
         user = await self._repo.get(id=self._current_user.id, as_full=True)
-        access_list = [access.title for access in user.role.access]
+        permission_title_list = [permission.title for permission in user.role.permissions]
         user_model = schemas.User.model_validate(user)
-        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, access=access_list)
+        role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, permissions=permission_title_list)
         return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
 
     @permission_filter(Permission.GET_USER)
