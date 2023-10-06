@@ -29,6 +29,7 @@ class AuthApplicationService:
             user_repo: UserRepo,
             redis_client: RedisClient,
             redis_client_reauth: RedisClient,
+            redis_confirmations: RedisClient,
             email: EmailSender,
     ):
         self._current_user = current_user
@@ -37,6 +38,7 @@ class AuthApplicationService:
         self._user_repo = user_repo
         self._redis_client = redis_client
         self._redis_client_reauth = redis_client_reauth
+        self._redis_confirmations = redis_confirmations
         self._email = email
 
     @permission_filter(Permission.CREATE_USER)
@@ -115,29 +117,48 @@ class AuthApplicationService:
         :param email:
 
         :raise NotFound: if user not found
-        :raise AccessDenied: if user is banned
+        :raise AccessDenied: if user already verified
+        :raise BadRequest: if code already sent
         """
 
-        user: tables.User = await self._user_repo.get(email=email)
+        user = await self._user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
-        user: tables.User = await self._user_repo.get(email=email)
-        if not user:
-            raise exceptions.NotFound("Пользователь не найден")
         if user.state != UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
-        keys = await self._redis_client.keys(pattern=f'verify:{email}*')
-        if keys:
-            data_key = keys[0].split(':')
-            if int(data_key[2]) > int(time.time()) - 120:
+        key = f'email_confirm:{email}'
+        records = dict()
+        for code, data in (await self._redis_confirmations.hgetall(key)).items():
+            send_time = data.split(':')[0]
+            attempts = data.split(':')[1]
+            records[int(code)] = dict(
+                send_time=int(send_time),
+                attempts=int(attempts)
+            )
+
+        if len(records) >= 3:
+            raise exceptions.BadRequest("Превышено количество попыток, попробуйте позже")
+
+        if records:
+            last_record = list(records.items())[-1]
+            last_send_time = last_record[1]['send_time']
+            now_time = int(time.time())
+
+            if last_send_time > (now_time - 120):
                 raise exceptions.BadRequest("Код уже отправлен")
-            await self._redis_client.delete(keys[0])
 
         code = randint(100000, 999999)
-        await self._redis_client.set(f"verify:{email}:{int(time.time())}:0", code, expire=60 * 60)
-        await self._email.send_mail(email, "Подтверждение почты", f"Код подтверждения: <b>{code}</b>")
+        data = f'{int(time.time())}:0'
+        await self._redis_confirmations.hset(key, code, data)
+        await self._redis_confirmations.expire(key, 60 * 30)
+        await self._email.send_email_with_template(
+            to=email,
+            subject="Подтверждение почты",
+            template="confirm_email.html",
+            code=code
+        )
 
     @permission_filter(Permission.VERIFY_EMAIL)
     async def verify_email(self, email: str, code: int) -> None:
@@ -151,35 +172,43 @@ class AuthApplicationService:
         :raise AccessDenied: if user is banned
         """
 
-        user: tables.User = await self._user_repo.get(email=email)
+        user = await self._user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
+
         if user.state != UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
-        keys = await self._redis_client.keys(pattern=f'verify:{email}*')
-        if not keys:
+        key = f'email_confirm:{email}'
+        records = dict()
+        for send_code, data in (await self._redis_confirmations.hgetall(key)).items():
+            send_time = data.split(':')[0]
+            attempts = data.split(':')[1]
+            records[int(send_code)] = dict(
+                send_time=int(send_time),
+                attempts=int(attempts)
+            )
+
+        if not records:
             raise exceptions.BadRequest("Код не отправлен")
 
-        data = keys[0].split(':')
-        email = data[1]
-        timestamp = int(data[2])
-        attempts = int(data[3])
+        last_record = list(records.items())[-1]
+        last_send_code = last_record[0]
+        last_send_time = last_record[1]['send_time']
+        attempts = last_record[1]['attempts']
+        now_time = int(time.time())
 
-        if timestamp < int(time.time()) - 86400:
-            raise exceptions.BadRequest("Код устарел, отправьте новый")
-
-        if attempts > 3:
+        if attempts >= 3:
             raise exceptions.BadRequest("Превышено количество попыток")
 
-        code_in_db = await self._redis_client.get(keys[0])
-        if int(code_in_db) != code:
-            await self._redis_client.delete(keys[0])
-            await self._redis_client.set(f"verify:{email}:{timestamp}:{attempts + 1}", code, expire=60 * 60)
+        if last_send_code != code:
+            await self._redis_confirmations.hset(key, last_send_code, f'{last_send_time}:{attempts + 1}')
             raise exceptions.BadRequest("Неверный код")
 
+        if last_send_time < (now_time - 86400):
+            raise exceptions.BadRequest("Код устарел, отправьте новый")
+
         await self._user_repo.update(user.id, state=UserState.ACTIVE)
-        await self._redis_client.delete(keys[0])
 
     @permission_filter(Permission.RESET_PASSWORD)
     async def reset_password(self, email: str) -> None:
@@ -205,7 +234,7 @@ class AuthApplicationService:
 
         code = randint(100000, 999999)
         await self._redis_client.set(f"reset:{email}:{int(time.time())}:0", code, expire=60 * 60)
-        await self._email.send_mail(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
+        await self._email.send_email(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
 
     @permission_filter(Permission.RESET_PASSWORD)
     async def confirm_reset_password(self, email: str, code: int, new_password: str) -> None:
