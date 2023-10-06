@@ -19,10 +19,10 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         jwt = JWTManager(config=request.app.state.config)
         session = SessionManager(
-            redis_client=request.app.state.redis,
+            redis_client=request.app.state.redis_sessions,
             config=request.app.state.config
         )
-        redis_client_reauth: RedisClient = request.app.state.redis_client_reauth
+        redis_reauth: RedisClient = request.app.state.redis_reauth
 
         # States
         session_id = session.get_session_id(request)
@@ -45,7 +45,7 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
             # авторизацию по старому refresh токену, из-за чего пользователю
             # придется обновить токены или дождаться истечения access токена
 
-            old_ref_token = await redis_client_reauth.get(session_id)
+            old_ref_token = await redis_reauth.get(session_id)
             if old_ref_token and old_ref_token == current_tokens.refresh_token:
                 is_auth = False
 
