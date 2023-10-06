@@ -1,6 +1,5 @@
-from fastapi.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import HTTPException as StarletteHTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
 
 from src.models.error import ErrorType
 from src.models.schemas import Error, FieldErrorItem
@@ -20,32 +19,32 @@ class APIError(StarletteHTTPException):
 
 
 class AccessDenied(APIError):
-    def __init__(self, message: str = "Access denied") -> None:
+    def __init__(self, message: str = "Доступ запрещен") -> None:
         super().__init__(message=message, status_code=403)
 
 
 class Unauthorized(APIError):
-    def __init__(self, message: str = "Unauthorized") -> None:
+    def __init__(self, message: str = "Несанкционированный") -> None:
         super().__init__(message=message, status_code=401)
 
 
 class NotFound(APIError):
-    def __init__(self, message: str = "Not Found") -> None:
+    def __init__(self, message: str = "Запрашиваемый контент не найден") -> None:
         super().__init__(message=message, status_code=404)
 
 
 class AlreadyExists(APIError):
-    def __init__(self, message: str = "Already exists") -> None:
+    def __init__(self, message: str = "Уже существует") -> None:
         super().__init__(message=message, status_code=409)
 
 
 class BadRequest(APIError):
-    def __init__(self, message: str = "Bad Request") -> None:
+    def __init__(self, message: str = "Неверный запрос") -> None:
         super().__init__(message=message, status_code=400)
 
 
 class ConflictError(APIError):
-    def __init__(self, message: str = "Conflict") -> None:
+    def __init__(self, message: str = "Конфликт") -> None:
         super().__init__(message=message, status_code=409)
 
 
@@ -57,26 +56,40 @@ async def handle_api_error(request, exc):
                 type=ErrorType.MESSAGE,
                 content=exc.message
             )
-        ).dict()
+        ).model_dump()
     )
 
 
-async def handle_pydantic_error(request, exc: ValidationError):
+async def handle_pydantic_error(request, exc: RequestValidationError):
+    content = []
+    for error in exc.errors():
+        field = error.get('loc', ['none'])[-1]
+        location = error.get('loc', [])
+        message = error.get('msg', 'No message')
+        error_type = error.get('type', 'empty')
+
+        if error_type == "missing":
+            message = "Поле является обязательным"
+        elif error_type == "value_error":
+            message = ", ".join(error['ctx']['error'].args)
+
+        content.append(
+            FieldErrorItem(
+                field=field,
+                location=location,
+                message=message,
+                type=error_type
+            )
+        )
+
     return JSONResponse(
         status_code=400,
         content=BaseView(
             error=Error(
                 type=ErrorType.FIELD_LIST,
-                content=[
-                    FieldErrorItem(
-                        field=field.get('loc', ['none'])[-1],
-                        location=field.get('loc', []),
-                        message=field.get('msg', 'No message'),
-                        type=field.get('type', 'empty')
-                    ) for field in exc.errors()
-                ]
+                content=content
             )
-        ).dict()
+        ).model_dump()
     )
 
 
@@ -89,7 +102,7 @@ async def handle_404_error(request, exc):
         content=BaseView(
             error=Error(
                 type=ErrorType.MESSAGE,
-                content='Not Found'
+                content='Запрашиваемый контент не найден'
             )
-        ).dict()
+        ).model_dump()
     )

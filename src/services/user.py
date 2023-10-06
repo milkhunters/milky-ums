@@ -19,7 +19,7 @@ from src.models import schemas
 from src.models.auth import BaseUser
 from src.models.state import UserState
 from src.models.permission import Permission
-from src.utils.validators import is_valid_password
+from src.utils.validators import is_valid_password, is_square_image
 
 
 class UserApplicationService:
@@ -200,6 +200,9 @@ class UserApplicationService:
 
         if not FileType.has_value(obj.content_type):
             raise exceptions.BadRequest(f"Неизвестный тип файла {obj.content_type!r}")
+
+        if not is_square_image(obj.file):
+            raise exceptions.BadRequest("Файл не является валидным изображением")
 
         await self._file_storage.save(
             file_id=self._current_user.id,
