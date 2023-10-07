@@ -6,11 +6,11 @@ from src.utils import RedisClient
 
 class UMService(ums_control_pb2_grpc.UserManagementServicer):
     def __init__(self, app_state):
-        self.redis_client_reauth: RedisClient = app_state.redis_client_reauth
+        self.redis_reauth: RedisClient = app_state.redis_reauth
 
     async def GetListOfReauth(self, request, context):
-        all_keys = await self.redis_client_reauth.keys('*')
-        all_values = await asyncio.gather(*[self.redis_client_reauth.get(key) for key in all_keys])
+        all_keys = await self.redis_reauth.keys('*')
+        all_values = await asyncio.gather(*[self.redis_reauth.get(key) for key in all_keys])
 
         response_list = []
         # Вывод всех значений
