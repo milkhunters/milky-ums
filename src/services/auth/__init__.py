@@ -11,8 +11,17 @@ from src.models.permission import Permission
 from src.models.auth import BaseUser
 from src.models.state import UserState
 from src.services.repository import UserRepo
-from src.utils import EmailSender
+from src.utils import EmailSender, is_valid_password
 from src.utils import RedisClient
+
+from .confirm_code import ConfirmCodeUtil
+from .confirm_code import ManyGenAttemptsError
+from .confirm_code import ManyConfirmAttemptsError
+from .confirm_code import AlreadyGenError
+from .confirm_code import NotGenError
+from .confirm_code import InvalidCodeError
+from .confirm_code import ExpiredCodeError
+
 from .filters import permission_filter, state_filter
 from .jwt import JWTManager
 from .password import verify_password, get_hashed_password
@@ -29,7 +38,7 @@ class AuthApplicationService:
             user_repo: UserRepo,
             redis_client: RedisClient,
             redis_client_reauth: RedisClient,
-            redis_confirmations: RedisClient,
+            confirm_code_util: ConfirmCodeUtil,
             email: EmailSender,
     ):
         self._current_user = current_user
@@ -38,7 +47,7 @@ class AuthApplicationService:
         self._user_repo = user_repo
         self._redis_client = redis_client
         self._redis_client_reauth = redis_client_reauth
-        self._redis_confirmations = redis_confirmations
+        self._confirm_code_util = confirm_code_util
         self._email = email
 
     @permission_filter(Permission.CREATE_USER)
@@ -128,31 +137,18 @@ class AuthApplicationService:
         if user.state != UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
-        key = f'email_confirm:{email}'
-        records = dict()
-        for code, data in (await self._redis_confirmations.hgetall(key)).items():
-            send_time = data.split(':')[0]
-            attempts = data.split(':')[1]
-            records[int(code)] = dict(
-                send_time=int(send_time),
-                attempts=int(attempts)
-            )
+        self._confirm_code_util.set_key(f'email_confirm:{email}')
+        self._confirm_code_util.set_key_lifetime(60 * 30)
+        self._confirm_code_util.set_gen_interval(120)
+        self._confirm_code_util.set_max_gen_attempts(3)
 
-        if len(records) >= 3:
+        try:
+            code = await self._confirm_code_util.generate()
+        except ManyGenAttemptsError:
             raise exceptions.BadRequest("Превышено количество попыток, попробуйте позже")
+        except AlreadyGenError:
+            raise exceptions.BadRequest("Код уже отправлен")
 
-        if records:
-            last_record = list(records.items())[-1]
-            last_send_time = last_record[1]['send_time']
-            now_time = int(time.time())
-
-            if last_send_time > (now_time - 120):
-                raise exceptions.BadRequest("Код уже отправлен")
-
-        code = randint(100000, 999999)
-        data = f'{int(time.time())}:0'
-        await self._redis_confirmations.hset(key, code, data)
-        await self._redis_confirmations.expire(key, 60 * 30)
         await self._email.send_email_with_template(
             to=email,
             subject="Подтверждение почты",
@@ -168,8 +164,6 @@ class AuthApplicationService:
         :param email:
         :param code:
 
-        :raise NotFound: if user not found
-        :raise AccessDenied: if user is banned
         """
 
         user = await self._user_repo.get(email=email)
@@ -179,65 +173,64 @@ class AuthApplicationService:
         if user.state != UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
-        key = f'email_confirm:{email}'
-        records = dict()
-        for send_code, data in (await self._redis_confirmations.hgetall(key)).items():
-            send_time = data.split(':')[0]
-            attempts = data.split(':')[1]
-            records[int(send_code)] = dict(
-                send_time=int(send_time),
-                attempts=int(attempts)
-            )
+        self._confirm_code_util.set_key(f'email_confirm:{email}')
+        self._confirm_code_util.set_max_verify_attempts(3)
+        self._confirm_code_util.set_code_valid_time(60 * 30)
 
-        if not records:
-            raise exceptions.BadRequest("Код не отправлен")
-
-        last_record = list(records.items())[-1]
-        last_send_code = last_record[0]
-        last_send_time = last_record[1]['send_time']
-        attempts = last_record[1]['attempts']
-        now_time = int(time.time())
-
-        if attempts >= 3:
+        try:
+            await self._confirm_code_util.verify(code)
+        except ManyConfirmAttemptsError:
             raise exceptions.BadRequest("Превышено количество попыток")
-
-        if last_send_code != code:
-            await self._redis_confirmations.hset(key, last_send_code, f'{last_send_time}:{attempts + 1}')
+        except NotGenError:
+            raise exceptions.BadRequest("Код не отправлен")
+        except InvalidCodeError:
             raise exceptions.BadRequest("Неверный код")
-
-        if last_send_time < (now_time - 86400):
+        except ExpiredCodeError:
             raise exceptions.BadRequest("Код устарел, отправьте новый")
 
         await self._user_repo.update(user.id, state=UserState.ACTIVE)
 
+        await self._email.send_email_with_template(
+            to=email,
+            subject="Подтверждение почты",
+            template="successfully_confirm_email.html",
+            username=user.username
+        )
+
     @permission_filter(Permission.RESET_PASSWORD)
-    async def reset_password(self, email: str) -> None:
+    async def send_reset_code(self, email: str) -> None:
         """
         Отправка кода восстановления пароля на почту
 
         :param email:
-
-        :raise NotFound: if user not found
-        :raise AccessDenied: if user is banned
         """
 
-        user: tables.User = await self._user_repo.get(email=email)
+        user = await self._user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
-        keys = await self._redis_client.keys(pattern=f'reset:{email}*')
-        if keys:
-            data_key = keys[0].split(':')
-            if int(data_key[2]) > int(time.time()) - 120:
-                raise exceptions.BadRequest("Код уже отправлен")
-            await self._redis_client.delete(keys[0])
+        self._confirm_code_util.set_key(f'password_reset:{email}')
+        self._confirm_code_util.set_key_lifetime(60 * 30)
+        self._confirm_code_util.set_gen_interval(120)
+        self._confirm_code_util.set_max_gen_attempts(3)
 
-        code = randint(100000, 999999)
-        await self._redis_client.set(f"reset:{email}:{int(time.time())}:0", code, expire=60 * 60)
-        await self._email.send_email(email, "Восстановление пароля", f"Код восстановления: <b>{code}</b>")
+        try:
+            code = await self._confirm_code_util.generate()
+        except ManyGenAttemptsError:
+            raise exceptions.BadRequest("Превышено количество попыток, попробуйте позже")
+        except AlreadyGenError:
+            raise exceptions.BadRequest("Код уже отправлен")
+
+        await self._email.send_email_with_template(
+            to=email,
+            subject="Восстановление пароля",
+            template="reset_password.html",
+            username=user.username,
+            code=code
+        )
 
     @permission_filter(Permission.RESET_PASSWORD)
-    async def confirm_reset_password(self, email: str, code: int, new_password: str) -> None:
+    async def reset_password(self, email: str, code: int, new_password: str) -> None:
         """
         Восстановление пароля
 
@@ -245,37 +238,39 @@ class AuthApplicationService:
         :param code:
         :param new_password:
 
-        :raise NotFound: if user not found
-        :raise AccessDenied: if user is banned
         """
 
         user = await self._user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
-        keys = await self._redis_client.keys(pattern=f'reset:{email}*')
-        if not keys:
+        self._confirm_code_util.set_key(f'password_reset:{email}')
+        self._confirm_code_util.set_max_verify_attempts(3)
+        self._confirm_code_util.set_code_valid_time(60 * 30)
+
+        try:
+            await self._confirm_code_util.verify(code, delete_key=False)
+        except ManyConfirmAttemptsError:
+            raise exceptions.BadRequest("Превышено количество попыток")
+        except NotGenError:
             raise exceptions.BadRequest("Код не отправлен")
-
-        data = keys[0].split(':')
-        email = data[1]
-        timestamp = int(data[2])
-        attempts = int(data[3])
-
-        if timestamp < int(time.time()) - 86400:
+        except InvalidCodeError:
+            raise exceptions.BadRequest("Неверный код")
+        except ExpiredCodeError:
             raise exceptions.BadRequest("Код устарел, отправьте новый")
 
-        if attempts > 3:
-            raise exceptions.BadRequest("Превышено количество попыток")
+        if not is_valid_password(new_password):
+            raise exceptions.BadRequest("Невалидный пароль")
 
-        code_in_db = await self._redis_client.get(keys[0])
-        if int(code_in_db) != code:
-            await self._redis_client.delete(keys[0])
-            await self._redis_client.set(f"reset:{email}:{timestamp}:{attempts + 1}", code, expire=60 * 60)
-            raise exceptions.BadRequest("Неверный код")
-
+        await self._confirm_code_util.delete_key()
         await self._user_repo.update(user.id, hashed_password=get_hashed_password(new_password))
-        await self._redis_client.delete(keys[0])
+
+        await self._email.send_email_with_template(
+            to=email,
+            subject="Восстановление пароля",
+            template="successfully_reset_password.html",
+            username=user.username
+        )
 
     @permission_filter(Permission.LOGOUT)
     async def logout(self, request: Request, response: Response) -> None:
