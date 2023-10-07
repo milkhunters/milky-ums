@@ -40,8 +40,14 @@ async def init_redis_pool(app: FastAPI, config: Config):
         encoding="utf-8",
         decode_responses=True,
     )
-    app.state.redis = RedisClient(pool_0)
-    app.state.redis_client_reauth = RedisClient(pool_1)
+    pool_2 = await redis.from_url(
+        f"redis://:{config.DB.REDIS.PASSWORD}@{config.DB.REDIS.HOST}:{config.DB.REDIS.PORT}/2",
+        encoding="utf-8",
+        decode_responses=True,
+    )
+    app.state.redis_sessions = RedisClient(pool_0)
+    app.state.redis_reauth = RedisClient(pool_1)
+    app.state.redis_confirmations = RedisClient(pool_2)
 
 
 async def init_email(app: FastAPI, config: EmailConfig):

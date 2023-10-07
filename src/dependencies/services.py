@@ -13,8 +13,9 @@ async def get_services(request: Request, repos: RepoFactory = Depends(get_repos)
     yield ServiceFactory(
         repos,
         current_user=local_scope.get("user"),
-        redis_client=global_scope.redis,
-        redis_client_reauth=global_scope.redis_client_reauth,
+        redis_sessions=global_scope.redis_sessions,
+        redis_reauth=global_scope.redis_reauth,
+        redis_confirmations=global_scope.redis_confirmations,
         config=global_scope.config,
         email_sender=global_scope.email_sender,
         file_storage=global_scope.file_storage,

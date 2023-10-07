@@ -74,17 +74,17 @@ async def confirm_email(email: EmailStr, code: int, services: ServiceFactory = D
 
 
 @router.post("/reset/{email}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def reset_password(email: EmailStr, services: ServiceFactory = Depends(get_services)):
+async def send_reset_code(email: EmailStr, services: ServiceFactory = Depends(get_services)):
     """
     Отправить письмо с кодом для сброса пароля
 
     Требуемые права доступа: RESET_PASSWORD
     """
-    await services.auth.reset_password(email)
+    await services.auth.send_reset_code(email)
 
 
 @router.post("/reset/{email}/{code}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
-async def confirm_reset_password(
+async def reset_password(
         email: EmailStr,
         code: int,
         password: str,
@@ -95,4 +95,4 @@ async def confirm_reset_password(
 
     Требуемые права доступа: RESET_PASSWORD
     """
-    await services.auth.confirm_reset_password(email, code, password)
+    await services.auth.reset_password(email, code, password)

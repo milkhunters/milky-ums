@@ -2,7 +2,7 @@ from typing import AsyncGenerator, Callable
 
 from src.config import Config
 from src.models.auth import BaseUser
-from src.services.auth import AuthApplicationService, JWTManager, SessionManager
+from src.services.auth import AuthApplicationService, JWTManager, SessionManager, ConfirmCodeUtil
 from src.services.repository import RepoFactory
 from src.services.role import RoleApplicationService
 from src.services.stats import StatsApplicationService
@@ -18,8 +18,9 @@ class ServiceFactory:
             *,
             current_user: BaseUser,
             config: Config,
-            redis_client,
-            redis_client_reauth,
+            redis_sessions,
+            redis_reauth,
+            redis_confirmations,
             email_sender: EmailSender,
             file_storage: AbstractStorage,
             lazy_session: Callable[[], AsyncGenerator],
@@ -27,8 +28,9 @@ class ServiceFactory:
         self._repo = repo_factory
         self._current_user = current_user
         self._config = config
-        self._redis_client = redis_client
-        self._redis_client_reauth = redis_client_reauth
+        self._redis_sessions = redis_sessions
+        self._redis_reauth = redis_reauth
+        self._redis_confirmations = redis_confirmations
         self._email_sender = email_sender
         self._file_storage = file_storage
         self._lazy_session = lazy_session
@@ -38,10 +40,11 @@ class ServiceFactory:
         return AuthApplicationService(
             self._current_user,
             jwt_manager=JWTManager(config=self._config),
-            session_manager=SessionManager(redis_client=self._redis_client, config=self._config),
+            session_manager=SessionManager(redis_client=self._redis_sessions, config=self._config),
             user_repo=self._repo.user,
-            redis_client=self._redis_client,
-            redis_client_reauth=self._redis_client_reauth,
+            redis_client=self._redis_sessions,
+            redis_client_reauth=self._redis_reauth,
+            confirm_code_util=ConfirmCodeUtil(redis=self._redis_confirmations),
             email=self._email_sender
         )
 
@@ -52,8 +55,8 @@ class ServiceFactory:
             user_repo=self._repo.user,
             role_repo=self._repo.role,
             email=self._email_sender,
-            redis_client_reauth=self._redis_client_reauth,
-            session=SessionManager(redis_client=self._redis_client, config=self._config),
+            redis_client_reauth=self._redis_reauth,
+            session=SessionManager(redis_client=self._redis_sessions, config=self._config),
             config=self._config,
             file_storage=self._file_storage,
             lazy_session=self._lazy_session
@@ -61,7 +64,7 @@ class ServiceFactory:
 
     @property
     def stats(self) -> StatsApplicationService:
-        return StatsApplicationService(redis_client=self._redis_client, config=self._config)
+        return StatsApplicationService(redis_client=self._redis_sessions, config=self._config)
 
     @property
     def role(self) -> RoleApplicationService:
