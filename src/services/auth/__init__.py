@@ -1,6 +1,3 @@
-import time
-from random import randint
-
 from fastapi.requests import Request
 from fastapi.responses import Response
 
@@ -137,8 +134,9 @@ class AuthApplicationService:
         if user.state != UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
+        key_lifetime = 60 * 30
         self._confirm_code_util.set_key(f'email_confirm:{email}')
-        self._confirm_code_util.set_key_lifetime(60 * 30)
+        self._confirm_code_util.set_key_lifetime(key_lifetime)
         self._confirm_code_util.set_gen_interval(120)
         self._confirm_code_util.set_max_gen_attempts(3)
 
@@ -153,7 +151,9 @@ class AuthApplicationService:
             to=email,
             subject="Подтверждение почты",
             template="confirm_email.html",
-            code=code
+            kwargs=dict(code=code),
+            priority=13,
+            ttl=key_lifetime,
         )
 
     @permission_filter(Permission.VERIFY_EMAIL)
@@ -173,9 +173,10 @@ class AuthApplicationService:
         if user.state != UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
+        key_lifetime = 60 * 30
         self._confirm_code_util.set_key(f'email_confirm:{email}')
         self._confirm_code_util.set_max_verify_attempts(3)
-        self._confirm_code_util.set_code_valid_time(60 * 30)
+        self._confirm_code_util.set_code_valid_time(key_lifetime)
 
         try:
             await self._confirm_code_util.verify(code)
@@ -194,7 +195,11 @@ class AuthApplicationService:
             to=email,
             subject="Подтверждение почты",
             template="successfully_confirm_email.html",
-            username=user.username
+            kwargs=dict(
+                username=user.username
+            ),
+            priority=13,
+            ttl=key_lifetime,
         )
 
     @permission_filter(Permission.RESET_PASSWORD)
@@ -209,8 +214,9 @@ class AuthApplicationService:
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
+        key_lifetime = 60 * 30
         self._confirm_code_util.set_key(f'password_reset:{email}')
-        self._confirm_code_util.set_key_lifetime(60 * 30)
+        self._confirm_code_util.set_key_lifetime(key_lifetime)
         self._confirm_code_util.set_gen_interval(120)
         self._confirm_code_util.set_max_gen_attempts(3)
 
@@ -225,8 +231,12 @@ class AuthApplicationService:
             to=email,
             subject="Восстановление пароля",
             template="reset_password.html",
-            username=user.username,
-            code=code
+            kwargs=dict(
+                username=user.username,
+                code=code
+            ),
+            priority=13,
+            ttl=key_lifetime,
         )
 
     @permission_filter(Permission.RESET_PASSWORD)
@@ -244,9 +254,10 @@ class AuthApplicationService:
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
+        key_lifetime = 60 * 30
         self._confirm_code_util.set_key(f'password_reset:{email}')
         self._confirm_code_util.set_max_verify_attempts(3)
-        self._confirm_code_util.set_code_valid_time(60 * 30)
+        self._confirm_code_util.set_code_valid_time(key_lifetime)
 
         try:
             await self._confirm_code_util.verify(code, delete_key=False)
@@ -269,7 +280,11 @@ class AuthApplicationService:
             to=email,
             subject="Восстановление пароля",
             template="successfully_reset_password.html",
-            username=user.username
+            kwargs=dict(
+                username=user.username,
+            ),
+            priority=13,
+            ttl=key_lifetime,
         )
 
     @permission_filter(Permission.LOGOUT)

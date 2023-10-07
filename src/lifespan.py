@@ -50,13 +50,13 @@ async def init_redis_pool(app: FastAPI, config: Config):
     app.state.redis_confirmations = RedisClient(pool_2)
 
 
-async def init_email(app: FastAPI, config: EmailConfig):
+async def init_email(app: FastAPI, config: Config):
     app.state.rmq = await aio_pika.connect_robust(
-        host=config.RabbitMQ.HOST,
-        port=config.RabbitMQ.PORT,
-        login=config.RabbitMQ.USERNAME,
-        password=config.RabbitMQ.PASSWORD,
-        virtualhost=config.RabbitMQ.VIRTUALHOST,
+        host=config.EMAIL.RabbitMQ.HOST,
+        port=config.EMAIL.RabbitMQ.PORT,
+        login=config.EMAIL.RabbitMQ.USERNAME,
+        password=config.EMAIL.RabbitMQ.PASSWORD,
+        virtualhost=config.EMAIL.RabbitMQ.VIRTUALHOST,
     )
     app.state.email_sender = EmailSender(app.state.rmq, config)
 
@@ -122,7 +122,7 @@ def create_start_app_handler(app: FastAPI, config: Config) -> Callable:
         logging.debug("Выполнение FastAPI startup event handler.")
         await init_db(app, config)
         await init_redis_pool(app, config)
-        await init_email(app, config.EMAIL)
+        await init_email(app, config)
         await init_role(app)
         await init_s3_storage(app, config)
         asyncio.get_running_loop().create_task(grpc_server(app.state))
