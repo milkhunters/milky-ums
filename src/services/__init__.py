@@ -2,7 +2,7 @@ from typing import AsyncGenerator, Callable
 
 from src.config import Config
 from src.models.auth import BaseUser
-from src.services.auth import AuthApplicationService, JWTManager, SessionManager
+from src.services.auth import AuthApplicationService, JWTManager, SessionManager, ConfirmCodeUtil
 from src.services.repository import RepoFactory
 from src.services.role import RoleApplicationService
 from src.services.stats import StatsApplicationService
@@ -44,7 +44,7 @@ class ServiceFactory:
             user_repo=self._repo.user,
             redis_client=self._redis_sessions,
             redis_client_reauth=self._redis_reauth,
-            redis_confirmations=self._redis_confirmations,
+            confirm_code_util=ConfirmCodeUtil(redis=self._redis_confirmations),
             email=self._email_sender
         )
 
