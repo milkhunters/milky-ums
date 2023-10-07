@@ -62,13 +62,13 @@ class RabbitMQ:
     USERNAME: str
     PASSWORD: str
     VIRTUALHOST: str
-    QUEUE: str
+    EXCHANGE: str
 
 
 @dataclass
 class Email:
     RabbitMQ: RabbitMQ
-    FROM_NAME: str
+    SENDER_ID: str
 
 
 @dataclass
@@ -183,8 +183,8 @@ def load_consul_config(
                 USERNAME=config("EMAIL", "RabbitMQ", "USERNAME"),
                 PASSWORD=config("EMAIL", "RabbitMQ", "PASSWORD"),
                 VIRTUALHOST=config("EMAIL", "RabbitMQ", "VIRTUALHOST"),
-                QUEUE=config("EMAIL", "RabbitMQ", "QUEUE")
+                EXCHANGE=config("EMAIL", "RabbitMQ", "EXCHANGE")
             ),
-            FROM_NAME=config("EMAIL", "FROM_NAME")
+            SENDER_ID=config("EMAIL", "SENDER_ID")
         )
     )
