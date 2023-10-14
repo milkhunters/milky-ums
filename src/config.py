@@ -30,7 +30,6 @@ class S3Config:
     REGION: str
     ACCESS_KEY_ID: str
     ACCESS_KEY: str
-    SERVICE_NAME: str = "s3"
 
 
 @dataclass
