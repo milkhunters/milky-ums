@@ -5,7 +5,6 @@ from argon2.exceptions import VerifyMismatchError
 def get_hashed_password(password: str) -> str:
     """
     :param password:
-    :param salt:
     :return: [salt] + [hex hashed password]
     """
     ph = PasswordHasher()

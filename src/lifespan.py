@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from typing import Callable
 
 import aio_pika
@@ -78,11 +79,11 @@ async def init_role(app: FastAPI):
 
     roles = load_roles("src/models/roles")
 
-    default_id = "00000000-0000-0000-0000-000000000000"
-    default_role_model = next((role for role in roles if role.id == default_id), None)
+    default_id = uuid.UUID(int=0)
+    default_role_model = next((role for role in roles if role.id == str(default_id)), None)
 
     if not default_role_model:
-        raise FileNotFoundError(f"Роль по умолчанию с default_id:{default_id} не найдена.")
+        raise FileNotFoundError(f"Файл роли по умолчанию с default_id:{default_id} не найден.")
 
     async with app.state.db_session() as session:
         role_repo = RoleRepo(session)
@@ -95,13 +96,12 @@ async def init_role(app: FastAPI):
                 await role_repo.create(id=_.id, title=_.title)
                 await session.commit()
 
-            for permission_tag in _.permissions:
-                permission = await permission_repo.get(title=permission_tag)
-                if not permission:
-                    permission = await permission_repo.create(title=permission_tag)
-                    await session.commit()
-                link = await role_permission_repo.get(role_id=_.id, permission_id=permission.id)
-                if not link:
+                for permission_tag in _.permissions:
+                    permission = await permission_repo.get(title=permission_tag)
+                    if not permission:
+                        permission = await permission_repo.create(title=permission_tag)
+                        await session.commit()
+
                     await role_permission_repo.create(role_id=_.id, permission_id=permission.id)
                     await session.commit()
 
@@ -133,7 +133,9 @@ def create_start_app_handler(app: FastAPI, config: Config) -> Callable:
 def create_stop_app_handler(app: FastAPI) -> Callable:
     async def stop_app() -> None:
         logging.debug("Выполнение FastAPI shutdown event handler.")
-        await app.state.redis.close()
+        await app.state.redis_sessions.close()
+        await app.state.redis_reauth.close()
+        await app.state.redis_confirmations.close()
         await app.state.rmq.close()
 
     return stop_app
