@@ -6,9 +6,8 @@ from src.services.auth import AuthApplicationService, JWTManager, SessionManager
 from src.services.repository import RepoFactory
 from src.services.role import RoleApplicationService
 from src.services.stats import StatsApplicationService
-from src.services.storage.base import AbstractStorage
 from src.services.user import UserApplicationService
-from src.utils import EmailSender
+from src.utils import EmailSender, S3Storage
 
 
 class ServiceFactory:
@@ -22,7 +21,7 @@ class ServiceFactory:
             redis_reauth,
             redis_confirmations,
             email_sender: EmailSender,
-            file_storage: AbstractStorage,
+            file_storage: S3Storage,
             lazy_session: Callable[[], AsyncGenerator],
     ):
         self._repo = repo_factory
@@ -58,8 +57,7 @@ class ServiceFactory:
             redis_client_reauth=self._redis_reauth,
             session=SessionManager(redis_client=self._redis_sessions, config=self._config),
             config=self._config,
-            file_storage=self._file_storage,
-            lazy_session=self._lazy_session
+            s3_storage=self._file_storage,
         )
 
     @property

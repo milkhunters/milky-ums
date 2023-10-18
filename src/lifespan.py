@@ -7,11 +7,11 @@ import redis.asyncio as redis
 from fastapi import FastAPI
 from grpc import aio
 
-from src.config import Config, Email as EmailConfig
+from src.config import Config
 from src.db import create_psql_async_session
 from src.protos.ums_control import ums_control_pb2_grpc
 from src.services.repository import RoleRepo, PermissionRepo, RolePermissionRepo
-from src.services.storage.s3 import S3Storage
+from src.utils.s3 import S3Storage
 from src.services.ums_control import UMService
 from src.utils import RedisClient, EmailSender
 from src.utils.role import load_roles
