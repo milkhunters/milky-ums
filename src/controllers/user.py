@@ -1,16 +1,18 @@
 import uuid
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends
 from fastapi import status as http_status
 from fastapi.requests import Request
 from fastapi.responses import Response
 
 from src.dependencies.services import get_services
 from src.models import schemas
+from src.models.file_type import FileType
 from src.services import ServiceFactory
 from src.views import SessionsResponse
 
 from src.views.user import UserResponse, UserSmallResponse, UserAvatarResponse
+from src.views.s3 import S3UploadResponse
 
 router = APIRouter()
 
@@ -116,29 +118,33 @@ async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(
     return UserAvatarResponse(content=await services.user.get_user_avatar_url(user_id))
 
 
-@router.put("/avatar", response_model=None, status_code=http_status.HTTP_200_OK)
-async def update_avatar(file: UploadFile, services: ServiceFactory = Depends(get_services)):
+@router.put("/avatar", response_model=S3UploadResponse, status_code=http_status.HTTP_200_OK)
+async def update_avatar(file_type: FileType, services: ServiceFactory = Depends(get_services)):
     """
     Обновить аватар текущего пользователя
+
+    Выпускается временный url для загрузки файла
 
     Требуемые права доступа: UPDATE_SELF
 
     Состояние: ACTIVE
     """
-    await services.user.update_avatar(file)
+    return S3UploadResponse(content=await services.user.update_avatar(file_type))
 
 
-@router.put("/avatar/{user_id}", response_model=None, status_code=http_status.HTTP_200_OK)
-async def update_user_avatar(file: UploadFile, user_id: uuid.UUID, services: ServiceFactory = Depends(get_services)):
+@router.put("/avatar/{user_id}", response_model=S3UploadResponse, status_code=http_status.HTTP_200_OK)
+async def update_user_avatar(user_id: uuid.UUID, file_type: FileType, services: ServiceFactory = Depends(get_services)):
     """
     Обновить аватар пользователя по id
+
+    Выпускается временный url для загрузки файла
 
     Требуемые права доступа: UPDATE_USER
 
     Состояние: ACTIVE
 
     """
-    await services.user.update_user_avatar(user_id, file)
+    return S3UploadResponse(content=await services.user.update_user_avatar(user_id, file_type))
 
 
 @router.delete("/session", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
