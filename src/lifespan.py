@@ -7,11 +7,11 @@ import redis.asyncio as redis
 from fastapi import FastAPI
 from grpc import aio
 
-from src.config import Config, Email as EmailConfig
+from src.config import Config
 from src.db import create_psql_async_session
 from src.protos.ums_control import ums_control_pb2_grpc
 from src.services.repository import RoleRepo, PermissionRepo, RolePermissionRepo
-from src.services.storage.s3 import S3Storage
+from src.utils.s3 import S3Storage
 from src.services.ums_control import UMService
 from src.utils import RedisClient, EmailSender
 from src.utils.role import load_roles
@@ -66,7 +66,6 @@ async def init_s3_storage(app: FastAPI, config: Config):
         bucket=config.DB.S3.BUCKET,
         external_host=config.DB.S3.PUBLIC_ENDPOINT_URL
     ).create_session(
-        service_name=config.DB.S3.SERVICE_NAME,
         endpoint_url=config.DB.S3.ENDPOINT_URL,
         region_name=config.DB.S3.REGION,
         access_key_id=config.DB.S3.ACCESS_KEY_ID,

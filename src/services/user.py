@@ -1,25 +1,20 @@
 import asyncio
-import typing
 import uuid
 from datetime import datetime
 
-from fastapi import UploadFile
-
 from src import exceptions
 from src.config import Config
-from src.models.file_type import FileType
-from src.services import SessionManager
-from src.services.storage.base import AbstractStorage, MetaData
-from src.utils import EmailSender, RedisClient
-from src.services.repository import UserRepo, RoleRepo
-from src.services.auth.filters import permission_filter, state_filter
-from src.services.auth.password import verify_password, get_hashed_password
-
 from src.models import schemas
 from src.models.auth import BaseUser
-from src.models.state import UserState
+from src.models.file_type import FileType
 from src.models.permission import Permission
-from src.utils.validators import is_valid_password, is_square_image
+from src.models.state import UserState
+from src.services import SessionManager
+from src.services.auth.filters import permission_filter, state_filter
+from src.services.auth.password import verify_password, get_hashed_password
+from src.services.repository import UserRepo, RoleRepo
+from src.utils import EmailSender, RedisClient, S3Storage
+from src.utils.validators import is_valid_password
 
 
 class UserApplicationService:
@@ -34,8 +29,7 @@ class UserApplicationService:
             redis_client_reauth: RedisClient,
             session: SessionManager,
             config: Config,
-            file_storage: AbstractStorage,
-            lazy_session: typing.Callable[[], typing.AsyncGenerator],
+            s3_storage: S3Storage,
     ):
         self._current_user = current_user
         self._repo = user_repo
@@ -44,8 +38,7 @@ class UserApplicationService:
         self._redis_client_reauth = redis_client_reauth
         self._session = session
         self._config = config
-        self._file_storage = file_storage
-        self._lazy_session = lazy_session
+        self._file_storage = s3_storage
 
     @permission_filter(Permission.GET_SELF)
     @state_filter(UserState.ACTIVE)
@@ -115,24 +108,17 @@ class UserApplicationService:
         )
 
         change_time = datetime.now().strftime("%d.%m.%Y в %H:%M")
-        await self._email.send_mail(
+        await self._email.send_email_with_template(
             to=user.email,
             subject="Пароль MilkHunters изменен",
-            content=f"""
-                Здравствуйте, <b>{user.username}!</b><br><br>
-                Пароль от вашего аккаунта MilkHunters был успешно изменен сегодня {change_time} 
-                (ip:{self._current_user.ip}).<br><br>
-                Это оповещение отправлено в целях обеспечения конфиденциальности и безопасности 
-                вашего аккаунта MilkHunters. <b>Если изменение пароля запросили вы, 
-                то дальнейших действий не потребуется.</b><br>
-                <b>Если это сделали не вы</b>, измените пароль от своего аккаунта MilkHunters. 
-                Также рекомендуем изменить пароль от этой эл. почты, 
-                чтобы обеспечить максимальную защиту аккаунта. <br>
-                Если вы не можете получить доступ к своему аккаунту, пройдите по этой 
-                <a href='https://milkhunters.ru/password_reset?email={user.email}.'>ссылке</a>, 
-                чтобы восстановить доступ к аккаунту.<br><br>
-                С любовью, команда MilkHunters.
-            """
+            template="successfully_reset_password.html",
+            kwargs=dict(
+                username=user.username,
+                change_time=change_time,
+                ip=self._current_user.ip,
+                email=user.email,
+            ),
+            priority=9
         )
 
     @permission_filter(Permission.DELETE_SELF)
@@ -195,56 +181,40 @@ class UserApplicationService:
 
     @permission_filter(Permission.UPDATE_SELF)
     @state_filter(UserState.ACTIVE)
-    async def update_avatar(self, obj: UploadFile) -> None:
-        await self._repo.session.close()
-
-        if not FileType.has_value(obj.content_type):
-            raise exceptions.BadRequest(f"Неизвестный тип файла {obj.content_type!r}")
-
-        if not is_square_image(obj.file):
-            raise exceptions.BadRequest("Файл не является валидным изображением")
-
-        await self._file_storage.save(
+    async def update_avatar(self, file_type: FileType) -> schemas.PreSignedPostUrl:
+        resp = await self._file_storage.generate_upload_url(
             file_id=self._current_user.id,
-            file=obj.file,
-            metadata=MetaData(
-                filename=obj.filename,
-                content_type=obj.content_type
-            )
+            content_type=file_type.value,
+            content_length=(1, 20 * 1024 * 1024),  # 20mb
+            expires_in=30 * 60  # 30 min
         )
+        return schemas.PreSignedPostUrl.model_validate(resp)
 
     @permission_filter(Permission.UPDATE_USER)
     @state_filter(UserState.ACTIVE)
-    async def update_user_avatar(self, user_id: uuid.UUID, obj: UploadFile) -> None:
-        if not FileType.has_value(obj.content_type):
-            raise exceptions.BadRequest(f"Неизвестный тип файла {obj.content_type!r}")
-
+    async def update_user_avatar(self, user_id: uuid.UUID, file_type: FileType) -> schemas.PreSignedPostUrl:
         if not await self._repo.get(id=user_id):
             raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
-        await self._repo.session.close()
 
-        await self._file_storage.save(
+        url = await self._file_storage.generate_upload_url(
             file_id=user_id,
-            file=obj.file,
-            metadata=MetaData(
-                filename=obj.filename,
-                content_type=obj.content_type
-            )
+            content_type=file_type.value,
+            content_length=(1, 20 * 1024 * 1024),  # 20mb
+            expires_in=30 * 60  # 30 min
         )
+        return schemas.PreSignedPostUrl.model_validate(url)
 
     @permission_filter(Permission.GET_USER)
     async def get_user_avatar_url(self, user_id: uuid.UUID) -> schemas.UserAvatar:
-        await self._repo.session.close()
 
         if (info := await self._file_storage.info(file_id=user_id)) is None:
             raise exceptions.NotFound(f"Аватар пользователя с id:{user_id} не найден!")
 
-        return schemas.UserAvatar(avatar_url=self._file_storage.generate_url(
-                file_id=user_id,
-                content_type=info.content_type,
-                rcd="inline"
-            )
-        )
+        return schemas.UserAvatar(avatar_url=self._file_storage.generate_download_public_url(
+            file_id=user_id,
+            content_type=info.content_type,
+            rcd="inline"
+        ))
 
     @permission_filter(Permission.GET_SELF)
     @state_filter(UserState.ACTIVE)
@@ -254,9 +224,8 @@ class UserApplicationService:
         if (info := await self._file_storage.info(file_id=self._current_user.id)) is None:
             raise exceptions.NotFound(f"Аватар пользователя с id:{self._current_user.id} не найден!")
 
-        return schemas.UserAvatar(avatar_url=self._file_storage.generate_url(
-                file_id=self._current_user.id,
-                content_type=info.content_type,
-                rcd="inline"
-            )
-        )
+        return schemas.UserAvatar(avatar_url=self._file_storage.generate_download_public_url(
+            file_id=self._current_user.id,
+            content_type=info.content_type,
+            rcd="inline"
+        ))
