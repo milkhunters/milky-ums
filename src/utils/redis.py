@@ -12,7 +12,6 @@ class RedisClient:
 
     Attributes:
         redis_client (aioredis.Redis, optional): Экземпляр клиентского объекта Redis.
-        log (logging.Logger): Обработчик ведения журнала для этого класса.
     """
 
     def __init__(self, pool: redis.Redis = None):
