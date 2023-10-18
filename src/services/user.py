@@ -108,24 +108,17 @@ class UserApplicationService:
         )
 
         change_time = datetime.now().strftime("%d.%m.%Y в %H:%M")
-        await self._email.send_mail(
+        await self._email.send_email_with_template(
             to=user.email,
             subject="Пароль MilkHunters изменен",
-            content=f"""
-                Здравствуйте, <b>{user.username}!</b><br><br>
-                Пароль от вашего аккаунта MilkHunters был успешно изменен сегодня {change_time} 
-                (ip:{self._current_user.ip}).<br><br>
-                Это оповещение отправлено в целях обеспечения конфиденциальности и безопасности 
-                вашего аккаунта MilkHunters. <b>Если изменение пароля запросили вы, 
-                то дальнейших действий не потребуется.</b><br>
-                <b>Если это сделали не вы</b>, измените пароль от своего аккаунта MilkHunters. 
-                Также рекомендуем изменить пароль от этой эл. почты, 
-                чтобы обеспечить максимальную защиту аккаунта. <br>
-                Если вы не можете получить доступ к своему аккаунту, пройдите по этой 
-                <a href='https://milkhunters.ru/password_reset?email={user.email}.'>ссылке</a>, 
-                чтобы восстановить доступ к аккаунту.<br><br>
-                С любовью, команда MilkHunters.
-            """
+            template="successfully_reset_password.html",
+            kwargs=dict(
+                username=user.username,
+                change_time=change_time,
+                ip=self._current_user.ip,
+                email=user.email,
+            ),
+            priority=9
         )
 
     @permission_filter(Permission.DELETE_SELF)
