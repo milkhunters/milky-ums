@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi.requests import Request
 from fastapi.responses import Response
 
@@ -276,15 +278,18 @@ class AuthApplicationService:
         await self._confirm_code_util.delete_key()
         await self._user_repo.update(user.id, hashed_password=get_hashed_password(new_password))
 
+        change_time = datetime.now().strftime("%d.%m.%Y в %H:%M")
         await self._email.send_email_with_template(
             to=email,
             subject="Восстановление пароля",
             template="successfully_reset_password.html",
             kwargs=dict(
                 username=user.username,
+                change_time=change_time,
+                ip=self._current_user.ip,
+                email=user.email,
             ),
-            priority=13,
-            ttl=key_lifetime,
+            priority=9
         )
 
     @permission_filter(Permission.LOGOUT)
