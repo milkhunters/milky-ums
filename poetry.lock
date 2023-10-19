@@ -370,13 +370,13 @@ crt = ["awscrt (==0.16.26)"]
 
 [[package]]
 name = "botocore-stubs"
-version = "1.31.65"
+version = "1.31.66"
 description = "Type annotations and code completion for botocore"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "botocore_stubs-1.31.65-py3-none-any.whl", hash = "sha256:a923f0f1fceec68affcf878be3d2af906763d68dce95a9562c4c3a529834167e"},
-    {file = "botocore_stubs-1.31.65.tar.gz", hash = "sha256:466d448eb4da3e808999b8cb2eabdc3d8c6f851b017ab06af48a598a2443082d"},
+    {file = "botocore_stubs-1.31.66-py3-none-any.whl", hash = "sha256:b65fa3ff36e8a70518a143b5025559918a68d7a20b85c88f8a1f067f6620a205"},
+    {file = "botocore_stubs-1.31.66.tar.gz", hash = "sha256:5ea5f4af18ee654cf510d69b3bc7c1ed3236b50fcd4e3eb98c11d28033ff05c3"},
 ]
 
 [package.dependencies]
@@ -617,20 +617,20 @@ idna = ">=2.0.0"
 
 [[package]]
 name = "fastapi"
-version = "0.103.2"
+version = "0.104.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "fastapi-0.103.2-py3-none-any.whl", hash = "sha256:3270de872f0fe9ec809d4bd3d4d890c6d5cc7b9611d721d6438f9dacc8c4ef2e"},
-    {file = "fastapi-0.103.2.tar.gz", hash = "sha256:75a11f6bfb8fc4d2bec0bd710c2d5f2829659c0e8c0afd5560fdda6ce25ec653"},
+    {file = "fastapi-0.104.0-py3-none-any.whl", hash = "sha256:456482c1178fb7beb2814b88e1885bc49f9a81f079665016feffe3e1c6a7663e"},
+    {file = "fastapi-0.104.0.tar.gz", hash = "sha256:9c44de45693ae037b0c6914727a29c49a40668432b67c859a87851fc6a7b74c6"},
 ]
 
 [package.dependencies]
 anyio = ">=3.7.1,<4.0.0"
 pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
 starlette = ">=0.27.0,<0.28.0"
-typing-extensions = ">=4.5.0"
+typing-extensions = ">=4.8.0"
 
 [package.extras]
 all = ["email-validator (>=2.0.0)", "httpx (>=0.23.0)", "itsdangerous (>=1.1.0)", "jinja2 (>=2.11.2)", "orjson (>=3.2.1)", "pydantic-extra-types (>=2.0.0)", "pydantic-settings (>=2.0.0)", "python-multipart (>=0.0.5)", "pyyaml (>=5.3.1)", "ujson (>=4.0.1,!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0)", "uvicorn[standard] (>=0.12.0)"]
@@ -2340,4 +2340,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "905899439b6de9142fe22aa881b2a042591c7cb0cda10488070d001663b4bcc1"
+content-hash = "817e97bc4244817810a632a0cf52567e4ba353715dfe19e6d1b15214c8a03ef3"
