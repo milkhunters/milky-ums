@@ -1,13 +1,15 @@
-FROM python:3.12
+FROM python:3.12.2-alpine3.19
 
+RUN mkdir /app
 
-RUN pip install poetry
+# Setup FastAPI application
+COPY . /app/code
+WORKDIR /app/code
 
-COPY . /code
-WORKDIR /code
+RUN python -m venv venv
+RUN . venv/bin/activate
+RUN pip install -e .
 
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
+ENV PYTHONPATH=/app/code/src
 
-
-CMD ["uvicorn", "src.app:app", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+CMD ["uvicorn", "src.ums.main:application", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
