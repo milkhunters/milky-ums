@@ -1,10 +1,11 @@
 import os
 
+from ums.config import Config
+
 
 class StatsApplicationService:
 
-    def __init__(self, redis_client, config):
-        self._redis_client = redis_client
+    def __init__(self, config: Config):
         self._config = config
 
     async def get_stats(self, details: bool = False) -> dict:
@@ -20,6 +21,3 @@ class StatsApplicationService:
                 }
             )
         return info
-
-    async def redis_ping(self) -> bool:
-        return await self._redis_client.ping()
