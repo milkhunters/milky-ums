@@ -1,7 +1,8 @@
-from sqlalchemy import select, text
+from sqlalchemy import select, text, insert, delete
 from sqlalchemy.orm import joinedload
 
 from ums.models import tables
+from ums.models.schemas.role import RoleID, PermissionID
 from ums.repositories.base import BaseRepository
 
 
@@ -27,3 +28,27 @@ class RoleRepo(BaseRepository[tables.Role]):
 
         result = (await self._session.execute(req.order_by(text(order_by)).limit(limit).offset(offset))).unique()
         return result.scalars().all()
+
+    async def add_link(self, role_id: RoleID, permission_id: PermissionID, commit: bool = True):
+        stmt = insert(tables.RolePermission).values(role_id=role_id, permission_id=permission_id)
+        await self._session.execute(stmt)
+        if commit:
+            await self._session.commit()
+
+    async def remove_link(self, role_id: RoleID, permission_id: PermissionID, commit: bool = True):
+        stmt = (
+            delete(tables.RolePermission)
+            .where(tables.RolePermission.role_id == role_id)
+            .where(tables.RolePermission.permission_id == permission_id)
+        )
+        await self._session.execute(stmt)
+        if commit:
+            await self._session.commit()
+
+    async def has_link(self, role_id: RoleID, permission_id: PermissionID) -> bool:
+        stmt = (
+            select(tables.RolePermission)
+            .where(tables.RolePermission.role_id == role_id)
+            .where(tables.RolePermission.permission_id == permission_id)
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none() is not None
