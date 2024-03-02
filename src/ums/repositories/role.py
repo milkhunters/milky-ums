@@ -2,7 +2,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import joinedload
 
 from ums.models import tables
-from ums.services.repository.base import BaseRepository
+from ums.repositories.base import BaseRepository
 
 
 class RoleRepo(BaseRepository[tables.Role]):

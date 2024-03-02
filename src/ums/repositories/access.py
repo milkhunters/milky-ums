@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from ums.models import tables
-from ums.services.repository.base import BaseRepository
+from ums.repositories.base import BaseRepository
 
 
 class PermissionRepo(BaseRepository[tables.Permission]):
