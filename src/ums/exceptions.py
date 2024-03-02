@@ -1,8 +1,7 @@
 from fastapi.exceptions import HTTPException as StarletteHTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 
-from ums import ErrorType
-from ums.models.schemas import Error, FieldErrorItem
+from ums.models.schemas import Error, FieldErrorItem, ErrorType
 from ums.views import BaseView
 
 
