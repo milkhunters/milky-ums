@@ -1,15 +1,15 @@
 import uuid
 
 from ums import exceptions
-from ums.services.repository import RoleRepo
-from ums.services.repository import PermissionRepo
-from ums.services.repository import RolePermissionRepo
-from ums.services.auth.filters import permission_filter, state_filter
+from ums.repositories import RoleRepo
+from ums.repositories import PermissionRepo
+from ums.repositories import RolePermissionRepo
+from ums.roles.permission import Permission
+from ums.security.filters import permission_filter, state_filter
 
 from ums.models import schemas
 from ums.models.auth import BaseUser, UnauthenticatedUser
-from ums.models.state import UserState
-from ums.models.permission import Permission
+from ums.models.schemas import UserState
 
 
 class RoleApplicationService:
