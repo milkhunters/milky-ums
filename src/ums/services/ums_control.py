@@ -1,16 +1,16 @@
 import asyncio
 
 from ums.protos.ums_control import ums_control_pb2, ums_control_pb2_grpc
-from ums import RedisClient
+from ums.utils import RedisClient
 
 
 class UMService(ums_control_pb2_grpc.UserManagementServicer):
-    def __init__(self, app_state):
-        self.redis_reauth: RedisClient = app_state.redis_reauth
+    def __init__(self, redis: RedisClient):
+        self.redis = redis
 
     async def GetListOfReauth(self, request, context):
-        all_keys = await self.redis_reauth.keys('*')
-        all_values = await asyncio.gather(*[self.redis_reauth.get(key) for key in all_keys])
+        all_keys = await self.redis.keys('*')
+        all_values = await asyncio.gather(*[self.redis.get(key) for key in all_keys])
 
         response_list = []
         # Вывод всех значений
