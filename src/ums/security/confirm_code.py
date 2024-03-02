@@ -1,6 +1,8 @@
 import time
 from random import randint
 
+from ums.utils import RedisClient
+
 
 class ManyGenAttemptsError(Exception):
     pass
@@ -26,9 +28,9 @@ class ExpiredCodeError(Exception):
     pass
 
 
-class ConfirmCodeUtil:
+class ConfirmCode:
 
-    def __init__(self, redis):
+    def __init__(self, redis: RedisClient):
         self._key = None
         self._set_max_gen_attempts = None
         self._max_verify_attempts = None

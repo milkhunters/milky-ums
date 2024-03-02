@@ -8,14 +8,13 @@ from ums import RedisClient
 
 
 class SessionManager:
-    COOKIE_PATH = "/api"
-    COOKIE_DOMAIN = None
-    COOKIE_SESSION_KEY = "session_id"
+    # COOKIE_PATH = "/api"
+    # COOKIE_DOMAIN = None
+    # COOKIE_SESSION_KEY = "session_id"
 
-    def __init__(self, redis_client: RedisClient, config: Config, debug: bool = False):
+    def __init__(self, redis_client: RedisClient):
         self._redis_client = redis_client
         self._config = config
-        self._debug = debug
 
     def get_session_id(self, req_obj: Request) -> str | None:
         """
@@ -37,7 +36,7 @@ class SessionManager:
             session_id: str = None,
     ) -> str:
         """
-        Генерирует (если не передано) и устанавливает сессию в redis и в куки
+        Генерирует (если не передано в параметрах) и устанавливает сессию в redis
 
         :param response:
         :param refresh_token:
@@ -49,15 +48,15 @@ class SessionManager:
         """
         if not session_id:
             session_id = uuid.uuid4().hex
-        response.set_cookie(
-            key=self.COOKIE_SESSION_KEY,
-            value=session_id,
-            secure=True,
-            httponly=True,
-            samesite="none",
-            max_age=self._config.JWT.REFRESH_EXPIRE_SECONDS,
-            path=self.COOKIE_PATH
-        )
+        # response.set_cookie(
+        #     key=self.COOKIE_SESSION_KEY,
+        #     value=session_id,
+        #     secure=True,
+        #     httponly=True,
+        #     samesite="none",
+        #     max_age=self._config.JWT.REFRESH_EXPIRE_SECONDS,
+        #     path=self.COOKIE_PATH
+        # )
         data = f"{refresh_token}:{ip_address}:{int(time.time())}:{user_agent}"
         await self._redis_client.hset(f'session_mapping:{user_id}', session_id, data)
         await self._redis_client.expire(f'session_mapping:{user_id}', 15_638_400)
