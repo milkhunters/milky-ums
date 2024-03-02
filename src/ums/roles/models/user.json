@@ -1,0 +1,17 @@
+{
+  "id": 0,
+  "title": "User",
+  "permissions": [
+    "LOGOUT",
+    "REFRESH_TOKENS",
+    "GET_SELF",
+    "UPDATE_SELF",
+    "DELETE_SELF",
+    "GET_ACTIVE_MUSIC",
+    "CREATE_MUSIC",
+    "CREATE_APPEAL",
+    "GET_SELF_APPEAL",
+    "UPDATE_SELF_APPEAL",
+    "DELETE_SELF_APPEAL"
+  ]
+}

@@ -1,7 +1,11 @@
 {
-  "id": "00000000-0000-0000-0000-000000000001",
+  "id": 1,
   "title": "Admin",
   "permissions": [
+    "LOGOUT",
+    "REFRESH_TOKENS",
+    "GET_USER_FULL",
+    "UPDATE_USER",
     "GET_SELF",
     "GET_ROLE",
     "UPDATE_ROLE",
