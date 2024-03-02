@@ -1,4 +1,3 @@
-import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -6,16 +5,12 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.config import load_consul_config
-from src.models.tables import Base
+from ums.config import load_config
+from ums.models.tables import Base
 
 
 # App Config
-app_config = load_consul_config(
-    os.getenv('CONSUL_ROOT'),
-    host=os.getenv('CONSUL_HOST'),
-    port=int(os.getenv('CONSUL_PORT'))
-)
+app_config = load_config()
 
 
 # this is the Alembic Config object, which provides
