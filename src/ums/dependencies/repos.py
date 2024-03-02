@@ -1,6 +1,6 @@
 from fastapi.requests import Request
 
-from ums.services.repository import RepoFactory
+from ums.repositories import RepoFactory
 
 
 async def get_repos(request: Request) -> RepoFactory:
