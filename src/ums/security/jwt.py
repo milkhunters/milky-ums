@@ -12,8 +12,7 @@ class JWTValidationError(Exception):
 
 
 Algorithm = Literal[
-    "HS256", "HS384", "HS512",
-    "RS256", "RS384", "RS512",
+    "ES256"
 ]
 
 TokenType = Literal["access", "refresh"]
@@ -22,12 +21,14 @@ TokenType = Literal["access", "refresh"]
 class JwtTokenProcessor:
     def __init__(
             self,
-            secret: str,
+            private_key: str,
+            public_key: str,
             access_expires: timedelta,
             refresh_expires: timedelta,
             algorithm: Algorithm,
     ):
-        self.secret = secret
+        self.private_key = private_key
+        self.public_key = public_key
         self.access_expires = access_expires
         self.refresh_expires = refresh_expires
         self.algorithm = algorithm
@@ -49,13 +50,13 @@ class JwtTokenProcessor:
             "exp": datetime.now(UTC) + expiration
         }
         return jwt.encode(
-            to_encode, self.secret, algorithm=self.algorithm,
+            to_encode, self.private_key, algorithm=self.algorithm,
         )
 
     def validate_token(self, token: str) -> TokenPayload:
         try:
             return TokenPayload(**jwt.decode(
-                token, self.secret, algorithms=[self.algorithm],
+                token, self.public_key, algorithms=[self.algorithm],
             ))
         except (JWTError, ValueError, AttributeError):
             raise JWTValidationError
