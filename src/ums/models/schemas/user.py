@@ -9,14 +9,20 @@ from datetime import datetime
 from .role import RoleMedium, RoleSmall, Role
 
 
-class UserState(Enum):
-    NOT_CONFIRMED = 0
-    ACTIVE = 1
-    BLOCKED = 2
-    DELETED = 3
+class UserState(str, Enum):
+    NOT_CONFIRMED = "NOT_CONFIRMED"
+    ACTIVE = "ACTIVE"
+    BLOCKED = "BLOCKED"
+    DELETED = "DELETED"
 
 
-UserID = NewType('TaskID', UUID)
+class AvatarFileType(str, Enum):
+    PHOTO_JPEG = "image/jpeg"
+    PHOTO_PNG = "image/png"
+    PHOTO_GIF = "image/gif"
+
+
+UserID = NewType('UserID', UUID)
 
 
 def is_valid_username(username: str) -> bool:
