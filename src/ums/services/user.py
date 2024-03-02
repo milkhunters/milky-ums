@@ -3,18 +3,16 @@ import uuid
 from datetime import datetime
 
 from ums import exceptions
-from ums import Config
+from ums.config import JWTConfig
 from ums.models import schemas
 from ums.models.auth import BaseUser
-from ums import FileType
-from ums.models.permission import Permission
-from ums.models.state import UserState
-from ums import SessionManager
-from ums.services.auth.filters import permission_filter, state_filter
-from ums.services.auth.password import verify_password, get_hashed_password
-from ums.services.repository import UserRepo, RoleRepo
-from ums import EmailSender, RedisClient, S3Storage
-from ums.utils.validators import is_valid_password
+from ums.models.schemas import UserState, AvatarFileType
+from ums.roles.permission import Permission
+from ums.security.filters import permission_filter, state_filter
+from ums.security.session import SessionManager
+from ums.security.utils import verify_password, get_hashed_password
+from ums.repositories import UserRepo, RoleRepo
+from ums.utils import EmailSender, RedisClient, S3Storage
 
 
 class UserApplicationService:
@@ -28,7 +26,7 @@ class UserApplicationService:
             email: EmailSender,
             redis_client_reauth: RedisClient,
             session: SessionManager,
-            config: Config,
+            config: JWTConfig,
             s3_storage: S3Storage,
     ):
         self._current_user = current_user
@@ -80,7 +78,7 @@ class UserApplicationService:
             session_id_list = await self._session.get_user_sessions(user_id)
             await asyncio.gather(
                 self._redis_client_reauth.set(
-                    session_id, data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
+                    session_id, data["refresh_token"], expire=self._config.ACCESS_EXP_SEC
                 ) for session_id, data in session_id_list.items()
             )
 
@@ -99,7 +97,7 @@ class UserApplicationService:
         if not verify_password(old_password, user.hashed_password):
             raise exceptions.BadRequest("Неверный пользовательский пароль!")
 
-        if not is_valid_password(new_password):
+        if not schemas.user.is_valid_password(new_password):
             raise exceptions.BadRequest("Неверный формат пароля!")
 
         await self._repo.update(
@@ -163,11 +161,11 @@ class UserApplicationService:
 
     @permission_filter(Permission.DELETE_SELF_SESSION)
     @state_filter(UserState.ACTIVE)
-    async def delete_my_session(self, session_id: str) -> None:
+    async def delete_self_session(self, session_id: str) -> None:
         session_data = await self._session.get_data_from_session(str(self._current_user.id), session_id)
         await self._session.delete_session(self._current_user.id, session_id)
         await self._redis_client_reauth.set(
-            session_id, session_data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
+            session_id, session_data["refresh_token"], expire=self._config.ACCESS_EXP_SEC
         )
 
     @permission_filter(Permission.DELETE_USER_SESSION)
@@ -176,12 +174,12 @@ class UserApplicationService:
         session_data = await self._session.get_data_from_session(str(user_id), session_id)
         await self._session.delete_session(user_id, session_id)
         await self._redis_client_reauth.set(
-            session_id, session_data["refresh_token"], expire=self._config.JWT.ACCESS_EXPIRE_SECONDS
+            session_id, session_data["refresh_token"], expire=self._config.ACCESS_EXP_SEC
         )
 
     @permission_filter(Permission.UPDATE_SELF)
     @state_filter(UserState.ACTIVE)
-    async def update_avatar(self, file_type: FileType) -> schemas.PreSignedPostUrl:
+    async def update_avatar(self, file_type: AvatarFileType) -> schemas.PreSignedPostUrl:
         resp = await self._file_storage.generate_upload_url(
             file_id=self._current_user.id,
             content_type=file_type.value,
@@ -192,7 +190,7 @@ class UserApplicationService:
 
     @permission_filter(Permission.UPDATE_USER)
     @state_filter(UserState.ACTIVE)
-    async def update_user_avatar(self, user_id: uuid.UUID, file_type: FileType) -> schemas.PreSignedPostUrl:
+    async def update_user_avatar(self, user_id: uuid.UUID, file_type: AvatarFileType) -> schemas.PreSignedPostUrl:
         if not await self._repo.get(id=user_id):
             raise exceptions.NotFound(f"Пользователь с id:{user_id} не найден!")
 
