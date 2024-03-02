@@ -1,11 +1,11 @@
 import uuid
 
-from sqlalchemy import Column, UUID, VARCHAR, Enum, DateTime, func, ForeignKey
+from sqlalchemy import Column, UUID, VARCHAR, Enum, DateTime, func, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
-from ums.models.state import UserState
+from ums.models.schemas import UserState
 
-from ums import Base
+from ums.db import Base
 
 
 class User(Base):
@@ -20,8 +20,8 @@ class User(Base):
     first_name = Column(VARCHAR(100), nullable=True)
     last_name = Column(VARCHAR(100), nullable=True)
 
-    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=False)
-    role = relationship("models.tables.role.Role", back_populates="users")
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
+    role = relationship("Role", back_populates="users")
 
     state = Column(Enum(UserState), default=UserState.NOT_CONFIRMED)
     hashed_password = Column(VARCHAR(255))

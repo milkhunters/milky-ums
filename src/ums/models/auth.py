@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from starlette import authentication
 from user_agents.parsers import UserAgent
 
-from ums.models.permission import Permission
-from ums.models.state import UserState
+from ums.roles.permission import Permission
+from ums.models.schemas import UserState
 
 
 class BaseUser(ABC, authentication.BaseUser):
@@ -69,11 +69,11 @@ class BaseUser(ABC, authentication.BaseUser):
 
 
 class AuthenticatedUser(BaseUser):
-    def __init__(self, id: str, username: str, permissions: list[Permission], state_id: int, exp: int, **kwargs):
+    def __init__(self, id: str, username: str, permissions: list[Permission], state: str, exp: int, **kwargs):
         self._id = uuid.UUID(id)
         self._username = username
         self._permissions = permissions
-        self._state_id = state_id
+        self._state = state
         self._exp = exp
         self._ip = kwargs.get('ip')
         self._user_agent = kwargs.get('user_agent')
@@ -107,7 +107,7 @@ class AuthenticatedUser(BaseUser):
 
     @property
     def state(self) -> UserState:
-        return UserState(self._state_id)
+        return UserState(self._state)
 
     @property
     def access_exp(self) -> int:

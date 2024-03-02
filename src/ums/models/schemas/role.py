@@ -1,11 +1,15 @@
-import uuid
+from uuid import UUID
 from datetime import datetime
+from typing import NewType
 
 from pydantic import BaseModel
 
+RoleID = NewType("RoleID", int)
+PermissionID = NewType("PermissionID", UUID)
+
 
 class Permission(BaseModel):
-    id: uuid.UUID
+    id: PermissionID
     title: str
     created_at: datetime
     updated_at: datetime | None
@@ -15,7 +19,7 @@ class Permission(BaseModel):
 
 
 class Role(BaseModel):
-    id: uuid.UUID
+    id: RoleID
     title: str
     permissions: list[Permission] | None
     created_at: datetime
@@ -26,13 +30,13 @@ class Role(BaseModel):
 
 
 class RoleMedium(BaseModel):
-    id: uuid.UUID
+    id: RoleID
     title: str
     permissions: list[str] | None
 
 
 class RoleSmall(BaseModel):
-    id: uuid.UUID
+    id: RoleID
     title: str
 
     class Config:
