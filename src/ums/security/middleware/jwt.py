@@ -38,7 +38,6 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
         is_valid_access_token = False
         is_valid_refresh_token = False
         is_valid_session = False
-        is_need_update = False
         is_auth = False
 
         # ----- pre_process -----
@@ -82,14 +81,5 @@ class JWTMiddlewareHTTP(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # ----- post_process -----
-        if is_need_update:
-            response.set_cookie(
-                key="access_token",
-                value=current_tokens.access_token
-            )
-            response.set_cookie(
-                key="refresh_token",
-                value=current_tokens.refresh_token,
-            )
 
         return response
