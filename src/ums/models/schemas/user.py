@@ -1,11 +1,22 @@
-import uuid
+from uuid import UUID
+from enum import Enum
+from typing import NewType
 
 from pydantic import BaseModel, field_validator, EmailStr
 from datetime import datetime
 
 from .role import RoleMedium, RoleSmall, Role
-from ums.models.state import UserState
 from ums import validators
+
+
+class UserState(Enum):
+    NOT_CONFIRMED = 0
+    ACTIVE = 1
+    BLOCKED = 2
+    DELETED = 3
+
+
+UserID = NewType('TaskID', UUID)
 
 
 class User(BaseModel):
@@ -13,7 +24,7 @@ class User(BaseModel):
     Модель пользователя
 
     """
-    id: uuid.UUID
+    id: UserID
     username: str
     email: EmailStr
     first_name: str | None
@@ -37,7 +48,7 @@ class UserMedium(BaseModel):
     Модель пользователя
 
     """
-    id: uuid.UUID
+    id: UserID
     username: str
     email: EmailStr
     first_name: str | None
@@ -49,7 +60,7 @@ class UserMedium(BaseModel):
 
 
 class UserSmall(BaseModel):
-    id: uuid.UUID
+    id: UserID
     username: str
     first_name: str | None
     last_name: str | None
@@ -137,5 +148,5 @@ class UserUpdate(BaseModel):
 
 class UserUpdateByAdmin(UserUpdate):
     email: EmailStr = None
-    role_id: uuid.UUID = None
+    role_id: UUID = None
     state: UserState = None
