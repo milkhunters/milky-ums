@@ -4,14 +4,13 @@
   "permissions": [
     "LOGOUT",
     "REFRESH_TOKENS",
+    "GET_ROLE",
     "GET_SELF",
     "UPDATE_SELF",
     "DELETE_SELF",
-    "GET_ACTIVE_MUSIC",
-    "CREATE_MUSIC",
-    "CREATE_APPEAL",
-    "GET_SELF_APPEAL",
-    "UPDATE_SELF_APPEAL",
-    "DELETE_SELF_APPEAL"
+    "GET_SELF_SESSIONS",
+    "DELETE_SELF_SESSION",
+    "GET_USER_SESSIONS",
+    "DELETE_USER_SESSION"
   ]
 }
