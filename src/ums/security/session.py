@@ -1,34 +1,16 @@
 import time
 import uuid
 
-from fastapi import Request, Response
-
-from ums import Config
-from ums import RedisClient
+from ums.utils import RedisClient
 
 
 class SessionManager:
-    # COOKIE_PATH = "/api"
-    # COOKIE_DOMAIN = None
-    # COOKIE_SESSION_KEY = "session_id"
 
     def __init__(self, redis_client: RedisClient):
         self._redis_client = redis_client
-        self._config = config
-
-    def get_session_id(self, req_obj: Request) -> str | None:
-        """
-        Получить идентификатор сессии из куков
-
-        :param req_obj:
-        :return: session_id
-        """
-
-        return req_obj.cookies.get(self.COOKIE_SESSION_KEY)
 
     async def set_session_id(
             self,
-            response: Response,
             user_id: uuid.UUID,
             refresh_token: str,
             ip_address: str,
@@ -38,7 +20,6 @@ class SessionManager:
         """
         Генерирует (если не передано в параметрах) и устанавливает сессию в redis
 
-        :param response:
         :param refresh_token:
         :param session_id:
         :param user_id:
@@ -48,15 +29,7 @@ class SessionManager:
         """
         if not session_id:
             session_id = uuid.uuid4().hex
-        # response.set_cookie(
-        #     key=self.COOKIE_SESSION_KEY,
-        #     value=session_id,
-        #     secure=True,
-        #     httponly=True,
-        #     samesite="none",
-        #     max_age=self._config.JWT.REFRESH_EXPIRE_SECONDS,
-        #     path=self.COOKIE_PATH
-        # )
+
         data = f"{refresh_token}:{ip_address}:{int(time.time())}:{user_agent}"
         await self._redis_client.hset(f'session_mapping:{user_id}', session_id, data)
         await self._redis_client.expire(f'session_mapping:{user_id}', 15_638_400)
@@ -75,28 +48,19 @@ class SessionManager:
             )
         return response
 
-    async def delete_session(self, user_id, session_id: str, response: Response = None) -> None:
+    async def delete_session(self, user_id, session_id: str) -> None:
         """
-        Удаляет сессию из куков и из redis
+        Удаляет сессию  из redis
 
         :param user_id:
         :param session_id
-        :param response
         """
         if await self._redis_client.hexists(f'session_mapping:{user_id}', session_id):
             await self._redis_client.hdel(f'session_mapping:{user_id}', session_id)
-        if response:
-            response.delete_cookie(
-                key=self.COOKIE_SESSION_KEY,
-                secure=True,
-                httponly=True,
-                samesite="none",
-                path=self.COOKIE_PATH
-            )
 
     async def get_data_from_session(self, user_id: str, session_id: str) -> dict[str, str] | None:
         """
-        Получает данные сессии из session
+        Получает данные из session
 
         :param user_id:
         :param session_id:
