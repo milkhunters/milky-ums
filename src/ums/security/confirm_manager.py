@@ -28,7 +28,7 @@ class ExpiredCodeError(Exception):
     pass
 
 
-class ConfirmCode:
+class ConfirmManager:
 
     def __init__(self, redis: RedisClient):
         self._key = None
