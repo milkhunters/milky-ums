@@ -8,7 +8,7 @@ from ...models import schemas, tables
 from ums.models.permission import Permission
 from ums.models.auth import BaseUser
 from ums.models.state import UserState
-from ums.services.repository import UserRepo
+from ums.repositories import UserRepo
 from ums import EmailSender, is_valid_password
 from ums import RedisClient
 
@@ -20,10 +20,10 @@ from .confirm_code import NotGenError
 from .confirm_code import InvalidCodeError
 from .confirm_code import ExpiredCodeError
 
-from .filters import permission_filter, state_filter
+from .filters import permission_filter
 from .jwt import JWTManager
 from .password import verify_password, get_hashed_password
-from .session import SessionManager
+from ums.security.session import SessionManager
 
 
 class AuthApplicationService:
