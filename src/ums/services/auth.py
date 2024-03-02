@@ -1,28 +1,26 @@
 from datetime import datetime
 
-from fastapi.requests import Request
-from fastapi.responses import Response
-
-from ... import exceptions
-from ...models import schemas, tables
-from ums.models.permission import Permission
+from ums import exceptions
+from ums.models import schemas, tables
 from ums.models.auth import BaseUser
-from ums.models.state import UserState
+from ums.models.schemas import UserMedium
 from ums.repositories import UserRepo
-from ums import EmailSender, is_valid_password
-from ums import RedisClient
+from ums.roles.permission import Permission
+from ums.utils import RedisClient, EmailSender
 
-from .confirm_code import ConfirmCodeUtil
-from .confirm_code import ManyGenAttemptsError
-from .confirm_code import ManyConfirmAttemptsError
-from .confirm_code import AlreadyGenError
-from .confirm_code import NotGenError
-from .confirm_code import InvalidCodeError
-from .confirm_code import ExpiredCodeError
+from ums.security.confirm_manager import (
+    ConfirmManager,
+    ManyGenAttemptsError,
+    ManyConfirmAttemptsError,
+    AlreadyGenError,
+    NotGenError,
+    InvalidCodeError,
+    ExpiredCodeError
+)
 
-from .filters import permission_filter
-from .jwt import JWTManager
-from .password import verify_password, get_hashed_password
+from ums.security.filters import permission_filter
+from ums.security.jwt import JwtTokenProcessor
+from ums.security.utils import verify_password, get_hashed_password
 from ums.security.session import SessionManager
 
 
@@ -31,22 +29,20 @@ class AuthApplicationService:
             self,
             current_user: BaseUser,
             *,
-            jwt_manager: JWTManager,
+            jwt: JwtTokenProcessor,
             session_manager: SessionManager,
             user_repo: UserRepo,
-            redis_client: RedisClient,
             redis_client_reauth: RedisClient,
-            confirm_code_util: ConfirmCodeUtil,
+            confirm_manager: ConfirmManager,
             email: EmailSender,
     ):
         self._current_user = current_user
-        self._jwt_manager = jwt_manager
-        self._session_manager = session_manager
-        self._user_repo = user_repo
-        self._redis_client = redis_client
-        self._redis_client_reauth = redis_client_reauth
-        self._confirm_code_util = confirm_code_util
-        self._email = email
+        self.jwt = jwt
+        self.session_manager = session_manager
+        self.user_repo = user_repo
+        self.redis_client_reauth = redis_client_reauth
+        self.confirm_manager = confirm_manager
+        self.email = email
 
     @permission_filter(Permission.CREATE_USER)
     async def create_user(self, user: schemas.UserCreate) -> None:
@@ -61,26 +57,25 @@ class AuthApplicationService:
         :return: User
         """
 
-        if await self._user_repo.get_by_username_insensitive(user.username):
+        if await self.user_repo.get_by_username_insensitive(user.username):
             raise exceptions.AlreadyExists(f"Пользователь {user.username!r} уже существует")
 
-        if await self._user_repo.get_by_email_insensitive(user.email):
+        if await self.user_repo.get_by_email_insensitive(user.email):
             raise exceptions.AlreadyExists(f"Пользователь с email {user.email!r} уже существует")
 
         hashed_password = get_hashed_password(user.password)
-        await self._user_repo.create(
+        await self.user_repo.create(
             **user.model_dump(exclude={"password"}),
-            role_id="00000000-0000-0000-0000-000000000000",
+            role_id=0,
             hashed_password=hashed_password
         )
 
     @permission_filter(Permission.AUTHENTICATE)
-    async def authenticate(self, data: schemas.UserAuth, response: Response) -> schemas.UserMedium:
+    async def authenticate(self, data: schemas.UserAuth) -> tuple[UserMedium, tuple[str, str], str]:
         """
         Аутентификация пользователя
 
         :param data: UserAuth
-        :param response: Response
 
         :return: User
 
@@ -89,32 +84,33 @@ class AuthApplicationService:
         :raise AccessDenied: if user is banned
         """
 
-        user: tables.User = await self._user_repo.get_by_username_insensitive(username=data.username, as_full=True)
+        user: tables.User = await self.user_repo.get_by_username_insensitive(username=data.username, as_full=True)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
         if not verify_password(data.password, user.hashed_password):
             raise exceptions.NotFound("Неверная пара логин/пароль")
-        if user.state == UserState.BLOCKED:
+        if user.state == schemas.UserState.BLOCKED:
             raise exceptions.AccessDenied("Пользователь заблокирован")
-        if user.state == UserState.NOT_CONFIRMED:
+        if user.state == schemas.UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь не подтвержден")
-        if user.state == UserState.DELETED:
+        if user.state == schemas.UserState.DELETED:
             raise exceptions.AccessDenied("Пользователь удален")
 
         # Генерация и установка токенов
         permission_title_list = [obj.title for obj in user.role.permissions]
-        tokens = self._jwt_manager.generate_tokens(user.id, user.username, permission_title_list, user.state)
-        self._jwt_manager.set_jwt_cookie(response, tokens)
-        await self._session_manager.set_session_id(
-            response=response,
-            refresh_token=tokens.refresh_token,
+        tokens = (
+            self.jwt.create_token(user.id, user.username, permission_title_list, user.state, "access"),
+            self.jwt.create_token(user.id, user.username, permission_title_list, user.state, "refresh")
+        )
+        session_id = await self.session_manager.set_session_id(
+            refresh_token=tokens[1],
             user_id=user.id,
             ip_address=self._current_user.ip,
             user_agent=str(self._current_user.user_agent)
         )
         user_model = schemas.User.model_validate(user)
         role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, permissions=permission_title_list)
-        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
+        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model), tokens, session_id
 
     @permission_filter(Permission.VERIFY_EMAIL)
     async def send_verify_code(self, email: str) -> None:
@@ -128,27 +124,27 @@ class AuthApplicationService:
         :raise BadRequest: if code already sent
         """
 
-        user = await self._user_repo.get(email=email)
+        user = await self.user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
-        if user.state != UserState.NOT_CONFIRMED:
+        if user.state != schemas.UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
         key_lifetime = 60 * 30
-        self._confirm_code_util.set_key(f'email_confirm:{email}')
-        self._confirm_code_util.set_key_lifetime(key_lifetime)
-        self._confirm_code_util.set_gen_interval(120)
-        self._confirm_code_util.set_max_gen_attempts(3)
+        self.confirm_manager.set_key(f'email_confirm:{email}')
+        self.confirm_manager.set_key_lifetime(key_lifetime)
+        self.confirm_manager.set_gen_interval(120)
+        self.confirm_manager.set_max_gen_attempts(3)
 
         try:
-            code = await self._confirm_code_util.generate()
+            code = await self.confirm_manager.generate()
         except ManyGenAttemptsError:
             raise exceptions.BadRequest("Превышено количество попыток, попробуйте позже")
         except AlreadyGenError:
             raise exceptions.BadRequest("Код уже отправлен")
 
-        await self._email.send_email_with_template(
+        await self.email.send_email_with_template(
             to=email,
             subject="Подтверждение почты",
             template="confirm_email.html",
@@ -167,20 +163,20 @@ class AuthApplicationService:
 
         """
 
-        user = await self._user_repo.get(email=email)
+        user = await self.user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
-        if user.state != UserState.NOT_CONFIRMED:
+        if user.state != schemas.UserState.NOT_CONFIRMED:
             raise exceptions.AccessDenied("Пользователь уже подтвержден")
 
         key_lifetime = 60 * 30
-        self._confirm_code_util.set_key(f'email_confirm:{email}')
-        self._confirm_code_util.set_max_verify_attempts(3)
-        self._confirm_code_util.set_code_valid_time(key_lifetime)
+        self.confirm_manager.set_key(f'email_confirm:{email}')
+        self.confirm_manager.set_max_verify_attempts(3)
+        self.confirm_manager.set_code_valid_time(key_lifetime)
 
         try:
-            await self._confirm_code_util.verify(code)
+            await self.confirm_manager.verify(code)
         except ManyConfirmAttemptsError:
             raise exceptions.BadRequest("Превышено количество попыток")
         except NotGenError:
@@ -190,9 +186,9 @@ class AuthApplicationService:
         except ExpiredCodeError:
             raise exceptions.BadRequest("Код устарел, отправьте новый")
 
-        await self._user_repo.update(user.id, state=UserState.ACTIVE)
+        await self.user_repo.update(user.id, state=schemas.UserState.ACTIVE)
 
-        await self._email.send_email_with_template(
+        await self.email.send_email_with_template(
             to=email,
             subject="Подтверждение почты",
             template="successfully_confirm_email.html",
@@ -211,24 +207,24 @@ class AuthApplicationService:
         :param email:
         """
 
-        user = await self._user_repo.get(email=email)
+        user = await self.user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
         key_lifetime = 60 * 30
-        self._confirm_code_util.set_key(f'password_reset:{email}')
-        self._confirm_code_util.set_key_lifetime(key_lifetime)
-        self._confirm_code_util.set_gen_interval(120)
-        self._confirm_code_util.set_max_gen_attempts(3)
+        self.confirm_manager.set_key(f'password_reset:{email}')
+        self.confirm_manager.set_key_lifetime(key_lifetime)
+        self.confirm_manager.set_gen_interval(120)
+        self.confirm_manager.set_max_gen_attempts(3)
 
         try:
-            code = await self._confirm_code_util.generate()
+            code = await self.confirm_manager.generate()
         except ManyGenAttemptsError:
             raise exceptions.BadRequest("Превышено количество попыток, попробуйте позже")
         except AlreadyGenError:
             raise exceptions.BadRequest("Код уже отправлен")
 
-        await self._email.send_email_with_template(
+        await self.email.send_email_with_template(
             to=email,
             subject="Восстановление пароля",
             template="reset_password.html",
@@ -251,17 +247,17 @@ class AuthApplicationService:
 
         """
 
-        user = await self._user_repo.get(email=email)
+        user = await self.user_repo.get(email=email)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
         key_lifetime = 60 * 30
-        self._confirm_code_util.set_key(f'password_reset:{email}')
-        self._confirm_code_util.set_max_verify_attempts(3)
-        self._confirm_code_util.set_code_valid_time(key_lifetime)
+        self.confirm_manager.set_key(f'password_reset:{email}')
+        self.confirm_manager.set_max_verify_attempts(3)
+        self.confirm_manager.set_code_valid_time(key_lifetime)
 
         try:
-            await self._confirm_code_util.verify(code, delete_key=False)
+            await self.confirm_manager.verify(code, delete_key=False)
         except ManyConfirmAttemptsError:
             raise exceptions.BadRequest("Превышено количество попыток")
         except NotGenError:
@@ -271,14 +267,14 @@ class AuthApplicationService:
         except ExpiredCodeError:
             raise exceptions.BadRequest("Код устарел, отправьте новый")
 
-        if not is_valid_password(new_password):
+        if not schemas.user.is_valid_password(new_password):
             raise exceptions.BadRequest("Невалидный пароль")
 
-        await self._confirm_code_util.delete_key()
-        await self._user_repo.update(user.id, hashed_password=get_hashed_password(new_password))
+        await self.confirm_manager.delete_key()
+        await self.user_repo.update(user.id, hashed_password=get_hashed_password(new_password))
 
         change_time = datetime.now().strftime("%d.%m.%Y в %H:%M")
-        await self._email.send_email_with_template(
+        await self.email.send_email_with_template(
             to=email,
             subject="Восстановление пароля",
             template="successfully_reset_password.html",
@@ -292,17 +288,20 @@ class AuthApplicationService:
         )
 
     @permission_filter(Permission.LOGOUT)
-    async def logout(self, request: Request, response: Response) -> None:
-        self._jwt_manager.delete_jwt_cookie(response)
-        session_id = self._session_manager.get_session_id(request)
+    async def logout(self, session_id: str | None) -> None:
         if session_id and self._current_user.id:
-            await self._session_manager.delete_session(self._current_user.id, session_id, response)
+            await self.session_manager.delete_session(self._current_user.id, session_id)
 
-    async def refresh_tokens(self, request: Request, response: Response) -> schemas.UserMedium:
+    async def refresh_tokens(
+            self,
+            current_tokens: tuple[str | None, str | None],
+            session_id: str | None
+    ) -> tuple[schemas.UserMedium, tuple[str, str], str]:
         """
         Обновление токенов
-        :param request:
-        :param response:
+
+        :param current_tokens: tuple[access_token, refresh_token]
+        :param session_id:
 
         :raise AccessDenied if session is invalid or user is banned
         :raise NotFound if user not found
@@ -310,35 +309,37 @@ class AuthApplicationService:
         :return:
         """
 
-        current_tokens = self._jwt_manager.get_jwt_cookie(request)
-        session_id = self._session_manager.get_session_id(request)
-
         if not self._current_user.is_valid_session:
-            raise exceptions.AccessDenied("Invalid session")
+            raise exceptions.AccessDenied("Сессия недействительна")
 
         if not self._current_user.is_valid_refresh_token:
-            raise exceptions.AccessDenied("Invalid refresh token")
+            raise exceptions.AccessDenied("Недействительный refresh token")
 
-        old_payload = self._jwt_manager.decode_refresh_token(current_tokens.refresh_token)
-        user = await self._user_repo.get(id=old_payload.id, as_full=True)
+        old_payload = self.jwt.validate_token(current_tokens[1])
+        user = await self.user_repo.get(id=old_payload.id, as_full=True)
         if not user:
             raise exceptions.NotFound("Пользователь не найден")
 
-        if user.state == UserState.BLOCKED:
+        if user.state == schemas.UserState.BLOCKED:
             raise exceptions.AccessDenied("Пользователь заблокирован")
 
         permission_title_list = [obj.title for obj in user.role.permissions]
-        new_tokens = self._jwt_manager.generate_tokens(user.id, user.username, permission_title_list, user.state)
-        self._jwt_manager.set_jwt_cookie(response, new_tokens)
-        await self._session_manager.set_session_id(
-            response=response,
+        new_tokens = (
+            self.jwt.create_token(user.id, user.username, permission_title_list, user.state, "access"),
+            self.jwt.create_token(user.id, user.username, permission_title_list, user.state, "refresh")
+        )
+        new_session_id = await self.session_manager.set_session_id(
             user_id=user.id,
-            refresh_token=new_tokens.refresh_token,
+            refresh_token=new_tokens[1],
             ip_address=self._current_user.ip,
             user_agent=str(self._current_user.user_agent),
             session_id=session_id
         )
-        await self._redis_client_reauth.delete(session_id)
+        await self.redis_client_reauth.delete(session_id)
         user_model = schemas.User.model_validate(user)
         role_model = schemas.RoleMedium(id=user.role.id, title=user.role.title, permissions=permission_title_list)
-        return schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model)
+        return (
+            schemas.UserMedium(**user_model.model_dump(exclude={"role"}), role=role_model),
+            new_tokens,
+            new_session_id
+        )
