@@ -1,5 +1,5 @@
 from .base import BaseView
-from ..models import schemas
+from ums.models import schemas
 
 
 class S3UploadResponse(BaseView):
