@@ -2,8 +2,8 @@ from fastapi import Depends
 from fastapi.requests import Request
 
 from ums.dependencies.repos import get_repos
-from ums import ServiceFactory
-from ums.services.repository import RepoFactory
+from ums.services import ServiceFactory
+from ums.repositories import RepoFactory
 
 
 async def get_services(request: Request, repos: RepoFactory = Depends(get_repos)) -> ServiceFactory:
@@ -13,10 +13,11 @@ async def get_services(request: Request, repos: RepoFactory = Depends(get_repos)
     yield ServiceFactory(
         repos,
         current_user=local_scope.get("user"),
-        redis_sessions=global_scope.redis_sessions,
         redis_reauth=global_scope.redis_reauth,
-        redis_confirmations=global_scope.redis_confirmations,
+        confirm_manager=global_scope.confirm_manager,
+        session_manager=global_scope.session_manager,
         config=global_scope.config,
+        jwt=global_scope.jwt,
         email_sender=global_scope.email_sender,
         file_storage=global_scope.file_storage,
         lazy_session=global_scope.db_session
