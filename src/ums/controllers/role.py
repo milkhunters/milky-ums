@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi import status as http_status
 
 from ums.models import schemas
-from ums import ServiceFactory
+from ums.services import ServiceFactory
 from ums.dependencies.services import get_services
 from ums.views import RolesResponse, RoleResponse, PermissionResponse, PermissionsResponse
 

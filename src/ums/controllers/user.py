@@ -7,8 +7,8 @@ from fastapi.responses import Response
 
 from ums.dependencies.services import get_services
 from ums.models import schemas
-from ums import FileType
-from ums import ServiceFactory
+from ums.models.schemas import AvatarFileType
+from ums.services import ServiceFactory
 from ums.views import SessionsResponse
 
 from ums.views.user import UserResponse, UserSmallResponse, UserAvatarResponse
@@ -119,7 +119,7 @@ async def get_avatar_url(user_id: uuid.UUID, services: ServiceFactory = Depends(
 
 
 @router.put("/avatar", response_model=S3UploadResponse, status_code=http_status.HTTP_200_OK)
-async def update_avatar(file_type: FileType, services: ServiceFactory = Depends(get_services)):
+async def update_avatar(file_type: AvatarFileType, services: ServiceFactory = Depends(get_services)):
     """
     Обновить аватар текущего пользователя
 
@@ -133,7 +133,7 @@ async def update_avatar(file_type: FileType, services: ServiceFactory = Depends(
 
 
 @router.put("/avatar/{user_id}", response_model=S3UploadResponse, status_code=http_status.HTTP_200_OK)
-async def update_user_avatar(user_id: uuid.UUID, file_type: FileType, services: ServiceFactory = Depends(get_services)):
+async def update_user_avatar(user_id: uuid.UUID, file_type: AvatarFileType, services: ServiceFactory = Depends(get_services)):
     """
     Обновить аватар пользователя по id
 
@@ -156,7 +156,7 @@ async def delete_current_session(session_id: str, services: ServiceFactory = Dep
 
     Состояние: ACTIVE
     """
-    await services.user.delete_my_session(session_id)
+    await services.user.delete_self_session(session_id)
 
 
 @router.delete("/session/{user_id}", response_model=None, status_code=http_status.HTTP_204_NO_CONTENT)
