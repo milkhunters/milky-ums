@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi import status as http_status
 
 from ums.dependencies.services import get_services
-from ums import ServiceFactory
+from ums.services import ServiceFactory
 
 router = APIRouter()
 
@@ -15,18 +15,3 @@ async def version(details: bool = False, services: ServiceFactory = Depends(get_
     Ограничений по доступу нет
     """
     return await services.stats.get_stats(details)
-
-
-@router.get("/ping/redis", response_model=bool, status_code=http_status.HTTP_200_OK)
-async def ping_redis(services: ServiceFactory = Depends(get_services)):
-    """
-    Получить состояние redis
-
-    Ограничений по доступу нет
-    """
-    return await services.stats.redis_ping()
-
-
-@router.get("/ping", response_model=str, status_code=http_status.HTTP_200_OK)
-def ping():
-    return "pong"
