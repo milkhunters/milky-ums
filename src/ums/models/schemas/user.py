@@ -31,7 +31,7 @@ def is_valid_username(username: str) -> bool:
 
 
 def is_valid_password(password: str) -> bool:
-    pattern = r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,32}$"
+    pattern = r"^(?=.*\d)(?=.*[a-zA-Z])[0-9a-zA-Z$&+,:;=?@#|'<>.-^*()%!]{8,32}$"
     return re.match(pattern, password) is not None
 
 
