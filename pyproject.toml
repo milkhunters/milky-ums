@@ -41,9 +41,9 @@ pytest = "^8.0.2"
 requires = ["poetry-core>=1.0.8"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.setuptools]
-package-dir = { "" = "src" }
+[[tool.poetry.packages]]
+include = "src/ums"
 
 [tool.poetry.scripts]
-ums = "ums.main:app"
+ums = "ums.main:application"
 test = "pytest"
