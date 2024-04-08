@@ -1,15 +1,12 @@
-FROM python:3.12.2-alpine3.19
+FROM rust:1.43.1 as build
 
-RUN mkdir /app
+WORKDIR /usr/src/api-service
+COPY . .
 
-# Setup FastAPI application
-COPY . /app/code
-WORKDIR /app/code
+RUN cargo install --path .
 
-RUN python -m venv venv
-RUN . venv/bin/activate
-RUN pip install -e .
+FROM gcr.io/distroless/cc-debian10
 
-ENV PYTHONPATH=/app/code/src
+COPY —from=cargo-build /usr/local/cargo/bin/api-service /usr/local/bin/api-service
 
-CMD ["uvicorn", "src.ums.main:application", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+CMD [“api-service”]
