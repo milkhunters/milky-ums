@@ -1,0 +1,39 @@
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::adapters::database::user_db::UserGateway;
+use crate::application::common::interactor::Interactor;
+use crate::application::common::user_gateway::UserReader;
+
+#[derive(Debug, Deserialize)]
+pub struct GetUserByIdDTO {
+    id: Uuid,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UserByIdResultDTO{
+    id: Uuid,
+    username: String,
+    first_name: Option<String>,
+    last_name: Option<String>,
+}
+
+
+pub struct GetUserById<'a> {
+    pub user_gateway: &'a UserGateway,
+}
+
+impl Interactor<GetUserByIdDTO, UserByIdResultDTO> for GetUserById<'_> {
+    async fn execute(&self, data: GetUserByIdDTO) -> Result<UserByIdResultDTO, String> {
+        let user = match self.user_gateway.get_user_by_id(data.id).await {
+            Ok(user) => user,
+            Err(e) => return Err(e),
+        };
+        Ok(UserByIdResultDTO {
+            id: user.id,
+            username: user.username,
+            first_name: user.first_name,
+            last_name: user.last_name,
+        })
+    }
+}
