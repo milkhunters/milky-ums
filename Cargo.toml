@@ -1,8 +1,33 @@
 [package]
 name = "milky-ums"
 version = "0.1.0"
+authors = ["JKearnsl <pooolg@hotmail.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix-web = "4.5.1"
+env_logger = "0.11.3"
+log = "0.4.21"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_yaml = "0.9.34+deprecated"
+consulrs = "0.1.0"
+dotenv = "0.15.0"
+uuid = { version = "1.8.0", features = [
+    "v4",
+    "serde",
+    "fast-rng",
+    "macro-diagnostics"
+] }
+sea-orm = { version = "^0.12.15", features = [
+    "sqlx-postgres",
+    "with-uuid",
+    "runtime-tokio-rustls",
+    "macros"
+] }
+chrono = "0.4.37"
+tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+redis = { version = "0.25.3", features = ["tokio-rustls-comp"] }
+deadpool-redis = {  version = "0.15.0", features = ["rt_tokio_1","serde"] }
+serde_json = "1.0.115"
