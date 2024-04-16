@@ -12,6 +12,7 @@ env_logger = "0.11.3"
 log = "0.4.21"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_yaml = "0.9.34+deprecated"
+serde_json = "^1.0.115"
 consulrs = "0.1.0"
 dotenv = "0.15.0"
 uuid = { version = "1.8.0", features = [
@@ -27,7 +28,6 @@ sea-orm = { version = "^0.12.15", features = [
     "macros"
 ] }
 chrono = "0.4.37"
-tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
 redis = { version = "0.25.3", features = ["tokio-rustls-comp"] }
 deadpool-redis = {  version = "0.15.0", features = ["rt_tokio_1","serde"] }
-serde_json = "1.0.115"
