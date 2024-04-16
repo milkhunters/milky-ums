@@ -9,33 +9,33 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(User::Table)
+                    .table(Users::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(User::Id)
+                        ColumnDef::new(Users::Id)
                             .uuid()
                             .not_null()
                             .extra("DEFAULT gen_random_uuid()")
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(User::Username).string().not_null())
-                    .col(ColumnDef::new(User::Email).string().not_null())
-                    .col(ColumnDef::new(User::FirstName).string().null())
-                    .col(ColumnDef::new(User::LastName).string().null())
+                    .col(ColumnDef::new(Users::Username).string().not_null())
+                    .col(ColumnDef::new(Users::Email).string().not_null())
+                    .col(ColumnDef::new(Users::FirstName).string().null())
+                    .col(ColumnDef::new(Users::LastName).string().null())
                     .col(
-                        ColumnDef::new(User::State)
+                        ColumnDef::new(Users::State)
                             .custom(UserState::Enum)
                     )
 
-                    .col(ColumnDef::new(User::HashedPassword).string().not_null())
+                    .col(ColumnDef::new(Users::HashedPassword).string().not_null())
                     .col(
-                        ColumnDef::new(User::CreatedAt)
+                        ColumnDef::new(Users::CreatedAt)
                             .timestamp_with_time_zone()
                             .default(Expr::current_timestamp())
                             .not_null()
                     )
                     .col(
-                        ColumnDef::new(User::UpdatedAt)
+                        ColumnDef::new(Users::UpdatedAt)
                             .timestamp()
                             .null()
                     )
@@ -46,13 +46,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(User::Table).to_owned())
+            .drop_table(Table::drop().table(Users::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-pub enum User {
+pub enum Users {
     Table,
     Id,
     Username,
