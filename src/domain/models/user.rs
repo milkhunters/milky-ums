@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "tea")]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "user_state")]
 pub enum UserState {
     #[sea_orm(string_value = "Active")]
     Active,
@@ -23,7 +23,7 @@ pub enum UserState {
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub username: String,
     pub email: String,
