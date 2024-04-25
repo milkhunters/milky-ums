@@ -24,3 +24,24 @@ This service is responsible for managing users in the Milky ecosystem. It provid
 ```bash
 cargo build --release
 ```
+
+## Migrations
+
+Install `sea-orm-cli`:
+
+```bash
+cargo install sea-orm-cli
+```
+
+Setup the database URL:
+
+```bash
+export DATABASE_URL=protocol://username:password@localhost/database
+```
+
+Run the migrations:
+
+```bash
+sea-orm migration run
+```
+
