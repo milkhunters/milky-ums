@@ -23,7 +23,7 @@ pub enum UserState {
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
+    #[sea_orm(primary_key, auto_increment = false, default = "gen_random_uuid()")]
     pub id: Uuid,
     pub username: String,
     pub email: String,
