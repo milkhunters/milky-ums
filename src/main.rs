@@ -7,7 +7,6 @@ use actix_web::{App, HttpServer, web};
 use sea_orm::{ConnectOptions, Database};
 use deadpool_redis::{redis::{cmd, FromRedisValue}, Config, Runtime};
 use redis::Client;
-use crate::adapters::database::initializer::create_tables;
 
 use crate::adapters::database::user_db::UserGateway;
 use crate::ioc::IoC;
@@ -62,7 +61,7 @@ async fn main() -> std::io::Result<()> {
                 database = config.database.postgresql.database,
             )
         );
-        opt.max_connections(100)
+        opt.max_connections(10)
             .min_connections(5)
             .connect_timeout(Duration::from_secs(8))
             .idle_timeout(Duration::from_secs(8))
@@ -77,22 +76,30 @@ async fn main() -> std::io::Result<()> {
         },
     };
 
-    create_tables(&db).await;
+    let redis_factory = move |db| {
+        if !(0 <= db && db <= 15) {
+            panic!("Invalid Redis database number: {}", db);
+        }
+        let cfg = config.database.redis.clone();
+        Config::from_url(format!(
+            "redis://{username}:{password}@{host}:{port}/{db}",
+            username = cfg.username.unwrap_or_else(|| "default".to_string()),
+            password = cfg.password,
+            host = cfg.host,
+            port = cfg.port,
+            db = db,
+        ))
+    };
 
-    let redis: Config = Config::from_url(format!(
-        "redis://{username}:{password}@{host}:{port}/{db}",
-        username = config.database.redis.username.unwrap_or("default".to_string()),
-        password = config.database.redis.password,
-        host = config.database.redis.host,
-        port = config.database.redis.port,
-        db = "0"
-    ));
+    let session_redis_pool = redis_factory(0).create_pool(Some(Runtime::Tokio1)).unwrap();
+    let confirm_manager_redis_pool = redis_factory(1).create_pool(Some(Runtime::Tokio1)).unwrap();
 
-    let redis_pool = redis.create_pool(Some(Runtime::Tokio1)).unwrap();
 
     let app_builder = move || {
         App::new()
-            .configure(presentation::api::user::router)
+            .service(web::scope("/rest")
+                .configure(presentation::rest::user::router)
+            )
             .app_data(web::Data::new(AppConfigProvider {
                 branch: branch.clone(),
                 build: build.clone(),
@@ -100,7 +107,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(
                 IoC::new(
                     db.clone(),
-                    redis_pool.clone(),
+                    session_redis_pool.clone(),
+                    confirm_manager_redis_pool.clone()
                 )
             ))
         // .wrap(Logger::new("[%s] [%{r}a] %U"))
