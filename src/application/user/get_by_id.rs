@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::adapters::database::user_db::UserGateway;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
 
@@ -20,7 +19,7 @@ pub struct UserByIdResultDTO{
 
 
 pub struct GetUserById<'a> {
-    pub user_gateway: &'a UserGateway,
+    pub user_gateway: &'a dyn UserReader,
 }
 
 impl Interactor<GetUserByIdDTO, UserByIdResultDTO> for GetUserById<'_> {
