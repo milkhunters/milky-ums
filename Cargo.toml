@@ -31,3 +31,5 @@ chrono = "0.4.37"
 tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
 redis = { version = "0.25.3", features = ["tokio-rustls-comp"] }
 deadpool-redis = {  version = "0.15.0", features = ["rt_tokio_1","serde"] }
+async-trait = "0.1.79"
+derive_more = "0.99.17"
