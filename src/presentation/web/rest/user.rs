@@ -1,4 +1,6 @@
-use actix_web::{delete, get, HttpResponse, post, put, Responder, web};
+use actix_web::{delete, get, HttpResponse, post, put, Responder, Result, web};
+
+use crate::application::common::exceptions::ApplicationError;
 use crate::application::common::interactor::Interactor;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::ioc::IoC;
@@ -31,14 +33,12 @@ pub fn router(cfg: &mut web::ServiceConfig) {
 async fn user_by_id(
     payload: web::Query<GetUserByIdDTO>,
     ioc: web::Data<IoC>,
-) -> impl Responder {
+) -> Result<HttpResponse, ApplicationError> {
     match ioc.get_user_by_id().execute(payload.into_inner()).await {
         Ok(user) => {
-            HttpResponse::Ok().json(user)
+            Ok(HttpResponse::Ok().json(user))
         },
-        Err(e) => {
-            HttpResponse::InternalServerError().body(format!("Error: {}", e))
-        }
+        Err(e) => return Err(e),
     }
 }
 
