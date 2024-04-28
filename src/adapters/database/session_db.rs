@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use deadpool_redis::Pool;
 use redis::cmd;
 use uuid::Uuid;
+use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 
 use crate::application::common::session_gateway::SessionReader;
 use crate::domain::models::session::Session;
@@ -18,7 +19,7 @@ impl SessionGateway {
 
 #[async_trait]
 impl SessionReader for SessionGateway {
-    async fn get_session_by_id(&self, session_id: Uuid) -> Result<Session, String> {
+    async fn get_session_by_id(&self, session_id: Uuid) -> Result<Session, ApplicationError> {
         let mut conn = self.redis_pool.get().await.unwrap();
         let value: String = cmd("GET")
             .arg(&["deadpool/test_key"])
@@ -34,7 +35,7 @@ impl SessionReader for SessionGateway {
         })
     }
 
-    async fn get_sessions_by_user_id(&self, user_id: Uuid) -> Result<Vec<Session>, String> {
+    async fn get_sessions_by_user_id(&self, user_id: Uuid) -> Result<Vec<Session>, ApplicationError> {
         todo!()
     }
 }

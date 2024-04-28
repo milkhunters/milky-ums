@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::application::common::exceptions::ApplicationError;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionReader;
 
@@ -27,7 +28,7 @@ pub struct GetSessionByUserId<'a> {
 }
 
 impl Interactor<GetSessionByIdDTO, SessionsByIdResultDTO> for GetSessionByUserId<'_> {
-    async fn execute(&self, data: GetSessionByIdDTO) -> Result<SessionsByIdResultDTO, String> {
+    async fn execute(&self, data: GetSessionByIdDTO) -> Result<SessionsByIdResultDTO, ApplicationError> {
         let session = match self.session_gateway.get_sessions_by_user_id(data.id).await {
             Ok(user) => user,
             Err(e) => return Err(e),

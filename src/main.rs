@@ -61,12 +61,9 @@ async fn main() -> std::io::Result<()> {
                 database = config.database.postgresql.database,
             )
         );
-        opt.max_connections(10)
+        opt.max_connections(40)
             .min_connections(5)
-            .connect_timeout(Duration::from_secs(8))
-            .idle_timeout(Duration::from_secs(8))
-            .max_lifetime(Duration::from_secs(8))
-            .sqlx_logging(true);
+            .sqlx_logging(false);
         Database::connect(opt)
     }.await {
         Ok(db) => db,
@@ -97,8 +94,8 @@ async fn main() -> std::io::Result<()> {
 
     let app_builder = move || {
         App::new()
-            .service(web::scope("/rest")
-                .configure(presentation::rest::user::router)
+            .service(web::scope("/api")
+                .configure(presentation::web::rest::user::router)
             )
             .app_data(web::Data::new(AppConfigProvider {
                 branch: branch.clone(),
@@ -111,6 +108,7 @@ async fn main() -> std::io::Result<()> {
                     confirm_manager_redis_pool.clone()
                 )
             ))
+            .default_service(web::route().to(presentation::web::exception::not_found))
         // .wrap(Logger::new("[%s] [%{r}a] %U"))
     };
 

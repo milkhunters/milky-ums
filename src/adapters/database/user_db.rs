@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter};
 use uuid::Uuid;
+use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::models::user;
@@ -19,14 +20,14 @@ impl UserGateway {
 }
 #[async_trait]
 impl UserReader for UserGateway {
-    async fn get_user_by_id(&self, user_id: Uuid) -> Result<user::Model, String> {
+    async fn get_user_by_id(&self, user_id: Uuid) -> Result<user::Model, ApplicationError> {
         match user::Entity::find_by_id(user_id).one(&*self.db).await.unwrap() {
             Some(user) => Ok(user),
-            None => Err("User not found".to_string()),
+            None => Err(ApplicationError::NotFound(ErrorContent::Message("User not found".to_string())))
         }
     }
 
-    async fn get_user_by_username(&self, username: String) -> Result<user::Model, String> {
+    async fn get_user_by_username(&self, username: String) -> Result<user::Model, ApplicationError> {
         let user: Option<user::Model> = user::Entity::find().filter(
                 user::Column::Username.eq(username)
             )
@@ -36,11 +37,11 @@ impl UserReader for UserGateway {
 
         match user {
             Some(user) => Ok(user),
-            None => Err("User not found".to_string()),
+            None => Err(ApplicationError::NotFound(ErrorContent::Message("User not found".to_string())))
         }
     }
 
-    async fn get_user_by_email(&self, email: String) -> Result<user::Model, String> {
+    async fn get_user_by_email(&self, email: String) -> Result<user::Model, ApplicationError> {
         let user: Option<user::Model> = user::Entity::find().filter(
                 user::Column::Email.eq(email)
             )
@@ -50,11 +51,11 @@ impl UserReader for UserGateway {
 
         match user {
             Some(user) => Ok(user),
-            None => Err("User not found".to_string()),
+            None => Err(ApplicationError::NotFound(ErrorContent::Message("User not found".to_string())))
         }
     }
 
-    async fn get_list(&self) -> Result<Vec<Model>, String> {
+    async fn get_list(&self) -> Result<Vec<Model>, ApplicationError> {
         let users: Vec<Model> = user::Entity::find().all(&*self.db).await.unwrap();
         Ok(users)
     }
