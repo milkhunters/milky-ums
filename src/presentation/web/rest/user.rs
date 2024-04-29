@@ -10,12 +10,12 @@ use crate::ioc::IoC;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
 
+
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/users")
             // .service(users_range)
-            .service(user_by_id)
-            .service(users_by_ids)
+            .service(users_by_query)
             .service(user_self)
             .service(create_user)
             .service(update_user)
@@ -33,35 +33,40 @@ pub fn router(cfg: &mut web::ServiceConfig) {
 //     HttpResponse::Ok().body("get_users")
 // }
 
-#[get("/{id}")]
-async fn user_by_id(
-    data: web::Path<GetUserByIdDTO>,
-    ioc: web::Data<IoC>,
-) -> Result<HttpResponse, ApplicationError> {
-    let data = ioc.get_user_by_id().execute(data.into_inner()).await?;
-    Ok(HttpResponse::Ok().json(data))
+
+#[derive(Debug, Deserialize)]
+struct UserByIdsData {
+    #[serde(deserialize_with = "deserialize_uuid_list")]
+    ids: Vec<Uuid>
 }
 
-
-#[derive(Deserialize)]
-pub struct UsersQueryIds {
-    #[serde(deserialize_with = "deserialize_uuid_list")]
-    pub ids: Vec<Uuid>,
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum UsersQuery {
+    Id(GetUserByIdDTO),
+    Ids(UserByIdsData)
 }
 
 #[get("")]
-async fn users_by_ids(
-    data: web::Query<UsersQueryIds>,
+async fn users_by_query(
+    data: web::Query<UsersQuery>,
     ioc: web::Data<IoC>,
 ) -> Result<HttpResponse, ApplicationError> {
-    let data = ioc.get_users_by_ids().execute(
-        GetUsersByIdsDTO {
-            ids: data.ids.clone(),
+    return match data.0 {
+        UsersQuery::Id(content) => {
+            let data = ioc.get_user_by_id().execute(content).await?;
+            Ok(HttpResponse::Ok().json(data))
+        },
+        UsersQuery::Ids(content) => {
+            let data = ioc.get_users_by_ids().execute(
+                GetUsersByIdsDTO {
+                    ids: content.ids.clone(),
+                }
+            ).await?;
+            Ok(HttpResponse::Ok().json(data))
         }
-    ).await?;
-    Ok(HttpResponse::Ok().json(data))
+    };
 }
-
 
 #[get("/self")]
 async fn user_self() -> impl Responder {
