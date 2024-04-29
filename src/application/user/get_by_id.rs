@@ -7,7 +7,7 @@ use crate::application::common::user_gateway::UserReader;
 
 #[derive(Debug, Deserialize)]
 pub struct GetUserByIdDTO {
-    id: Uuid,
+    pub id: Uuid,
 }
 
 #[derive(Debug, Serialize)]
