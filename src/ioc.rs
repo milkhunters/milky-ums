@@ -7,6 +7,7 @@ use crate::adapters::database::user_db::UserGateway;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionByUserId;
 use crate::application::user::get_by_id::GetUserById;
+use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
 use crate::presentation::interactor_factory::InteractorFactory;
 
@@ -34,6 +35,12 @@ impl IoC {
 impl InteractorFactory for IoC {
     fn get_user_by_id(&self) -> GetUserById {
         GetUserById {
+            user_gateway: &self.user_gateway
+        }
+    }
+
+    fn get_users_by_ids(&self) -> GetUsersByIds {
+        GetUsersByIds {
             user_gateway: &self.user_gateway
         }
     }

@@ -1,10 +1,14 @@
 use actix_web::{delete, get, HttpResponse, post, put, Responder, Result, web};
+use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::application::common::exceptions::ApplicationError;
 use crate::application::common::interactor::Interactor;
 use crate::application::user::get_by_id::GetUserByIdDTO;
+use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::ioc::IoC;
 use crate::presentation::interactor_factory::InteractorFactory;
+use crate::presentation::web::deserializers::deserialize_uuid_list;
 
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -29,22 +33,33 @@ pub fn router(cfg: &mut web::ServiceConfig) {
 //     HttpResponse::Ok().body("get_users")
 // }
 
-#[get("")]
+#[get("/{id}")]
 async fn user_by_id(
-    payload: web::Query<GetUserByIdDTO>,
+    data: web::Path<GetUserByIdDTO>,
     ioc: web::Data<IoC>,
 ) -> Result<HttpResponse, ApplicationError> {
-    match ioc.get_user_by_id().execute(payload.into_inner()).await {
-        Ok(user) => {
-            Ok(HttpResponse::Ok().json(user))
-        },
-        Err(e) => return Err(e),
-    }
+    let data = ioc.get_user_by_id().execute(data.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(data))
+}
+
+
+#[derive(Deserialize)]
+pub struct UsersQueryIds {
+    #[serde(deserialize_with = "deserialize_uuid_list")]
+    pub ids: Vec<Uuid>,
 }
 
 #[get("")]
-async fn users_by_ids() -> impl Responder {
-    HttpResponse::Ok().body("get_users")
+async fn users_by_ids(
+    data: web::Query<UsersQueryIds>,
+    ioc: web::Data<IoC>,
+) -> Result<HttpResponse, ApplicationError> {
+    let data = ioc.get_users_by_ids().execute(
+        GetUsersByIdsDTO {
+            ids: data.ids.clone(),
+        }
+    ).await?;
+    Ok(HttpResponse::Ok().json(data))
 }
 
 
