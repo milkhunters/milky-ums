@@ -9,5 +9,5 @@ pub trait UserReader {
     async fn get_users_by_ids(&self, user_ids: Vec<Uuid>) -> Result<Vec<user::Model>, ApplicationError>;
     async fn get_user_by_username(&self, username: String) -> Result<user::Model, ApplicationError>;
     async fn get_user_by_email(&self, email: String) -> Result<user::Model, ApplicationError>;
-    async fn get_list(&self) -> Result<Vec<user::Model>, ApplicationError>;
+    async fn get_list(&self, limit: u64, offset: u64) -> Result<Vec<user::Model>, ApplicationError>;
 }

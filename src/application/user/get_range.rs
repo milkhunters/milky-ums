@@ -1,18 +1,18 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 
+use crate::application::common::exceptions::ApplicationError;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
 
 #[derive(Debug, Deserialize)]
-pub struct GetUserByIdDTO {
-    page: u32,
-    per_page: u32,
+pub struct GetUserRangeDTO {
+    pub page: u64,
+    pub per_page: u64,
 }
 
 #[derive(Debug, Serialize)]
-struct UserItemResult{
+pub struct UserItemResult{
     id: Uuid,
     username: String,
     first_name: Option<String>,
@@ -26,26 +26,20 @@ pub struct GetUserRange<'a> {
     pub user_gateway: &'a dyn UserReader,
 }
 
-impl Interactor<GetUserByIdDTO, GetUserRangeResultDTO> for GetUserRange<'_> {
-    async fn execute(&self, data: GetUserByIdDTO) -> Result<GetUserRangeResultDTO, ApplicationError> {
-        let users = match self.user_gateway.get_list().await {
-            Ok(user) => user,
-            Err(e) => return Err(
-                ApplicationError::NotFound(
-                    ErrorContent::Message(
-                        "User not found".to_string()
-                    )
-                )
-            ),
-        };
+impl Interactor<GetUserRangeDTO, GetUserRangeResultDTO> for GetUserRange<'_> {
+    async fn execute(&self, data: GetUserRangeDTO) -> Result<GetUserRangeResultDTO, ApplicationError> {
+        let users = self.user_gateway.get_list(
+            data.per_page,
+            data.page * data.per_page
+        ).await?;
 
         let mut users_list = Vec::new();
-        for u in users {
+        for user in users {
             users_list.push(UserItemResult {
-                id: u.id,
-                username: u.username,
-                first_name: u.first_name,
-                last_name: u.last_name,
+                id: user.id,
+                username: user.username,
+                first_name: user.first_name,
+                last_name: user.last_name,
             });
         }
         Ok(users_list)

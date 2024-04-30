@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::sea_query::{Condition, Expr};
 use uuid::Uuid;
 
@@ -78,8 +78,13 @@ impl UserReader for UserGateway {
         }
     }
 
-    async fn get_list(&self) -> Result<Vec<user::Model>, ApplicationError> {
-        let users: Vec<user::Model> = user::Entity::find().all(&*self.db).await.unwrap();
+    async fn get_list(&self, limit: u64, offset: u64) -> Result<Vec<user::Model>, ApplicationError> {
+        let users: Vec<user::Model> = user::Entity::find()
+            .limit(limit)
+            .offset(offset)
+            .all(&*self.db)
+            .await
+            .unwrap();
         Ok(users)
     }
 }
