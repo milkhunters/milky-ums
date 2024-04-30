@@ -2,10 +2,11 @@ use actix_web::{delete, get, HttpResponse, post, put, Responder, Result, web};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::application::common::exceptions::ApplicationError;
+use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
+use crate::application::user::get_range::GetUserRangeDTO;
 use crate::ioc::IoC;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
@@ -28,23 +29,55 @@ pub fn router(cfg: &mut web::ServiceConfig) {
 }
 
 
-// #[get("")]
-// async fn users_range() -> impl Responder {
-//     HttpResponse::Ok().body("get_users")
-// }
 
+/**
+    Попытка реализовать что-то типа:
 
+    ```rust
+    #[derive(Debug, Deserialize)]
+    #[serde(untagged)]
+    enum UsersQuery {
+        Id(GetUserByIdDTO),
+        Ids(UserByIdsData),
+        Range(GetUserRangeDTO)
+    }
+
+    #[get("")]
+    async fn users_by_query(
+        data: web::Query<UsersQuery>,
+        ioc: web::Data<IoC>,
+    ) -> Result<HttpResponse, ApplicationError> {
+        return match data.0 {
+            UsersQuery::Id(content) => {
+                let data = ioc.get_user_by_id().execute(content).await?;
+                Ok(HttpResponse::Ok().json(data))
+            },
+            UsersQuery::Ids(content) => {
+                let data = ioc.get_users_by_ids().execute(
+                    GetUsersByIdsDTO {
+                        ids: content.ids.clone(),
+                    }
+                ).await?;
+                Ok(HttpResponse::Ok().json(data))
+            },
+            UsersQuery::Range(content) => {
+                let data = ioc.get_user_range().execute(content).await?;
+                Ok(HttpResponse::Ok().json(data))
+            }
+        };
+    }
+    ```
+
+    Потерпела неудачу из-за нескольких параметров в варианте
+ */
 #[derive(Debug, Deserialize)]
-struct UserByIdsData {
-    #[serde(deserialize_with = "deserialize_uuid_list")]
-    ids: Vec<Uuid>
-}
+struct UsersQuery {
+    id: Option<Uuid>,
+    #[serde(deserialize_with = "deserialize_uuid_list", default)]
+    ids: Option<Vec<Uuid>>,
+    page: Option<u64>,
+    per_page: Option<u64>
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-enum UsersQuery {
-    Id(GetUserByIdDTO),
-    Ids(UserByIdsData)
 }
 
 #[get("")]
@@ -52,20 +85,27 @@ async fn users_by_query(
     data: web::Query<UsersQuery>,
     ioc: web::Data<IoC>,
 ) -> Result<HttpResponse, ApplicationError> {
-    return match data.0 {
-        UsersQuery::Id(content) => {
-            let data = ioc.get_user_by_id().execute(content).await?;
-            Ok(HttpResponse::Ok().json(data))
-        },
-        UsersQuery::Ids(content) => {
-            let data = ioc.get_users_by_ids().execute(
-                GetUsersByIdsDTO {
-                    ids: content.ids.clone(),
-                }
-            ).await?;
-            Ok(HttpResponse::Ok().json(data))
-        }
-    };
+
+    if let Some(id) = &data.id {
+        let data = ioc.get_user_by_id().execute(
+            GetUserByIdDTO { id: id.clone() }
+        ).await?;
+        return Ok(HttpResponse::Ok().json(data))
+    } else if let Some(ids) = &data.ids {
+        let data = ioc.get_users_by_ids().execute(
+            GetUsersByIdsDTO { ids: ids.clone(), }
+        ).await?;
+        return Ok(HttpResponse::Ok().json(data))
+    } else if let (Some(page), Some(per_page)) = (&data.page, &data.per_page) {
+        let data = ioc.get_user_range().execute(
+            GetUserRangeDTO {
+                page: page.clone(),
+                per_page: per_page.clone()
+            }
+        ).await?;
+        return Ok(HttpResponse::Ok().json(data))
+    }
+    Err(ApplicationError::InvalidData(ErrorContent::Message("Invalid query".to_string())))
 }
 
 #[get("/self")]
