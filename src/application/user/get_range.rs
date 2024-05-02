@@ -31,7 +31,7 @@ impl Interactor<GetUserRangeDTO, GetUserRangeResultDTO> for GetUserRange<'_> {
         let users = self.user_gateway.get_list(
             data.per_page,
             data.page * data.per_page
-        ).await?;
+        ).await;
 
         let mut users_list = Vec::new();
         for user in users {

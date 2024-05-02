@@ -29,7 +29,13 @@ pub struct GetUsersByIds<'a> {
 
 impl Interactor<GetUsersByIdsDTO, UsersByIdsResultDTO> for GetUsersByIds<'_> {
     async fn execute(&self, data: GetUsersByIdsDTO) -> Result<UsersByIdsResultDTO, ApplicationError> {
-        let users = self.user_gateway.get_users_by_ids(data.ids).await?;
+        let users = match self.user_gateway.get_users_by_ids(data.ids).await {
+            Some(u) => u,
+            None => return Err(ApplicationError::NotFound(
+                ErrorContent::Message("Запрашиваемые пользователи не найдены".to_string())
+            )),
+
+        };
         let mut users_list = Vec::new();
         for u in users {
             users_list.push(UserItemResult {

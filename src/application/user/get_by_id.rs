@@ -25,7 +25,14 @@ pub struct GetUserById<'a> {
 
 impl Interactor<GetUserByIdDTO, UserByIdResultDTO> for GetUserById<'_> {
     async fn execute(&self, data: GetUserByIdDTO) -> Result<UserByIdResultDTO, ApplicationError> {
-        let user = self.user_gateway.get_user_by_id(data.id).await?;
+        let user = match self.user_gateway.get_user_by_id(data.id).await {
+            Some(u) => u,
+            None => return Err(
+                ApplicationError::NotFound(
+                    ErrorContent::Message("User not found".to_string())
+                )),
+        };
+
         Ok(UserByIdResultDTO {
             id: user.id,
             username: user.username,
