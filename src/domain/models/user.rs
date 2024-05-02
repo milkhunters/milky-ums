@@ -1,29 +1,18 @@
-use sea_orm::entity::prelude::*;
-
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "user_state")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UserState {
-    #[sea_orm(string_value = "Active")]
     Active,
-
-    #[sea_orm(string_value = "Inactive")]
     Inactive,
-
-    #[sea_orm(string_value = "Banned")]
     Banned,
-
-    #[sea_orm(string_value = "Deleted")]
     Deleted,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false, default = "gen_random_uuid()")]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct User {
     pub id: Uuid,
     pub username: String,
     pub email: String,
@@ -32,10 +21,5 @@ pub struct Model {
     pub state: UserState,
     pub hashed_password: String,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
-
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
-
-impl ActiveModelBehavior for ActiveModel {}
