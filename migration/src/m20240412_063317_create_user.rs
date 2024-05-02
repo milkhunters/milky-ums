@@ -18,10 +18,10 @@ impl MigrationTrait for Migration {
                             .extra("DEFAULT gen_random_uuid()")
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Users::Username).string().not_null())
-                    .col(ColumnDef::new(Users::Email).string().not_null())
-                    .col(ColumnDef::new(Users::FirstName).string().null())
-                    .col(ColumnDef::new(Users::LastName).string().null())
+                    .col(ColumnDef::new(Users::Username).string_len(32).unique_key().not_null())
+                    .col(ColumnDef::new(Users::Email).string_len(255).unique_key().not_null())
+                    .col(ColumnDef::new(Users::FirstName).string_len(64).null())
+                    .col(ColumnDef::new(Users::LastName).string_len(64).null())
                     .col(
                         ColumnDef::new(Users::State)
                             .custom(UserState::Enum)
