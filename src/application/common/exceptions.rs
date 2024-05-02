@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use derive_more::{Display, Error};
-use serde::Serialize;
 
+use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
 pub enum ErrorContent {

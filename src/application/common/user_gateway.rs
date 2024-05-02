@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use uuid::Uuid;
-use crate::application::common::exceptions::ApplicationError;
+
 use crate::domain::models::user::User as UserDomain;
 
 #[async_trait]
