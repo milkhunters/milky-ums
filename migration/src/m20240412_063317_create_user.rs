@@ -27,7 +27,7 @@ impl MigrationTrait for Migration {
                             .custom(UserState::Enum)
                     )
 
-                    .col(ColumnDef::new(Users::HashedPassword).string().not_null())
+                    .col(ColumnDef::new(Users::HashedPassword).string_len(255).not_null())
                     .col(
                         ColumnDef::new(Users::CreatedAt)
                             .timestamp_with_time_zone()
