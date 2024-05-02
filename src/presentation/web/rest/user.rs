@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
+use crate::application::user::create_user::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
@@ -115,8 +116,13 @@ async fn user_self() -> impl Responder {
 
 
 #[post("")]
-async fn create_user() -> impl Responder {
-    HttpResponse::Ok().body("create_user")
+async fn create_user(
+    data: web::Json<CreateUserDTO>,
+    ioc: web::Data<IoC>,
+) -> Result<HttpResponse, ApplicationError> {
+    let data = ioc.create_user().execute(data.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(data))
+
 }
 
 #[put("/{id}")]
