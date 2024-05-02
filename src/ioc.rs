@@ -1,11 +1,9 @@
 use deadpool_redis::Pool;
 use sea_orm::DbConn;
-use crate::adapters::argon2_hasher::Argon2Hasher;
 
+use crate::adapters::argon2_hasher::Argon2Hasher;
 use crate::adapters::database::session_db::SessionGateway;
 use crate::adapters::database::user_db::UserGateway;
-use crate::application::common::hasher::Hasher;
-
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionByUserId;
 use crate::application::user::create_user::CreateUser;
@@ -37,7 +35,7 @@ impl IoC {
             user_gateway: UserGateway::new(db_pool.clone()),
             session_gateway: SessionGateway::new(Box::new(session_redis_pool)),
             user_service: UserService{},
-            hasher: Argon2Hasher{},
+            hasher: Argon2Hasher::new(),
             validator: ValidatorService::new()
         }
     }
