@@ -36,3 +36,4 @@ derive_more = "0.99.17"
 argon2-async = "0.2.0"
 regex = "1.10.4"
 futures = "0.3.30"
+cached = { version = "0.50.0", features = ["async"]}

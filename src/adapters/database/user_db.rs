@@ -1,32 +1,51 @@
+use core::option::Option;
+use std::sync::{Arc, Mutex};
+
 use async_trait::async_trait;
+use cached::{Cached, TimedCache};
 use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Condition, Expr};
-use core::option::Option;
 use sea_orm::sea_query::extension::postgres::PgExpr;
 use uuid::Uuid;
 
+use crate::adapters::database::models::user;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::models::user::User as UserDomain;
 use crate::domain::models::user::UserState as UserStateDomain;
-use crate::adapters::database::models::user;
 
 pub struct UserGateway{
-    pub db: Box<DbConn>
+    pub db: Box<DbConn>,
+    cache_user_by_id: Arc<Mutex<TimedCache<Uuid, user::Model>>>,
 }
 
 impl UserGateway {
     pub fn new(db: Box<DbConn>) -> Self {
         UserGateway {
-            db
+            db,
+            cache_user_by_id: Arc::new(Mutex::new(TimedCache::with_lifespan(3))),
+
         }
     }
 }
+
 #[async_trait]
 impl UserReader for UserGateway {
     async fn get_user_by_id(&self, user_id: Uuid) -> Option<UserDomain> {
+
+        let cached_value = self.cache_user_by_id.lock().unwrap().cache_get(&user_id).cloned();
+        if cached_value.is_some() {
+            return match cached_value {
+                Some(value) => Some(map_user_model_to_domain(value.clone())),
+                None => None
+            }
+        }
+
         match user::Entity::find_by_id(user_id).one(&*self.db).await.unwrap() {
-            Some(user) => Option::from(map_user_model_to_domain(user)),
+            Some(user) => {
+                self.cache_user_by_id.lock().unwrap().cache_set(user_id, user.clone());
+                Option::from(map_user_model_to_domain(user))
+            }
             None => None
         }
     }
@@ -56,7 +75,7 @@ impl UserReader for UserGateway {
         )
     }
 
-    async fn get_list(&self, limit: u64, offset: u64) -> Vec<UserDomain> {
+    async fn get_users_list(&self, limit: u64, offset: u64) -> Vec<UserDomain> {
         let users: Vec<user::Model> = user::Entity::find()
             .limit(limit)
             .offset(offset)
