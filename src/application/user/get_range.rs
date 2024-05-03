@@ -28,7 +28,7 @@ pub struct GetUserRange<'a> {
 
 impl Interactor<GetUserRangeDTO, GetUserRangeResultDTO> for GetUserRange<'_> {
     async fn execute(&self, data: GetUserRangeDTO) -> Result<GetUserRangeResultDTO, ApplicationError> {
-        let users = self.user_gateway.get_list(
+        let users = self.user_gateway.get_users_list(
             data.per_page,
             data.page * data.per_page
         ).await;
