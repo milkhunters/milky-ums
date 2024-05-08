@@ -1,6 +1,7 @@
 # Milky User Management Service
 
 ## Description
+
 This service is responsible for managing users in the Milky ecosystem. It provides the following functionalities:
 
 - User registration
