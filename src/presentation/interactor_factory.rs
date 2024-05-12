@@ -1,4 +1,5 @@
-
+use crate::application::common::id_provider::IdProvider;
+use crate::application::session::create::CreateSession;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
@@ -13,4 +14,5 @@ pub trait InteractorFactory {
     fn create_user(&self) -> CreateUser;
     fn get_session_by_id(&self) -> GetSessionById;
     fn get_sessions_by_user_id(&self) -> GetSessionByUserId;
+    fn create_session(&self, id_provider: &dyn IdProvider) -> CreateSession;
 }
