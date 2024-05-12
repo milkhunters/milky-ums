@@ -14,5 +14,6 @@ pub enum ApplicationError {
     InvalidData(ErrorContent),
     NotFound(ErrorContent),
     Conflict(ErrorContent),
-    InternalError(ErrorContent),
+    Unauthorized(ErrorContent),
+    Forbidden(ErrorContent),
 }
