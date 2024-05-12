@@ -2,14 +2,18 @@ use deadpool_redis::Pool;
 use sea_orm::DbConn;
 
 use crate::adapters::argon2_hasher::Argon2Hasher;
+use crate::adapters::auth::token::JwtTokenProcessor;
 use crate::adapters::database::session_db::SessionGateway;
 use crate::adapters::database::user_db::UserGateway;
+use crate::application::common::id_provider::IdProvider;
+use crate::application::session::create::CreateSession;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionByUserId;
 use crate::application::user::create_user::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
+use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
 use crate::presentation::interactor_factory::InteractorFactory;
@@ -18,15 +22,16 @@ pub struct IoC {
     user_gateway: UserGateway,
     session_gateway: SessionGateway,
     user_service: UserService,
+    session_service: SessionService,
     hasher: Argon2Hasher,
-    validator: ValidatorService
+    validator: ValidatorService,
 }
 
 impl IoC {
     pub fn new(
         db: DbConn,
         session_redis_pool: Pool,
-        confirm_manager_redis_pool: Pool
+        confirm_manager_redis_pool: Pool,
     ) -> IoC {
 
         let db_pool = Box::new(db);
@@ -35,8 +40,9 @@ impl IoC {
             user_gateway: UserGateway::new(db_pool.clone()),
             session_gateway: SessionGateway::new(Box::new(session_redis_pool)),
             user_service: UserService{},
+            session_service: SessionService{},
             hasher: Argon2Hasher::new(),
-            validator: ValidatorService::new()
+            validator: ValidatorService::new(),
         }
     }
 }
@@ -78,6 +84,18 @@ impl InteractorFactory for IoC {
     fn get_sessions_by_user_id(&self) -> GetSessionByUserId {
         GetSessionByUserId {
             session_gateway: &self.session_gateway,
+        }
+    }
+
+    fn create_session(&self, id_provider: &dyn IdProvider) -> CreateSession {
+        CreateSession {
+            id_provider,
+            session_gateway: &self.session_gateway,
+            user_gateway: &self.user_gateway,
+            user_service: &self.user_service,
+            session_service: &self.session_service,
+            password_hasher: &self.hasher,
+            validator: &self.validator,
         }
     }
 }
