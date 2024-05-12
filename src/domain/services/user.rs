@@ -27,4 +27,20 @@ impl UserService {
             updated_at: None,
         })
     }
+
+    pub fn update_user(
+        &self,
+        user: User,
+        new_email: String,
+        new_first_name: Option<String>,
+        new_last_name: Option<String>,
+    ) -> Result<User, ApplicationError> {
+        Ok(User {
+            email: new_email,
+            first_name: new_first_name,
+            last_name: new_last_name,
+            updated_at: Some(chrono::Utc::now()),
+            ..user
+        })
+    }
 }
