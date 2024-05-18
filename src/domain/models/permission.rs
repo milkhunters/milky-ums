@@ -1,24 +1,15 @@
 
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Permission {
+    pub id: Uuid,
+    pub title: String,
+    pub description: String,
+    pub permissions: Vec<String>,
 
-pub enum Permission {
-    GetUserSelf,
-    GetUser,
-    CreateUser,
-    UpdateUser,
-    UpdateUserSelf,
-    DeleteUser,
-
-    GetSessionSelf,
-    GetSession,
-    CreateSession,
-    UpdateSession,
-    DeleteSession,
-    DeleteSessionSelf,
-
-    GetRoleSelf,
-    GetRole,
-    CreateRole,
-    UpdateRole,
-    DeleteRole,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
