@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
-use crate::application::user::create_user::CreateUserDTO;
+use crate::application::user::create::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
