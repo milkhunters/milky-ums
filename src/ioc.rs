@@ -9,7 +9,7 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::session::create::CreateSession;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionByUserId;
-use crate::application::user::create_user::CreateUser;
+use crate::application::user::create::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
