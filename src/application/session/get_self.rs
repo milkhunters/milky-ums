@@ -1,22 +1,16 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::{SessionReader, SessionWriter};
+use crate::domain::exceptions::DomainError;
 use crate::domain::models::session::SessionId;
 use crate::domain::services::access::AccessService;
 
-pub trait SessionGateway: SessionReader + SessionWriter {}
-
-#[derive(Debug, Deserialize)]
-pub struct GetSessionByIdDTO {
-    id: SessionId,
-}
-
 #[derive(Debug, Serialize)]
-pub struct SessionByIdResultDTO{
+pub struct SessionSelfResultDTO{
     id: SessionId,
     ip: String,
     user_agent: String,
@@ -25,40 +19,41 @@ pub struct SessionByIdResultDTO{
 }
 
 
-pub struct GetSessionById<'a> {
+pub struct GetSessionSelf<'a> {
     pub session_reader: &'a dyn SessionReader,
     pub id_provider: &'a dyn IdProvider,
     pub access_service: &'a AccessService,
 }
 
-impl Interactor<GetSessionByIdDTO, SessionByIdResultDTO> for GetSessionById<'_> {
-    async fn execute(&self, data: GetSessionByIdDTO) -> Result<SessionByIdResultDTO, ApplicationError> {
+impl Interactor<(), SessionSelfResultDTO> for GetSessionSelf<'_> {
+    async fn execute(&self, data: ()) -> Result<SessionSelfResultDTO, ApplicationError> {
         
-        match self.access_service.ensure_can_get_session(
+        match self.access_service.ensure_can_get_session_self(
             self.id_provider.is_auth(),
-            self.id_provider.session_id(),
-            &data.id,
             self.id_provider.user_state(),
             self.id_provider.permissions()
         ) {
             Ok(_) => (),
-            Err(e) => return Err(
-                ApplicationError::Forbidden(
-                    ErrorContent::Message(e.to_string())
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
                 )
-            )
+            }
         };
-        
-        let session = match self.session_reader.get_session(&data.id).await {
+
+        let session = match self.session_reader.get_session(&self.id_provider.session_id().unwrap()).await {
             Some(session) => session,
-            None => return Err(
-                ApplicationError::NotFound(
-                    ErrorContent::Message("Запрашиваемая сессия не найдена".to_string())
-                )
-            ),
+            None => panic!("Session not found")
         };
-        
-        Ok(SessionByIdResultDTO {
+
+        Ok(SessionSelfResultDTO {
             id: session.id,
             ip: session.ip,
             user_agent: session.user_agent,

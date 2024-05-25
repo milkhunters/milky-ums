@@ -9,11 +9,13 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::{SessionReader, SessionWriter};
 use crate::application::common::user_gateway::UserReader;
+use crate::domain::models::session::SessionId;
+use crate::domain::services::access::AccessService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
 
-pub trait SessionGateway: SessionReader + SessionWriter {}
+trait SessionGateway: SessionReader + SessionWriter {}
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSessionDTO {
@@ -22,7 +24,7 @@ pub struct CreateSessionDTO {
 }
 
 #[derive(Debug, Serialize)]
-struct CreateSessionResult{
+struct CreateSessionResultDTO{
     id: Uuid,
     username: String,
     email: String,
@@ -38,12 +40,28 @@ pub struct CreateSession<'a> {
     pub id_provider: &'a dyn IdProvider,
     pub password_hasher: &'a dyn Hasher,
     pub validator: &'a ValidatorService,
+    pub access_service: &'a AccessService
 }
 
-impl Interactor<CreateSessionDTO, CreateSessionResult> for CreateSession<'_> {
-    async fn execute(&self, data: CreateSessionDTO) -> Result<CreateSessionResult, ApplicationError> {
+impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for CreateSession<'_> {
+    async fn execute(&self, data: CreateSessionDTO) -> Result<(CreateSessionResultDTO, SessionId), ApplicationError> {
+
+        match self.access_service.ensure_can_create_session(
+            self.id_provider.is_auth(),
+            self.id_provider.user_state(),
+            self.id_provider.permissions()
+            
+        ) {
+            Ok(_) => (),
+            Err(e) => return Err(
+                ApplicationError::Forbidden(
+                    ErrorContent::Message(e.to_string())
+                )
+            )
+        };
 
         let mut validator_err_map: HashMap<String, String> = HashMap::new();
+        
         self.validator.validate_username(&data.username).unwrap_or_else(|e| {
             validator_err_map.insert("username".to_string(), e.to_string());
         });
@@ -60,10 +78,8 @@ impl Interactor<CreateSessionDTO, CreateSessionResult> for CreateSession<'_> {
                 )
             )
         }
-
-        let user = match self.user_gateway.get_user_by_username_not_sensitive(
-            data.username.clone()
-        ).await {
+        
+        let user = match self.user_gateway.get_user_by_username_not_sensitive(&data.username).await {
             Some(user) => user,
             None => return Err(
                 ApplicationError::InvalidData(
@@ -73,8 +89,8 @@ impl Interactor<CreateSessionDTO, CreateSessionResult> for CreateSession<'_> {
         };
 
         match self.password_hasher.verify(
-            &data.password.as_str(),
-            &user.hashed_password.as_str()
+            &data.password,
+            &user.hashed_password
         ).await {
             true => true,
             false => return Err(
@@ -85,18 +101,22 @@ impl Interactor<CreateSessionDTO, CreateSessionResult> for CreateSession<'_> {
         };
 
         let session = self.session_service.create_session(
-            self.id_provider.ip(),
-            self.id_provider.user_agent()
+            user.id,
+            self.id_provider.ip().to_string(),
+            self.id_provider.user_agent().to_string()
         )?;
 
         self.session_gateway.save_session(&session).await?;
 
-        Ok(CreateSessionResult {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            first_name: user.first_name,
-            last_name: user.last_name,
-        })
+        Ok((
+            CreateSessionResultDTO {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+            },
+            session.id
+        ))
     }
 }

@@ -2,48 +2,68 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::application::common::exceptions::ApplicationError;
+use crate::application::common::exceptions::{ApplicationError, ErrorContent};
+use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionReader;
+use crate::domain::models::session::{Session, SessionId};
+use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Deserialize)]
-pub struct GetSessionByIdDTO {
+pub struct GetSessionByUserIdDTO {
     id: Uuid,
 }
 
 #[derive(Debug, Serialize)]
 struct SessionItemResult{
-    id: Uuid,
+    id: SessionId,
     ip: String,
     user_agent: String,
     created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    updated_at: Option<DateTime<Utc>>,
 }
 
-pub type SessionsByIdResultDTO = Vec<SessionItemResult>;
+pub type SessionsByUserIdResultDTO = Vec<SessionItemResult>;
 
 
 pub struct GetSessionByUserId<'a> {
-    pub session_gateway: &'a dyn SessionReader,
+    pub session_reader: &'a dyn SessionReader,
+    pub id_provider: &'a dyn IdProvider,
+    pub access_service: &'a AccessService
 }
 
-impl Interactor<GetSessionByIdDTO, SessionsByIdResultDTO> for GetSessionByUserId<'_> {
-    async fn execute(&self, data: GetSessionByIdDTO) -> Result<SessionsByIdResultDTO, ApplicationError> {
-        let session = match self.session_gateway.get_sessions_by_user_id(data.id).await {
+impl Interactor<GetSessionByUserIdDTO, SessionsByUserIdResultDTO> for GetSessionByUserId<'_> {
+    async fn execute(&self, data: GetSessionByUserIdDTO) -> Result<SessionsByUserIdResultDTO, ApplicationError> {
+        
+        
+        match self.access_service.ensure_can_get_sessions(
+            self.id_provider.is_auth(),
+            self.id_provider.user_id(),
+            &data.id,
+            self.id_provider.user_state(),
+            &self.id_provider.permissions()
+        ) {
+            Ok(_) => (),
+            Err(error) => return Err(
+                ApplicationError::Forbidden(
+                    ErrorContent::Message(error.to_string())
+                )
+            )
+        };
+        
+        let sessions: Vec<Session> = match self.session_reader.get_sessions(&data.id).await {
             Ok(user) => user,
             Err(e) => return Err(e),
         };
-
-        let mut sessions = Vec::new();
-        for s in session {
-            sessions.push(SessionItemResult {
-                id: s.id.parse().unwrap(),
-                ip: s.ip,
-                user_agent: s.user_agent,
-                created_at: s.created_at,
-                updated_at: s.updated_at,
-            });
-        }
-        Ok(sessions)
+        
+        Ok(
+            sessions.iter().map(|session| SessionItemResult {
+                id: session.id.clone(),
+                ip: session.ip.clone(),
+                user_agent: session.user_agent.clone(),
+                created_at: session.created_at.clone(),
+                updated_at: session.updated_at.clone()
+            }).collect()
+        )
     }
 }
