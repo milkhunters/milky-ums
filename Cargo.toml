@@ -38,3 +38,4 @@ regex = "1.10.4"
 futures = "0.3.30"
 cached = { version = "0.50.0", features = ["async"]}
 jsonwebtoken = "9.3.0"
+rand = "0.8.5"
