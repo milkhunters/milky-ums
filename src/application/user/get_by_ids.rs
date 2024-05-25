@@ -1,13 +1,15 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
+use crate::application::common::id_provider::IdProvider;
 
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
+use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Deserialize)]
 pub struct GetUsersByIdsDTO {
-    pub(crate) ids: Vec<Uuid>,
+    pub ids: Vec<Uuid>,
 }
 
 
@@ -24,27 +26,36 @@ pub type UsersByIdsResultDTO = Vec<UserItemResult>;
 
 
 pub struct GetUsersByIds<'a> {
-    pub user_gateway: &'a dyn UserReader,
+    pub user_reader: &'a dyn UserReader,
+    pub id_provider: &'a dyn IdProvider,
+    pub access_service: &'a AccessService,
 }
 
 impl Interactor<GetUsersByIdsDTO, UsersByIdsResultDTO> for GetUsersByIds<'_> {
     async fn execute(&self, data: GetUsersByIdsDTO) -> Result<UsersByIdsResultDTO, ApplicationError> {
-        let users = match self.user_gateway.get_users_by_ids(data.ids).await {
+        
+        self.access_service.ensure_can_get_users(
+            self.id_provider.is_auth(),
+            self.id_provider.user_id(),
+            &data.ids,
+            self.id_provider.user_state(),
+            &self.id_provider.permissions()
+        )?;
+        
+        let users = match self.user_reader.get_users_by_ids(&data.ids).await {
             Some(u) => u,
             None => return Err(ApplicationError::NotFound(
                 ErrorContent::Message("Запрашиваемые пользователи не найдены".to_string())
             )),
 
         };
-        let mut users_list = Vec::new();
-        for u in users {
-            users_list.push(UserItemResult {
+        Ok(
+            users.into_iter().map(|u| UserItemResult {
                 id: u.id,
                 username: u.username,
                 first_name: u.first_name,
                 last_name: u.last_name,
-            });
-        }
-        Ok(users_list)
+            }).collect()
+        )
     }
 }

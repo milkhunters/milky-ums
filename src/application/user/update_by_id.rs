@@ -5,6 +5,7 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::{UserReader, UserWriter};
+use crate::domain::exceptions::DomainError;
 use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
@@ -41,14 +42,28 @@ pub struct UpdateUserById<'a> {
 
 impl Interactor<UpdateUserByIdDTO, UserByIdResultDTO> for UpdateUserById<'_> {
     async fn execute(&self, data: UpdateUserByIdDTO) -> Result<UserByIdResultDTO, ApplicationError> {
-        if !self.id_provider.is_auth() {
-            return Err(ApplicationError::Forbidden( // todo: change to Unauthorized ??
-                ErrorContent::Message("У вас нет доступа к этому ресурсу".to_string()))
-            );
+        
+        match self.access_service.ensure_can_update_user(
+            self.id_provider.is_auth(),
+            self.id_provider.user_state(),
+            &self.id_provider.permissions()
+        ) {
+            Ok(_) => (),
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
+                )
+            }
         }
 
-        let current_user_id = self.id_provider.user_id();
-        let user = match self.user_gateway.get_user_by_id(data.id).await {
+        let user = match self.user_gateway.get_user_by_id(&data.id).await {
             Some(user) => user,
             None => {
                 return Err(ApplicationError::NotFound(
@@ -56,23 +71,6 @@ impl Interactor<UpdateUserByIdDTO, UserByIdResultDTO> for UpdateUserById<'_> {
                 );
             }
         };
-
-        if current_user_id != user.id {
-            return Err(ApplicationError::Forbidden(
-                ErrorContent::Message("Вы не можете изменить данные другого пользователя".to_string()))
-            );
-        }
-
-
-        match self.access_service.ensure_can_update_user(
-            &self.id_provider.user_state(),
-            &self.id_provider.permissions()
-        ) {
-            Ok(_) => (),
-            Err(e) => return Err(ApplicationError::Forbidden(
-                ErrorContent::Message(e.to_string())
-            ))
-        }
 
         self.user_gateway.save_user(&user).await;
 

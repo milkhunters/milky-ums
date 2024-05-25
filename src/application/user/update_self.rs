@@ -5,6 +5,7 @@ use crate::application::common::id_provider::IdProvider;
 
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::{UserReader, UserWriter};
+use crate::domain::exceptions::DomainError;
 use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
@@ -39,20 +40,30 @@ pub struct UpdateSelfById<'a> {
 
 impl Interactor<UpdateSelfByIdDTO, SelfByIdResultDTO> for UpdateSelfById<'_> {
     async fn execute(&self, data: UpdateSelfByIdDTO) -> Result<SelfByIdResultDTO, ApplicationError> {
-        if !self.id_provider.is_auth() {
-            return Err(ApplicationError::Forbidden( // todo: change to Unauthorized ??
-                ErrorContent::Message("У вас нет доступа к этому ресурсу".to_string()))
-            );
-        }
-
-        let current_user_id = self.id_provider.user_id();
-        let user = match self.user_gateway.get_user_by_id(current_user_id).await {
-            Some(user) => user,
-            None => {
-                return Err(ApplicationError::NotFound(
-                    ErrorContent::Message("Пользователь не найден".to_string()))
-                );
+        
+        match self.access_service.ensure_can_update_user_self(
+            self.id_provider.is_auth(),
+            self.id_provider.user_state(),
+            &self.id_provider.permissions()
+        ) {
+            Ok(_) => (),
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
+                )
             }
+        };
+
+        let user = match self.user_gateway.get_user_by_id(self.id_provider.user_id().unwrap()).await {
+            Some(user) => user,
+            None => panic!("User not found internal error"),
         };
 
         let updated_user = self.user_service.update_user(

@@ -1,14 +1,11 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
-use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 
+use crate::application::common::exceptions::{ApplicationError, ErrorContent};
+use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
-
-#[derive(Debug, Deserialize)]
-pub struct GetUserSelfDTO {
-    pub id: Uuid,
-}
+use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Serialize)]
 pub struct UserSelfResultDTO{
@@ -20,20 +17,39 @@ pub struct UserSelfResultDTO{
 
 
 pub struct GetUserSelf<'a> {
-    pub user_gateway: &'a dyn UserReader,
+    pub user_reader: &'a dyn UserReader,
+    pub id_provider: &'a dyn IdProvider,
+    pub access_service: &'a AccessService,
+    
 }
 
-impl Interactor<GetUserSelfDTO, UserSelfResultDTO> for GetUserSelf<'_> {
-    async fn execute(&self, data: GetUserSelfDTO) -> Result<UserSelfResultDTO, ApplicationError> {
-        let user = match self.user_gateway.get_user_by_id(data.id).await {
+impl Interactor<(), UserSelfResultDTO> for GetUserSelf<'_> {
+    async fn execute(&self, data: ()) -> Result<UserSelfResultDTO, ApplicationError> {
+        
+        match self.access_service.ensure_can_get_user_self(
+            self.id_provider.is_auth(),
+            self.id_provider.user_state(),
+            &self.id_provider.permissions()
+        ) {
+            Ok(_) => (),
+            Err(error) => return Err(
+                ApplicationError::Forbidden(
+                    ErrorContent::Message(error.to_string())
+                )
+            )
+        };
+        
+        
+        let user = match self.user_reader.get_user_by_id(self.id_provider.user_id().unwarp()).await {
             Some(u) => u,
             None => return Err(
                 ApplicationError::NotFound(
                     ErrorContent::Message("Пользователь не найден".to_string())
-                )),
+                )
+            ),
         };
 
-        Ok(UserByIdResultDTO {
+        Ok(UserSelfResultDTO {
             id: user.id,
             username: user.username,
             first_name: user.first_name,
