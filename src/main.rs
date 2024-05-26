@@ -1,17 +1,11 @@
 use std::net::TcpListener;
 use std::thread;
-use std::time::Duration;
 
 use dotenv::dotenv;
 use actix_web::{App, HttpServer, web};
-use chrono::TimeDelta;
 use sea_orm::{ConnectOptions, Database};
 use deadpool_redis::{redis::{cmd, FromRedisValue}, Config, Runtime};
-use jsonwebtoken::Algorithm;
-use redis::Client;
-use crate::adapters::auth::token::JwtTokenProcessor;
 
-use crate::adapters::database::user_db::UserGateway;
 use crate::ioc::IoC;
 
 
@@ -90,25 +84,13 @@ async fn main() -> std::io::Result<()> {
             db = db,
         ))
     };
-
+    
     let session_redis_pool = redis_factory(0).create_pool(Some(Runtime::Tokio1)).unwrap();
     let confirm_manager_redis_pool = redis_factory(1).create_pool(Some(Runtime::Tokio1)).unwrap();
-
-    let jwt_access_token_processor = JwtTokenProcessor::new(
-        config.jwt.private_key.clone(),
-        config.jwt.public_key.clone(),
-        Algorithm::RS256,
-        TimeDelta::minutes(3)
-    );
-
-    let jwt_refresh_token_processor = JwtTokenProcessor::new(
-        config.jwt.private_key.clone(),
-        config.jwt.public_key.clone(),
-        Algorithm::RS256,
-        TimeDelta::days(30)
-    );
-
+    
     let app_builder = move || {
+        let branch = branch.clone();
+        let build = build.clone();
         App::new()
             .service(web::scope("/api")
                 .configure(presentation::web::rest::user::router)
@@ -119,15 +101,11 @@ async fn main() -> std::io::Result<()> {
             }))
             .app_data(web::Data::new(
                 IoC::new(
-                    db,
-                    session_redis_pool,
-                    confirm_manager_redis_pool,
+                    db.clone(),
+                    session_redis_pool.clone(),
+                    confirm_manager_redis_pool.clone(),
                 )
-            )).app_data(
-                jwt_access_token_processor,
-            ).app_data(
-                jwt_refresh_token_processor
-            )
+            ))
             .default_service(web::route().to(presentation::web::exception::not_found))
         // .wrap(Logger::new("[%s] [%{r}a] %U"))
     };
