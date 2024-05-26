@@ -27,7 +27,7 @@ pub struct SessionByIdResultDTO{
 
 pub struct GetSessionById<'a> {
     pub session_reader: &'a dyn SessionReader,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
 }
 

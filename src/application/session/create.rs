@@ -7,15 +7,14 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::session_gateway::{SessionReader, SessionWriter};
+use crate::application::common::session_gateway::SessionGateway;
 use crate::application::common::user_gateway::UserReader;
+use crate::domain::exceptions::DomainError;
 use crate::domain::models::session::SessionId;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
-
-trait SessionGateway: SessionReader + SessionWriter {}
 
 #[derive(Debug, Deserialize)]
 pub struct CreateSessionDTO {
@@ -37,7 +36,7 @@ pub struct CreateSession<'a> {
     pub user_gateway: &'a dyn UserReader,
     pub user_service: &'a UserService,
     pub session_service: &'a SessionService,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub password_hasher: &'a dyn Hasher,
     pub validator: &'a ValidatorService,
     pub access_service: &'a AccessService
@@ -50,14 +49,20 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for Creat
             self.id_provider.is_auth(),
             self.id_provider.user_state(),
             self.id_provider.permissions()
-            
         ) {
             Ok(_) => (),
-            Err(e) => return Err(
-                ApplicationError::Forbidden(
-                    ErrorContent::Message(e.to_string())
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
                 )
-            )
+            }
         };
 
         let mut validator_err_map: HashMap<String, String> = HashMap::new();
@@ -106,7 +111,7 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for Creat
             self.id_provider.user_agent().to_string()
         )?;
 
-        self.session_gateway.save_session(&session).await?;
+        self.session_gateway.save_session(&session).await;
 
         Ok((
             CreateSessionResultDTO {

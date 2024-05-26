@@ -28,7 +28,7 @@ pub type SessionsByUserIdResultDTO = Vec<SessionItemResult>;
 
 pub struct GetSessionByUserId<'a> {
     pub session_reader: &'a dyn SessionReader,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService
 }
 
@@ -51,10 +51,7 @@ impl Interactor<GetSessionByUserIdDTO, SessionsByUserIdResultDTO> for GetSession
             )
         };
         
-        let sessions: Vec<Session> = match self.session_reader.get_sessions(&data.id).await {
-            Ok(user) => user,
-            Err(e) => return Err(e),
-        };
+        let sessions: Vec<Session> = self.session_reader.get_sessions(&data.id).await;
         
         Ok(
             sessions.iter().map(|session| SessionItemResult {
