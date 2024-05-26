@@ -7,11 +7,12 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::user_gateway::UserReader;
+use crate::application::common::user_gateway::UserGateway;
 use crate::domain::models::user::UserState;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
 use crate::domain::services::access::AccessService;
+
 
 #[derive(Debug, Deserialize)]
 pub struct CreateUserDTO {
@@ -33,12 +34,12 @@ pub struct CreateUserResultDTO{
 }
 
 pub struct CreateUser<'a> {
-    pub user_gateway: &'a dyn UserReader,
+    pub user_gateway: &'a dyn UserGateway,
     pub user_service: &'a UserService,
     pub password_hasher: &'a dyn Hasher,
     pub validator: &'a ValidatorService,
     pub access_service: &'a AccessService,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
 }
 
 impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
@@ -89,13 +90,16 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
         }
 
         // Todo: to gather
-        // let user_by_username = self.user_gateway.get_user_by_username_not_sensitive(data.username.clone()).await;
-        // let user_by_email = self.user_gateway.get_user_by_email_not_sensitive(data.email.clone()).await;
+        let user_by_username = self.user_gateway.get_user_by_username_not_sensitive(&data.username).await;
+        let user_by_email = self.user_gateway.get_user_by_email_not_sensitive(&data.email).await;
 
-        let (user_by_username, user_by_email) = tokio::try_join!(
-            tokio::spawn(async move { self.user_gateway.get_user_by_username_not_sensitive(&data.username).await }),
-            tokio::spawn(async move { self.user_gateway.get_user_by_email_not_sensitive(&data.email).await })
-        )?;
+        // let (user_by_username, user_by_email) = match tokio::try_join!(
+        //     tokio::spawn(async move { self.user_gateway.get_user_by_username_not_sensitive(&data.username).await }),
+        //     tokio::spawn(async move { self.user_gateway.get_user_by_email_not_sensitive(&data.email).await })
+        // ) {
+        //     Ok((user_by_username, user_by_email)) => (user_by_username, user_by_email),
+        //     Err(e) => panic!("Error: {:?}", e)
+        // };
         
         if user_by_username.is_some() {
             validator_err_map.insert("username".to_string(), "Имя пользователя занято".to_string());

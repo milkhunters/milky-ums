@@ -4,13 +4,12 @@ use uuid::Uuid;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::user_gateway::{UserReader, UserWriter};
+use crate::application::common::user_gateway::UserGateway;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
 
-pub trait UserGateway: UserReader + UserWriter {}
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateUserByIdDTO {
