@@ -1,4 +1,6 @@
+use strum_macros::Display;
 
+#[derive(Display)]
 pub enum UMSPermission {
     GetUserSelf,
     GetUser,
