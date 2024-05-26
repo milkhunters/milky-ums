@@ -19,7 +19,8 @@ impl ApplicationError {
             ApplicationError::InvalidData(ref content) => (StatusCode::BAD_REQUEST, content.clone()),
             ApplicationError::NotFound(ref content) => (StatusCode::NOT_FOUND, content.clone()),
             ApplicationError::Conflict(ref content) => (StatusCode::CONFLICT, content.clone()),
-            ApplicationError::InternalError(ref content) => (StatusCode::INTERNAL_SERVER_ERROR, content.clone()),
+            ApplicationError::Forbidden(ref content) => (StatusCode::FORBIDDEN, content.clone()),
+            ApplicationError::Unauthorized(ref content) => (StatusCode::UNAUTHORIZED, content.clone()),
         }
     }
 }
