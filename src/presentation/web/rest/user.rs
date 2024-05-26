@@ -8,6 +8,7 @@ use crate::application::user::create::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
+use crate::application::user::get_self::UserSelfResultDTO;
 use crate::ioc::IoC;
 use crate::presentation::id_provider::get_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
@@ -17,7 +18,6 @@ use crate::presentation::web::deserializers::deserialize_uuid_list;
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/users")
-            // .service(users_range)
             .service(users_by_query)
             .service(user_self)
             .service(create_user)
@@ -73,8 +73,13 @@ async fn users_by_query(
 }
 
 #[get("/self")]
-async fn user_self() -> impl Responder {
-    HttpResponse::Ok().body("self")
+async fn user_self(
+    ioc: web::Data<IoC>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    let data = ioc.get_user_self(id_provider).execute(()).await?;
+    Ok(HttpResponse::Ok().json(data))
 }
 
 
