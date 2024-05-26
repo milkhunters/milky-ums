@@ -12,7 +12,7 @@ impl AccessService {
         &self,
         permissions: &Vec<String>
     ) -> Result<(), DomainError> {
-        if !permissions.contains(UMSPermission::CreateUser.as_str()) {
+        if !permissions.contains(&UMSPermission::CreateUser.to_string()) {
             return Err(DomainError::AccessDenied)
         }
         Ok(())
@@ -29,7 +29,7 @@ impl AccessService {
         }
         
         if 
-            permissions.contains(UMSPermission::GetUserSelf.as_str()) &&
+            permissions.contains(&UMSPermission::GetUserSelf.to_string()) &&
             user_state.unwrap() != &UserState::Inactive
         {
             return Ok(())
@@ -46,7 +46,7 @@ impl AccessService {
         permissions: &Vec<String>
     ) -> Result<(), DomainError> {
         
-        if permissions.contains(UMSPermission::GetUser.as_str()) {
+        if permissions.contains(&UMSPermission::GetUser.to_string()) {
             return Ok(())
         }
         
@@ -55,7 +55,7 @@ impl AccessService {
         }
         
         if 
-            permissions.contains(UMSPermission::GetUserSelf.as_str()) &&
+            permissions.contains(&UMSPermission::GetUserSelf.to_string()) &&
             user_id.unwrap() == get_user_id &&
             user_state.unwrap() == &UserState::Active
         {
@@ -73,7 +73,7 @@ impl AccessService {
         permissions: &Vec<String>
     ) -> Result<(), DomainError> {
 
-        if permissions.contains(UMSPermission::GetUser.as_str()) {
+        if permissions.contains(&UMSPermission::GetUser.to_string()) {
             return Ok(())
         }
 
@@ -82,7 +82,7 @@ impl AccessService {
         }
 
         if
-            permissions.contains(UMSPermission::GetUserSelf.as_str()) && 
+            permissions.contains(&UMSPermission::GetUserSelf.to_string()) && 
             get_user_ids.len() == 1 &&
             get_user_ids.contains(&user_id.unwrap()) &&
             user_state.unwrap() == &UserState::Active
@@ -97,7 +97,7 @@ impl AccessService {
         permissions: &Vec<String>
     ) -> Result<(), DomainError> {
 
-        if permissions.contains(UMSPermission::GetUser.as_str()) {
+        if permissions.contains(&UMSPermission::GetUser.to_string()) {
             return Ok(())
         }
         
@@ -118,7 +118,7 @@ impl AccessService {
         
         if 
             user_state.unwrap() == &UserState::Active && 
-            permissions.contains(UMSPermission::UpdateUser.as_str())
+            permissions.contains(&UMSPermission::UpdateUser.to_string())
         {
             return Ok(())
         }
@@ -139,7 +139,7 @@ impl AccessService {
         
         if
             user_state.unwrap() == &UserState::Active &&
-            permissions.contains(UMSPermission::UpdateUserSelf.as_str())
+            permissions.contains(&UMSPermission::UpdateUserSelf.to_string())
         {
             return Ok(())
         }
@@ -161,11 +161,11 @@ impl AccessService {
         }
         
         if
-            permissions.contains(UMSPermission::DeleteSession.as_str()) ||
+            permissions.contains(&UMSPermission::DeleteSession.to_string()) ||
             (
-                permissions.contains(UMSPermission::DeleteSessionSelf.as_str()) &&
+                permissions.contains(&UMSPermission::DeleteSessionSelf.to_string()) &&
                 user_session_id.unwrap() == del_session_id &&
-                user_state != &UserState::Inactive
+                user_state.unwrap() != &UserState::Inactive
             )
         {
             return Ok(())
@@ -187,7 +187,7 @@ impl AccessService {
         
         if
             user_state.unwrap() == &UserState::Active &&
-            permissions.contains(UMSPermission::DeleteSessionSelf.as_str())
+            permissions.contains(&UMSPermission::DeleteSessionSelf.to_string())
         {
             return Ok(())
         }
@@ -201,18 +201,22 @@ impl AccessService {
         user_state: Option<&UserState>,
         permissions: &Vec<String>
     ) -> Result<(), DomainError> {
+        
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+        
             
-        if 
-            is_auth &&
-            permissions.contains(UMSPermission::CreateSession.as_str()) && 
-            user_state.unwrap() != UserState::Inactive 
+        if
+            permissions.contains(&UMSPermission::CreateSession.to_string()) && 
+            user_state.unwrap() != &UserState::Inactive 
         {
             return Ok(())
         }
         
         if
             !is_auth &&
-            permissions.contains(UMSPermission::CreateSession.as_str())
+            permissions.contains(&UMSPermission::CreateSession.to_string())
         {
             return Ok(())
         }
@@ -234,9 +238,9 @@ impl AccessService {
         }
         
         if
-            permissions.contains(UMSPermission::GetSession.as_str()) ||
+            permissions.contains(&UMSPermission::GetSession.to_string()) ||
             (
-                permissions.contains(UMSPermission::GetSessionSelf.as_str()) &&
+                permissions.contains(&UMSPermission::GetSessionSelf.to_string()) &&
                 user_session_id.unwrap() == get_session_id &&
                 user_state.unwrap() != &UserState::Inactive
             )
@@ -260,12 +264,12 @@ impl AccessService {
             return Err(DomainError::AuthorizationRequired)
         }
 
-        if permissions.contains(UMSPermission::GetSession.as_str()) {
+        if permissions.contains(&UMSPermission::GetSession.to_string()) {
             return Ok(())
         }
         
         if
-            permissions.contains(UMSPermission::GetSessionSelf.as_str()) &&
+            permissions.contains(&UMSPermission::GetSessionSelf.to_string()) &&
             get_user_id == user_id.unwrap() &&
             user_state.unwrap() == &UserState::Active
         {
@@ -287,7 +291,7 @@ impl AccessService {
         }
         
         if 
-            permissions.contains(UMSPermission::GetSessionSelf.as_str()) &&
+            permissions.contains(&UMSPermission::GetSessionSelf.to_string()) &&
             user_state.unwrap() != &UserState::Inactive
         {
             return Ok(())
