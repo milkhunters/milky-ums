@@ -15,7 +15,7 @@ impl SessionService {
         user_agent: String,
     ) -> Result<Session, ApplicationError> {
         let id: SessionId = SessionId::from(
-            (0..128).map(|_| format!("{:02x}", random::<u8>())).collect()
+            (0..128).map(|_| format!("{:02x}", random::<u8>())).collect::<Vec<_>>().join("")
         );
         
         Ok(Session {
