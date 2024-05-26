@@ -16,5 +16,6 @@ pub trait UserReader {
 #[async_trait]
 pub trait UserWriter {
     async fn save_user(&self, data: &UserDomain);
-
 }
+
+pub trait UserGateway: UserReader + UserWriter {}
