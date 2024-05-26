@@ -12,6 +12,7 @@ use crate::application::user::create::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
+use crate::application::user::get_self::GetUserSelf;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
@@ -68,6 +69,14 @@ impl InteractorFactory for IoC {
 
     fn get_user_range(&self, id_provider: Box<dyn IdProvider>) -> GetUserRange {
         GetUserRange {
+            user_reader: &self.user_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+    
+    fn get_user_self(&self, id_provider: Box<dyn IdProvider>) -> GetUserSelf {
+        GetUserSelf {
             user_reader: &self.user_gateway,
             id_provider,
             access_service: &self.access_service,
