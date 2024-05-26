@@ -7,15 +7,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "4.5.1"
-env_logger = "0.11.3"
-log = "0.4.21"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_yaml = "0.9.34+deprecated"
-serde_json = "^1.0.115"
-consulrs = "0.1.0"
-dotenv = "0.15.0"
-uuid = { version = "1.8.0", features = [
+actix-web = "^4.6.0"
+env_logger = "^0.11.3"
+log = "^0.4.21"
+serde = { version = "^1.0.203", features = ["derive"] }
+serde_yaml = "0.9.34-deprecated"
+serde_json = "^1.0.117"
+consulrs = "^0.1.0"
+dotenv = "^0.15.0"
+uuid = { version = "^1.8.0", features = [
     "v4",
     "serde",
     "fast-rng",
@@ -27,15 +27,21 @@ sea-orm = { version = "^0.12.15", features = [
     "runtime-tokio-rustls",
     "macros"
 ] }
-chrono = "0.4.37"
-tokio = { version = "1.37.0", features = ["rt", "rt-multi-thread", "macros"] }
-redis = { version = "0.25.3", features = ["tokio-rustls-comp"] }
-deadpool-redis = {  version = "0.15.0", features = ["rt_tokio_1","serde"] }
-async-trait = "0.1.79"
-derive_more = "0.99.17"
-argon2-async = "0.2.0"
-regex = "1.10.4"
-futures = "0.3.30"
-cached = { version = "0.50.0", features = ["async"]}
-jsonwebtoken = "9.3.0"
-rand = "0.8.5"
+chrono = "^0.4.38"
+tokio = { version = "^1.37.0", features = [
+    "rt",
+    "rt-multi-thread",
+    "macros"
+] }
+redis = { version = "^0.25.3", features = ["tokio-rustls-comp"] }
+deadpool-redis = {  version = "^0.15.0", features = [
+    "rt_tokio_1","serde"
+] }
+async-trait = "^0.1.79"
+derive_more = "^0.99.17"
+argon2-async = "^0.2.0"
+regex = "^1.10.4"
+futures = "^0.3.30"
+cached = { version = "^0.51.3", features = ["async"]}
+rand = "^0.8.5"
+strum_macros = "^0.26.2"
