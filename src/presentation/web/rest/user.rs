@@ -8,8 +8,10 @@ use crate::application::user::create::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
-use crate::application::user::get_self::UserSelfResultDTO;
+use crate::application::user::update_by_id::UpdateUserDTO;
+
 use crate::ioc::IoC;
+
 use crate::presentation::id_provider::get_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
@@ -94,11 +96,15 @@ async fn create_user(
     Ok(HttpResponse::Ok().json(data))
 }
 
-#[put("/{id}")]
+#[put("")]
 async fn update_user(
-    id: web::Path<String>
-) -> impl Responder {
-    HttpResponse::Ok().body(format!("update_user: {}", id))
+    data: web::Json<UpdateUserDTO>,
+    ioc: web::Data<IoC>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    let data = ioc.update_user(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(data))
 }
 
 
