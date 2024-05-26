@@ -2,7 +2,6 @@ use deadpool_redis::Pool;
 use sea_orm::DbConn;
 
 use crate::adapters::argon2_hasher::Argon2Hasher;
-use crate::adapters::auth::token::JwtTokenProcessor;
 use crate::adapters::database::session_db::SessionGateway;
 use crate::adapters::database::user_db::UserGateway;
 use crate::application::common::id_provider::IdProvider;
@@ -13,6 +12,7 @@ use crate::application::user::create::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
+use crate::domain::services::access::AccessService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -25,6 +25,7 @@ pub struct IoC {
     session_service: SessionService,
     hasher: Argon2Hasher,
     validator: ValidatorService,
+    access_service: AccessService,
 }
 
 impl IoC {
@@ -43,51 +44,64 @@ impl IoC {
             session_service: SessionService{},
             hasher: Argon2Hasher::new(),
             validator: ValidatorService::new(),
+            access_service: AccessService{},
         }
     }
 }
 
 impl InteractorFactory for IoC {
-    fn get_user_by_id(&self) -> GetUserById {
+    fn get_user_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetUserById {
         GetUserById {
-            user_gateway: &self.user_gateway
+            user_reader: &self.user_gateway,
+            id_provider,
+            access_service: &self.access_service,
         }
     }
 
-    fn get_users_by_ids(&self) -> GetUsersByIds {
+    fn get_users_by_ids(&self, id_provider: Box<dyn IdProvider>) -> GetUsersByIds {
         GetUsersByIds {
-            user_gateway: &self.user_gateway
+            id_provider,
+            user_reader: &self.user_gateway,
+            access_service: &self.access_service,
         }
     }
 
-    fn get_user_range(&self) -> GetUserRange {
+    fn get_user_range(&self, id_provider: Box<dyn IdProvider>) -> GetUserRange {
         GetUserRange {
-            user_gateway: &self.user_gateway
+            user_reader: &self.user_gateway,
+            id_provider,
+            access_service: &self.access_service,
         }
     }
 
-    fn create_user(&self) -> CreateUser {
+    fn create_user(&self, id_provider: Box<dyn IdProvider>) -> CreateUser {
         CreateUser {
             user_gateway: &self.user_gateway,
             user_service: &self.user_service,
             password_hasher: &self.hasher,
-            validator: &self.validator
+            validator: &self.validator,
+            access_service: &self.access_service,
+            id_provider,
         }
     }
 
-    fn get_session_by_id(&self) -> GetSessionById {
+    fn get_session_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionById {
         GetSessionById {
-            session_gateway: &self.session_gateway,
+            session_reader: &self.session_gateway,
+            access_service: &self.access_service,
+            id_provider,
         }
     }
 
-    fn get_sessions_by_user_id(&self) -> GetSessionByUserId {
+    fn get_sessions_by_user_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionByUserId {
         GetSessionByUserId {
-            session_gateway: &self.session_gateway,
+            session_reader: &self.session_gateway,
+            access_service: &self.access_service,
+            id_provider,
         }
     }
 
-    fn create_session(&self, id_provider: &dyn IdProvider) -> CreateSession {
+    fn create_session(&self, id_provider: Box<dyn IdProvider>) -> CreateSession {
         CreateSession {
             id_provider,
             session_gateway: &self.session_gateway,
@@ -96,6 +110,7 @@ impl InteractorFactory for IoC {
             session_service: &self.session_service,
             password_hasher: &self.hasher,
             validator: &self.validator,
+            access_service: &self.access_service,
         }
     }
 }
