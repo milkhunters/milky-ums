@@ -10,7 +10,7 @@ use sea_orm::sea_query::extension::postgres::PgExpr;
 use uuid::Uuid;
 
 use crate::adapters::database::models::user;
-use crate::application::common::user_gateway::{UserReader, UserWriter};
+use crate::application::common::user_gateway::{UserReader, UserWriter, UserGateway as UserGatewayTrait};
 use crate::domain::models::user::User as UserDomain;
 use crate::domain::models::user::UserState as UserStateDomain;
 
@@ -31,9 +31,9 @@ impl UserGateway {
 
 #[async_trait]
 impl UserReader for UserGateway {
-    async fn get_user_by_id(&self, user_id: Uuid) -> Option<UserDomain> {
+    async fn get_user_by_id(&self, user_id: &Uuid) -> Option<UserDomain> {
 
-        let cached_value = self.cache_user_by_id.lock().unwrap().cache_get(&user_id).cloned();
+        let cached_value = self.cache_user_by_id.lock().unwrap().cache_get(user_id).cloned();
         if cached_value.is_some() {
             return match cached_value {
                 Some(value) => Some(map_user_model_to_domain(value.clone())),
@@ -41,20 +41,20 @@ impl UserReader for UserGateway {
             }
         }
 
-        match user::Entity::find_by_id(user_id).one(&*self.db).await.unwrap() {
+        match user::Entity::find_by_id(user_id.clone()).one(&*self.db).await.unwrap() {
             Some(user) => {
-                self.cache_user_by_id.lock().unwrap().cache_set(user_id, user.clone());
+                self.cache_user_by_id.lock().unwrap().cache_set(user_id.clone(), user.clone());
                 Option::from(map_user_model_to_domain(user))
             }
             None => None
         }
     }
 
-    async fn get_users_by_ids(&self, user_ids: Vec<Uuid>) -> Option<Vec<UserDomain>> {
+    async fn get_users_by_ids(&self, user_ids: &Vec<Uuid>) -> Option<Vec<UserDomain>> {
         let users: Vec<user::Model> = user::Entity::find().filter(
             {
                 let mut condition = Condition::any();
-                for id in &user_ids {
+                for id in user_ids {
                     condition = condition.add(Expr::col(user::Column::Id).eq(*id));
                 }
                 condition
@@ -64,7 +64,7 @@ impl UserReader for UserGateway {
             .await
             .unwrap();
 
-        if users.len() != *&user_ids.len() {
+        if users.len() != user_ids.len() {
             return None
         }
 
@@ -75,17 +75,17 @@ impl UserReader for UserGateway {
         )
     }
 
-    async fn get_users_list(&self, limit: u64, offset: u64) -> Vec<UserDomain> {
+    async fn get_users_list(&self, limit: &u64, offset: &u64) -> Vec<UserDomain> {
         let users: Vec<user::Model> = user::Entity::find()
-            .limit(limit)
-            .offset(offset)
+            .limit(limit.clone())
+            .offset(offset.clone())
             .all(&*self.db)
             .await
             .unwrap();
         users.iter().map(|user| map_user_model_to_domain(user.clone())).collect()
     }
 
-    async fn get_user_by_username_not_sensitive(&self, username: String) -> Option<UserDomain> {
+    async fn get_user_by_username_not_sensitive(&self, username: &String) -> Option<UserDomain> {
         let user: Option<user::Model> = user::Entity::find().filter(
                 Expr::col(user::Column::Username).ilike(username)
             )
@@ -99,7 +99,7 @@ impl UserReader for UserGateway {
         }
     }
 
-    async fn get_user_by_email_not_sensitive(&self, email: String) -> Option<UserDomain> {
+    async fn get_user_by_email_not_sensitive(&self, email: &String) -> Option<UserDomain> {
         let user: Option<user::Model> = user::Entity::find().filter(
                 Expr::col(user::Column::Email).ilike(email)
             )
@@ -165,3 +165,5 @@ fn map_user_model_to_domain(user: user::Model) -> UserDomain {
         updated_at: user.updated_at
     }
 }
+
+impl UserGatewayTrait for UserGateway {}
