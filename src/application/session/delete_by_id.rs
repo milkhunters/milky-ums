@@ -3,13 +3,9 @@ use serde::Deserialize;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::session_gateway::{SessionReader, SessionWriter};
-use crate::application::common::user_gateway::UserReader;
+use crate::application::common::session_gateway::SessionGateway;
 use crate::domain::models::session::SessionId;
 use crate::domain::services::access::AccessService;
-use crate::domain::services::user::UserService;
-
-trait SessionGateway: SessionReader + SessionWriter {}
 
 #[derive(Debug, Deserialize)]
 pub struct DeleteSessionDTO {
@@ -18,8 +14,6 @@ pub struct DeleteSessionDTO {
 
 pub struct DeleteSessionById<'a> {
     pub session_gateway: &'a dyn SessionGateway,
-    pub user_gateway: &'a dyn UserReader,
-    pub user_service: &'a UserService,
     pub id_provider: &'a dyn IdProvider,
     pub access_service: &'a AccessService,
 }
@@ -51,7 +45,7 @@ impl Interactor<DeleteSessionDTO, ()> for DeleteSessionById<'_> {
             )
         };
 
-        self.session_gateway.delete_session(&data.id).await?;
+        self.session_gateway.delete_session(&data.id).await;
 
         Ok(())
     }
