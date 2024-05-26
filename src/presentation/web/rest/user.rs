@@ -1,4 +1,4 @@
-use actix_web::{delete, get, HttpResponse, post, put, Responder, Result, web};
+use actix_web::{delete, get, HttpRequest, HttpResponse, post, put, Responder, Result, web};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -9,6 +9,7 @@ use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
 use crate::ioc::IoC;
+use crate::presentation::id_provider::get_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
 
@@ -30,47 +31,6 @@ pub fn router(cfg: &mut web::ServiceConfig) {
 }
 
 
-
-/**
-    Попытка реализовать что-то типа:
-
-    ```rust
-    #[derive(Debug, Deserialize)]
-    #[serde(untagged)]
-    enum UsersQuery {
-        Id(GetUserByIdDTO),
-        Ids(UserByIdsData),
-        Range(GetUserRangeDTO)
-    }
-
-    #[get("")]
-    async fn users_by_query(
-        data: web::Query<UsersQuery>,
-        ioc: web::Data<IoC>,
-    ) -> Result<HttpResponse, ApplicationError> {
-        return match data.0 {
-            UsersQuery::Id(content) => {
-                let data = ioc.get_user_by_id().execute(content).await?;
-                Ok(HttpResponse::Ok().json(data))
-            },
-            UsersQuery::Ids(content) => {
-                let data = ioc.get_users_by_ids().execute(
-                    GetUsersByIdsDTO {
-                        ids: content.ids.clone(),
-                    }
-                ).await?;
-                Ok(HttpResponse::Ok().json(data))
-            },
-            UsersQuery::Range(content) => {
-                let data = ioc.get_user_range().execute(content).await?;
-                Ok(HttpResponse::Ok().json(data))
-            }
-        };
-    }
-    ```
-
-    Потерпела неудачу из-за нескольких параметров в варианте
- */
 #[derive(Debug, Deserialize)]
 struct UsersQuery {
     id: Option<Uuid>,
@@ -85,20 +45,23 @@ struct UsersQuery {
 async fn users_by_query(
     data: web::Query<UsersQuery>,
     ioc: web::Data<IoC>,
+    req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
+    
+    let id_provider = get_id_provider(&req);
 
     if let Some(id) = &data.id {
-        let data = ioc.get_user_by_id().execute(
+        let data = ioc.get_user_by_id(id_provider).execute(
             GetUserByIdDTO { id: id.clone() }
         ).await?;
         return Ok(HttpResponse::Ok().json(data))
     } else if let Some(ids) = &data.ids {
-        let data = ioc.get_users_by_ids().execute(
+        let data = ioc.get_users_by_ids(id_provider).execute(
             GetUsersByIdsDTO { ids: ids.clone(), }
         ).await?;
         return Ok(HttpResponse::Ok().json(data))
     } else if let (Some(page), Some(per_page)) = (&data.page, &data.per_page) {
-        let data = ioc.get_user_range().execute(
+        let data = ioc.get_user_range(id_provider).execute(
             GetUserRangeDTO {
                 page: page.clone(),
                 per_page: per_page.clone()
@@ -119,10 +82,11 @@ async fn user_self() -> impl Responder {
 async fn create_user(
     data: web::Json<CreateUserDTO>,
     ioc: web::Data<IoC>,
+    req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let data = ioc.create_user().execute(data.into_inner()).await?;
+    let id_provider = get_id_provider(&req);
+    let data = ioc.create_user(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
-
 }
 
 #[put("/{id}")]
