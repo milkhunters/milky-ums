@@ -14,3 +14,5 @@ pub trait SessionWriter {
     async fn save_session(&self, data: &Session);
     async fn delete_session(&self, session_id: &SessionId);
 }
+
+pub trait SessionGateway: SessionReader + SessionWriter {}
