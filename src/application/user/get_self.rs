@@ -40,7 +40,7 @@ impl Interactor<(), UserSelfResultDTO> for GetUserSelf<'_> {
         };
         
         
-        let user = match self.user_reader.get_user_by_id(self.id_provider.user_id().unwarp()).await {
+        let user = match self.user_reader.get_user_by_id(self.id_provider.user_id().unwrap()).await {
             Some(u) => u,
             None => return Err(
                 ApplicationError::NotFound(

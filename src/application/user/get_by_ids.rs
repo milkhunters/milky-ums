@@ -27,20 +27,27 @@ pub type UsersByIdsResultDTO = Vec<UserItemResult>;
 
 pub struct GetUsersByIds<'a> {
     pub user_reader: &'a dyn UserReader,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
 }
 
 impl Interactor<GetUsersByIdsDTO, UsersByIdsResultDTO> for GetUsersByIds<'_> {
     async fn execute(&self, data: GetUsersByIdsDTO) -> Result<UsersByIdsResultDTO, ApplicationError> {
         
-        self.access_service.ensure_can_get_users(
+        match self.access_service.ensure_can_get_users(
             self.id_provider.is_auth(),
             self.id_provider.user_id(),
             &data.ids,
             self.id_provider.user_state(),
             &self.id_provider.permissions()
-        )?;
+        ) {
+            Ok(_) => (),
+            Err(e) => return Err(
+                ApplicationError::Forbidden(
+                    ErrorContent::Message(e.to_string())
+                )
+            )
+        };
         
         let users = match self.user_reader.get_users_by_ids(&data.ids).await {
             Some(u) => u,

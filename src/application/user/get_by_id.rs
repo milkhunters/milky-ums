@@ -24,7 +24,7 @@ pub struct UserByIdResultDTO{
 
 pub struct GetUserById<'a> {
     pub user_reader: &'a dyn UserReader,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
     
 }
