@@ -18,14 +18,6 @@ pub struct Base {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct JWT {
-    pub private_key: String,
-    pub public_key: String,
-    access_expire_seconds: u64,
-    refresh_expire_seconds: u64,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 pub struct Postgresql {
     pub host: String,
     pub port: u16,
@@ -64,7 +56,7 @@ pub struct EmailRabbitMQ {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Email {
     pub sender_id: String,
-    rabbitmq: EmailRabbitMQ,
+    pub rabbitmq: EmailRabbitMQ,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -77,7 +69,6 @@ pub struct Database {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub base: Base,
-    pub jwt: JWT,
     pub database: Database,
     pub email: Email,
 }
