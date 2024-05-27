@@ -23,7 +23,7 @@ pub struct CreateSessionDTO {
 }
 
 #[derive(Debug, Serialize)]
-struct CreateSessionResultDTO{
+pub struct CreateSessionResultDTO{
     id: Uuid,
     username: String,
     email: String,
