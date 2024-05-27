@@ -29,7 +29,7 @@ pub struct GetSessionById<'a> {
     pub session_reader: &'a dyn SessionReader,
     pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
-}SessionReader
+}
 
 impl Interactor<GetSessionByIdDTO, SessionByIdResultDTO> for GetSessionById<'_> {
     async fn execute(&self, data: GetSessionByIdDTO) -> Result<SessionByIdResultDTO, ApplicationError> {

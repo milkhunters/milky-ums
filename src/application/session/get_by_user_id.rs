@@ -11,7 +11,7 @@ use crate::domain::models::session::{Session, SessionId};
 use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Deserialize)]
-pub struct GetSessionByUserIdDTO {
+pub struct GetSessionsByUserIdDTO {
     id: Uuid,
 }
 
@@ -27,14 +27,14 @@ struct SessionItemResult{
 pub type SessionsByUserIdResultDTO = Vec<SessionItemResult>;
 
 
-pub struct GetSessionByUserId<'a> {
+pub struct GetSessionsByUserId<'a> {
     pub session_reader: &'a dyn SessionReader,
     pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService
 }
 
-impl Interactor<GetSessionByUserIdDTO, SessionsByUserIdResultDTO> for GetSessionByUserId<'_> {
-    async fn execute(&self, data: GetSessionByUserIdDTO) -> Result<SessionsByUserIdResultDTO, ApplicationError> {
+impl Interactor<GetSessionsByUserIdDTO, SessionsByUserIdResultDTO> for GetSessionsByUserId<'_> {
+    async fn execute(&self, data: GetSessionsByUserIdDTO) -> Result<SessionsByUserIdResultDTO, ApplicationError> {
         
         
         match self.access_service.ensure_can_get_sessions(
