@@ -8,7 +8,7 @@ use crate::domain::services::access::AccessService;
 
 pub struct DeleteSessionSelf<'a> {
     pub session_writer: &'a dyn SessionWriter,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
 }
 

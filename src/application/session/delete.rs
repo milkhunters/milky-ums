@@ -4,6 +4,7 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionGateway;
+use crate::domain::exceptions::DomainError;
 use crate::domain::models::session::SessionId;
 use crate::domain::services::access::AccessService;
 
@@ -12,13 +13,13 @@ pub struct DeleteSessionDTO {
     id: SessionId,
 }
 
-pub struct DeleteSessionById<'a> {
+pub struct DeleteSession<'a> {
     pub session_gateway: &'a dyn SessionGateway,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
 }
 
-impl Interactor<DeleteSessionDTO, ()> for DeleteSessionById<'_> {
+impl Interactor<DeleteSessionDTO, ()> for DeleteSession<'_> {
     async fn execute(&self, data: DeleteSessionDTO) -> Result<(), ApplicationError> {
         
         match self.access_service.ensure_can_delete_session(
@@ -29,11 +30,18 @@ impl Interactor<DeleteSessionDTO, ()> for DeleteSessionById<'_> {
             self.id_provider.permissions()
         ) {
             Ok(_) => (),
-            Err(e) => return Err(
-                ApplicationError::Forbidden(
-                    ErrorContent::Message(e.to_string())
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
                 )
-            )
+            }
         };
 
         match self.session_gateway.get_session(&data.id).await {

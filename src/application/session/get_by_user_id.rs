@@ -6,6 +6,7 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionReader;
+use crate::domain::exceptions::DomainError;
 use crate::domain::models::session::{Session, SessionId};
 use crate::domain::services::access::AccessService;
 
@@ -44,12 +45,19 @@ impl Interactor<GetSessionByUserIdDTO, SessionsByUserIdResultDTO> for GetSession
             &self.id_provider.permissions()
         ) {
             Ok(_) => (),
-            Err(error) => return Err(
-                ApplicationError::Forbidden(
-                    ErrorContent::Message(error.to_string())
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
                 )
-            )
-        };
+            } 
+        }
         
         let sessions: Vec<Session> = self.session_reader.get_sessions(&data.id).await;
         
