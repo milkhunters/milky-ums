@@ -10,7 +10,7 @@ use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
 use crate::application::user::update::UpdateUserDTO;
 use crate::application::user::update_self::UpdateSelfDTO;
-use crate::ioc::IoC;
+
 use crate::presentation::id_provider::get_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
@@ -30,7 +30,6 @@ pub fn router(cfg: &mut web::ServiceConfig) {
     );
 }
 
-
 #[derive(Debug, Deserialize)]
 struct UsersQuery {
     id: Option<Uuid>,
@@ -44,7 +43,7 @@ struct UsersQuery {
 #[get("")]
 async fn users_by_query(
     data: web::Query<UsersQuery>,
-    ioc: web::Data<IoC>,
+    ioc: web::Data<dyn InteractorFactory>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     
@@ -74,7 +73,7 @@ async fn users_by_query(
 
 #[get("/self")]
 async fn user_self(
-    ioc: web::Data<IoC>,
+    ioc: web::Data<dyn InteractorFactory>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     let id_provider = get_id_provider(&req);
@@ -82,11 +81,10 @@ async fn user_self(
     Ok(HttpResponse::Ok().json(data))
 }
 
-
 #[post("")]
 async fn create_user(
     data: web::Json<CreateUserDTO>,
-    ioc: web::Data<IoC>,
+    ioc: web::Data<dyn InteractorFactory>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     let id_provider = get_id_provider(&req);
@@ -97,7 +95,7 @@ async fn create_user(
 #[put("")]
 async fn update_user(
     data: web::Json<UpdateUserDTO>,
-    ioc: web::Data<IoC>,
+    ioc: web::Data<dyn InteractorFactory>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     let id_provider = get_id_provider(&req);
@@ -115,8 +113,6 @@ async fn update_user_self(
     let data = ioc.update_user_self(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
-
-
 
 #[post("/{email}")]
 async fn confirm_email(
