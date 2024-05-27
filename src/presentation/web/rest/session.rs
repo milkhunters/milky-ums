@@ -1,53 +1,93 @@
-use actix_web::{delete, get, HttpResponse, post, Responder, web};
+use actix_web::{delete, get, HttpRequest, HttpResponse, post, Responder, web, Result};
+use crate::application::common::exceptions::ApplicationError;
+use crate::application::common::interactor::Interactor;
+use crate::application::session::create::CreateSessionDTO;
+use crate::application::session::delete::DeleteSessionDTO;
+use crate::application::session::get_by_id::{GetSessionById, GetSessionByIdDTO};
+use crate::application::session::get_by_user_id::{GetSessionByUserId, GetSessionByUserIdDTO, GetSessionsByUserIdDTO};
+use crate::presentation::id_provider::get_id_provider;
+use crate::presentation::interactor_factory::InteractorFactory;
 
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/sessions")
-            .service(sessions_range_self)
-            .service(sessions_range_by_user_id)
+            .service(sessions_self)
+            .service(sessions_by_user_id)
             .service(create_session)
-            .service(refresh_current_session)
-            .service(logout_current_session)
-            .service(logout_session_by_id)
+            .service(sessions_by_id)
+            .service(delete_session)
+            .service(delete_self_session)
     );
 }
 
-#[get("")]
-async fn sessions_range_self() -> impl Responder {
-    HttpResponse::Ok().body("sessions")
-}
-
-#[get("")]
-async fn sessions_range_by_user_id(
-    id: web::Query<String>
-) -> impl Responder {
-    HttpResponse::Ok().body(format!("sessions by {}", id))
-}
-
-
 #[post("")]
 async fn create_session(
-    id: web::Query<String>
-) -> impl Responder {
-    HttpResponse::Ok().body(format!("sessions by {}", id))
+    data: web::Query<CreateSessionDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    let data = ioc.create_session(id_provider).execute(
+        data.into_inner()
+    ).await?;
+    Ok(HttpResponse::Ok().json(data))
 }
 
-#[post("")]
-async fn refresh_current_session(
-    id: web::Query<String>
-) -> impl Responder {
-    HttpResponse::Ok().body(format!("sessions by {}", id))
+#[delete("{id}")]
+async fn delete_session(
+    id: web::Path<DeleteSessionDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    ioc.delete_session(id_provider).execute(
+        id.into_inner()
+    ).await?;
+    Ok(HttpResponse::Ok().finish())
 }
 
-
-#[delete("")]
-async fn logout_current_session() -> impl Responder {
-    HttpResponse::Ok().body("logout")
+#[delete("self")]
+async fn delete_self_session(
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    ioc.delete_self_session(id_provider).execute(()).await?;
+    Ok(HttpResponse::Ok().finish())
 }
 
-#[delete("")]
-async fn logout_session_by_id(
-    id: web::Query<String>
-) -> impl Responder {
-    HttpResponse::Ok().body("logout")
+#[get("{id}")]
+async fn sessions_by_id(
+    id: web::Path<GetSessionByIdDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    let data = ioc.get_session_by_id(id_provider).execute(
+        id.into_inner()
+    ).await?;
+    Ok(HttpResponse::Ok().json(data))
+}
+
+#[get("")]
+async fn sessions_by_user_id(
+    id: web::Query<GetSessionsByUserIdDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    let data = ioc.get_sessions_by_user_id(id_provider).execute(
+        id.into_inner()
+    ).await?;
+    Ok(HttpResponse::Ok().json(data))
+}
+
+#[get("self")]
+async fn sessions_self(
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError>{
+    let id_provider = get_id_provider(&req);
+    let data = ioc.get_sessions_self(id_provider).execute(()).await?;
+    Ok(HttpResponse::Ok().json(data))
 }
