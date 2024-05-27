@@ -1,4 +1,4 @@
-use actix_web::{delete, get, HttpRequest, HttpResponse, post, put, Responder, Result, web};
+use actix_web::{get, HttpRequest, HttpResponse, post, put, Responder, Result, web};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -8,14 +8,12 @@ use crate::application::user::create::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
-use crate::application::user::update_by_id::UpdateUserDTO;
-
+use crate::application::user::update::UpdateUserDTO;
+use crate::application::user::update_self::UpdateSelfDTO;
 use crate::ioc::IoC;
-
 use crate::presentation::id_provider::get_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
-
 
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -24,7 +22,7 @@ pub fn router(cfg: &mut web::ServiceConfig) {
             .service(user_self)
             .service(create_user)
             .service(update_user)
-            .service(delete_user)
+            .service(update_user_self)
             .service(
                 web::scope("/confirmation")
                     .service(confirm_email)
@@ -107,12 +105,15 @@ async fn update_user(
     Ok(HttpResponse::Ok().json(data))
 }
 
-
-#[delete("/{id}")]
-async fn delete_user(
-    id: web::Path<String>
-) -> impl Responder {
-    HttpResponse::Ok().body(format!("delete_user: {}", id))
+#[put("self")]
+async fn update_user_self(
+    data: web::Json<UpdateSelfDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = get_id_provider(&req);
+    let data = ioc.update_user_self(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(data))
 }
 
 

@@ -13,7 +13,8 @@ use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
 use crate::application::user::get_self::GetUserSelf;
-use crate::application::user::update_by_id::UpdateUser;
+use crate::application::user::update::UpdateUser;
+use crate::application::user::update_self::UpdateUserSelf;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
@@ -104,6 +105,17 @@ impl InteractorFactory for IoC {
             id_provider,
         }
     }
+    
+    fn update_user_self(&self, id_provider: Box<dyn IdProvider>) -> UpdateUserSelf {
+        UpdateUserSelf {
+            user_gateway: &self.user_gateway,
+            user_service: &self.user_service,
+            validator: &self.validator,
+            access_service: &self.access_service,
+            id_provider,
+        }
+    }
+    
 
     fn get_session_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionById {
         GetSessionById {
