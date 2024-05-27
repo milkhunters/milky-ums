@@ -6,8 +6,11 @@ use crate::adapters::database::session_db::SessionGateway;
 use crate::adapters::database::user_db::UserGateway;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::session::create::CreateSession;
+use crate::application::session::delete::DeleteSession;
+use crate::application::session::delete_self::DeleteSessionSelf;
 use crate::application::session::get_by_id::GetSessionById;
-use crate::application::session::get_by_user_id::GetSessionByUserId;
+use crate::application::session::get_by_user_id::{GetSessionByUserId, GetSessionsByUserId};
+use crate::application::session::get_self::GetSessionSelf;
 use crate::application::user::create::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
@@ -105,7 +108,7 @@ impl InteractorFactory for IoC {
             id_provider,
         }
     }
-    
+
     fn update_user_self(&self, id_provider: Box<dyn IdProvider>) -> UpdateUserSelf {
         UpdateUserSelf {
             user_gateway: &self.user_gateway,
@@ -115,7 +118,7 @@ impl InteractorFactory for IoC {
             id_provider,
         }
     }
-    
+
 
     fn get_session_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionById {
         GetSessionById {
@@ -125,8 +128,8 @@ impl InteractorFactory for IoC {
         }
     }
 
-    fn get_sessions_by_user_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionByUserId {
-        GetSessionByUserId {
+    fn get_sessions_by_user_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionsByUserId {
+        GetSessionsByUserId {
             session_reader: &self.session_gateway,
             access_service: &self.access_service,
             id_provider,
@@ -143,6 +146,30 @@ impl InteractorFactory for IoC {
             password_hasher: &self.hasher,
             validator: &self.validator,
             access_service: &self.access_service,
+        }
+    }
+
+    fn delete_session(&self, id_provider: Box<dyn IdProvider>) -> DeleteSession {
+        DeleteSession {
+            session_gateway: &self.session_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn delete_self_session(&self, id_provider: Box<dyn IdProvider>) -> DeleteSessionSelf {
+        DeleteSessionSelf {
+            session_writer: &self.session_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn get_sessions_self(&self, id_provider: Box<dyn IdProvider>) -> GetSessionSelf {
+        GetSessionSelf {
+            session_reader: &self.session_gateway,
+            access_service: &self.access_service,
+            id_provider,
         }
     }
 }
