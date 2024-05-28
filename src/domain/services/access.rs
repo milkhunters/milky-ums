@@ -198,25 +198,10 @@ impl AccessService {
     pub fn ensure_can_create_session(
         &self,
         is_auth: &bool,
-        user_state: Option<&UserState>,
         permissions: &Vec<String>
     ) -> Result<(), DomainError> {
         
-        if !is_auth {
-            return Err(DomainError::AuthorizationRequired)
-        }
-        
-            
-        if
-            permissions.contains(&UMSPermission::CreateSession.to_string()) && 
-            user_state.unwrap() != &UserState::Inactive 
-        {
-            return Ok(())
-        }
-        
-        if
-            !is_auth &&
-            permissions.contains(&UMSPermission::CreateSession.to_string())
+        if !is_auth && permissions.contains(&UMSPermission::CreateSession.to_string())
         {
             return Ok(())
         }
