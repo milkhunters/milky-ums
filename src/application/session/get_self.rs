@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
-use serde::{Serialize};
+use serde::Serialize;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::session_gateway::{SessionReader, SessionWriter};
+use crate::application::common::session_gateway::SessionReader;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::session::SessionId;
 use crate::domain::services::access::AccessService;
