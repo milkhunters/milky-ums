@@ -16,7 +16,7 @@ pub struct GetSessionsByUserIdDTO {
 }
 
 #[derive(Debug, Serialize)]
-struct SessionItemResult{
+pub struct SessionItemResult{
     id: SessionId,
     ip: String,
     user_agent: String,
