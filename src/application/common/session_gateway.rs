@@ -12,7 +12,7 @@ pub trait SessionReader {
 #[async_trait]
 pub trait SessionWriter {
     async fn save_session(&self, data: &Session);
-    async fn delete_session(&self, session_id: &SessionId);
+    async fn delete_session(&self, session_id: &SessionId, user_id: &Uuid);
 }
 
 pub trait SessionGateway: SessionReader + SessionWriter {}
