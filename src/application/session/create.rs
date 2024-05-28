@@ -47,7 +47,6 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for Creat
 
         match self.access_service.ensure_can_create_session(
             self.id_provider.is_auth(),
-            self.id_provider.user_state(),
             self.id_provider.permissions()
         ) {
             Ok(_) => (),
