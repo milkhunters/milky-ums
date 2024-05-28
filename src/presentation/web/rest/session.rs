@@ -1,10 +1,11 @@
-use actix_web::{delete, get, HttpRequest, HttpResponse, post, Responder, web, Result};
+use actix_web::{delete, get, HttpRequest, HttpResponse, post, web, Result};
+use actix_web::cookie::Cookie;
 use crate::application::common::exceptions::ApplicationError;
 use crate::application::common::interactor::Interactor;
 use crate::application::session::create::CreateSessionDTO;
 use crate::application::session::delete::DeleteSessionDTO;
-use crate::application::session::get_by_id::{GetSessionById, GetSessionByIdDTO};
-use crate::application::session::get_by_user_id::{GetSessionByUserId, GetSessionByUserIdDTO, GetSessionsByUserIdDTO};
+use crate::application::session::get_by_id::GetSessionByIdDTO;
+use crate::application::session::get_by_user_id::GetSessionsByUserIdDTO;
 use crate::presentation::id_provider::get_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
 
@@ -22,15 +23,24 @@ pub fn router(cfg: &mut web::ServiceConfig) {
 
 #[post("")]
 async fn create_session(
-    data: web::Query<CreateSessionDTO>,
+    data: web::Json<CreateSessionDTO>,
     ioc: web::Data<dyn InteractorFactory>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     let id_provider = get_id_provider(&req);
-    let data = ioc.create_session(id_provider).execute(
+    let (data, session_id) = ioc.create_session(id_provider).execute(
         data.into_inner()
     ).await?;
-    Ok(HttpResponse::Ok().json(data))
+    
+    let mut response = HttpResponse::Ok().json(data);
+    response.add_cookie(
+        &Cookie::build("session_id", session_id.to_string())
+            .path("/")
+            .http_only(true)
+            .finish()
+    ).unwrap();
+    
+    Ok(response)
 }
 
 #[delete("{id}")]
