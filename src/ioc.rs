@@ -9,7 +9,7 @@ use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
 use crate::application::session::get_by_id::GetSessionById;
-use crate::application::session::get_by_user_id::{GetSessionByUserId, GetSessionsByUserId};
+use crate::application::session::get_by_user_id::GetSessionsByUserId;
 use crate::application::session::get_self::GetSessionSelf;
 use crate::application::user::create::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
