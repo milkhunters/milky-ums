@@ -21,18 +21,12 @@ impl SessionReader for SessionGateway {
     async fn get_session(&self, session_id: &SessionId) -> Option<Session> {
         let mut conn = self.redis_pool.get().await.unwrap();
         match cmd("GET")
-            .arg(&["deadpool/test_key"])
+            .arg(session_id.as_str())
             .query_async::<_, String>(&mut conn)
             .await {
             Ok(value) => {
-                Some(Session {
-                    id: session_id.to_string(),
-                    user_id: Uuid::new_v4(),
-                    ip: "some ip".to_string(),
-                    user_agent: "some user agent".to_string(),
-                    created_at: chrono::Utc::now(),
-                    updated_at: Some(chrono::Utc::now()),
-                })
+                let model: Session = serde_json::from_str(value.as_str()).unwrap();
+                Some(model)
             },
             Err(e) => {
                 None
@@ -42,24 +36,27 @@ impl SessionReader for SessionGateway {
 
     async fn get_sessions(&self, user_id: &Uuid) -> Vec<Session> {
         let mut conn = self.redis_pool.get().await.unwrap();
-        match cmd("GET")
-            .arg(&["deadpool/test_key"])
-            .query_async::<_, String>(&mut conn)
+        let values = cmd("SMEMBERS")
+            .arg(user_id.to_string().as_str())
+            .query_async::<_, Vec<SessionId>>(&mut conn)
+            .await.unwrap_or_else(|e| {
+            vec![]
+        });
+        
+        return match cmd("MGET")
+            .arg(values)
+            .query_async::<_, Vec<String>>(&mut conn)
             .await {
-            Ok(value) => {
-                vec![Session {
-                    id: Uuid::new_v4().to_string(),
-                    user_id: user_id.clone(),
-                    ip: "some ip".to_string(),
-                    user_agent: "some user agent".to_string(),
-                    created_at: chrono::Utc::now(),
-                    updated_at: Some(chrono::Utc::now()),
-                }]
+            Ok(values) => {
+                values.iter().map(|value| {
+                    let model: Session = serde_json::from_str(value.as_str()).unwrap();
+                    model
+                }).collect()
             },
             Err(e) => {
                 vec![]
             }
-        }
+        };
     }
 }
 
@@ -67,16 +64,31 @@ impl SessionReader for SessionGateway {
 impl SessionWriter for SessionGateway {
     async fn save_session(&self, data: &Session) {
         let mut conn = self.redis_pool.get().await.unwrap();
+        
+        // todo: gather all commands in a transaction
         let _: () = cmd("SET")
-            .arg(&[data.id.as_str(), serde_json::to_string(data).unwrap().as_str()])
+            .arg(data.id.as_str())
+            .arg(serde_json::to_string(data).unwrap().as_str())
+            .query_async(&mut conn)
+            .await.unwrap();
+        let _: () = cmd("SADD")
+            .arg(data.user_id.to_string().as_str())
+            .arg(data.id.as_str())
             .query_async(&mut conn)
             .await.unwrap();
     }
 
-    async fn delete_session(&self, session_id: &SessionId) {
+    async fn delete_session(&self, session_id: &SessionId, user_id: &Uuid) {
         let mut conn = self.redis_pool.get().await.unwrap();
+        
+        // todo: gather all commands in a transaction
         let _: () = cmd("DEL")
-            .arg(&[session_id])
+            .arg(session_id.as_str())
+            .query_async(&mut conn)
+            .await.unwrap();
+        let _: () = cmd("SREM")
+            .arg(user_id.to_string().as_str())
+            .arg(session_id.as_str())
             .query_async(&mut conn)
             .await.unwrap();
     }
