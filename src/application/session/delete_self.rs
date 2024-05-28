@@ -35,7 +35,10 @@ impl Interactor<(), ()> for DeleteSessionSelf<'_> {
             }
         };
         
-        self.session_writer.delete_session(&self.id_provider.session_id().unwrap()).await;
+        self.session_writer.delete_session(
+            &self.id_provider.session_id().unwrap(), 
+            &self.id_provider.user_id().unwrap()
+        ).await;
 
         Ok(())
     }
