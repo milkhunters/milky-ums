@@ -1,4 +1,5 @@
 use std::net::TcpListener;
+use std::sync::Arc;
 use std::thread;
 
 use dotenv::dotenv;
@@ -7,6 +8,7 @@ use sea_orm::{ConnectOptions, Database};
 use deadpool_redis::{redis::{cmd, FromRedisValue}, Config, Runtime};
 
 use crate::ioc::IoC;
+use crate::presentation::interactor_factory::InteractorFactory;
 
 
 mod config;
@@ -25,7 +27,9 @@ struct AppConfigProvider {
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    // env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
 
 
     let workers = match std::env::var("WORKERS") {
@@ -91,21 +95,24 @@ async fn main() -> std::io::Result<()> {
     let app_builder = move || {
         let branch = branch.clone();
         let build = build.clone();
+        
+        let ioc_arc: Arc<dyn InteractorFactory> = Arc::new(IoC::new(
+            db.clone(),
+            session_redis_pool.clone(),
+            confirm_manager_redis_pool.clone(),
+        ));
+        let ioc_data: web::Data<dyn InteractorFactory> = web::Data::from(ioc_arc);
+        
         App::new()
             .service(web::scope("/api")
                 .configure(presentation::web::rest::user::router)
+                .configure(presentation::web::rest::session::router)
             )
             .app_data(web::Data::new(AppConfigProvider {
                 branch,
                 build,
             }))
-            .app_data(web::Data::new(
-                IoC::new(
-                    db.clone(),
-                    session_redis_pool.clone(),
-                    confirm_manager_redis_pool.clone(),
-                )
-            ))
+            .app_data(ioc_data)
             .default_service(web::route().to(presentation::web::exception::not_found))
         // .wrap(Logger::new("[%s] [%{r}a] %U"))
     };
