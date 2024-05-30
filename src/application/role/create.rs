@@ -1,68 +1,87 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
-use crate::application::common::hasher::Hasher;
+use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::user_gateway::UserReader;
-use crate::domain::models::user::UserState;
-use crate::domain::services::user::UserService;
+use crate::application::common::permission_gateway::PermissionGateway;
+use crate::application::common::role_gateway::RoleGateway;
+use crate::domain::exceptions::DomainError;
+use crate::domain::models::permission::{PermissionId, PermissionTextId};
+use crate::domain::models::role::RoleId;
+use crate::domain::services::access::AccessService;
+use crate::domain::services::role::RoleService;
 use crate::domain::services::validator::ValidatorService;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateUserDTO {
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
+pub struct CreateRoleDTO {
+    pub title: String,
+    pub description: Option<String>,
+    pub permissions: Vec<PermissionId>
 }
 
 #[derive(Debug, Serialize)]
-pub struct CreateUserResultDTO{
-    id: Uuid,
-    username: String,
-    email: String,
-    state: UserState,
-    first_name: Option<String>,
-    last_name: Option<String>,
+pub struct PermissionItem {
+    pub id: PermissionId,
+    pub text_id: PermissionTextId,
+    pub title: String,
+    pub description: Option<String>
 }
 
-pub struct CreateUser<'a> {
-    pub user_gateway: &'a dyn UserReader,
-    pub user_service: &'a UserService,
-    pub password_hasher: &'a dyn Hasher,
-    pub validator: &'a ValidatorService
+
+#[derive(Debug, Serialize)]
+pub struct CreateRoleResultDTO{
+    id: RoleId,
+    title: String,
+    description: Option<String>,
+    permissions: Vec<PermissionItem>
 }
 
-impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
-    async fn execute(&self, data: CreateUserDTO) -> Result<CreateUserResultDTO, ApplicationError> {
+pub struct CreateRole<'a> {
+    pub role_gateway: &'a dyn RoleGateway,
+    pub permission_gateway: &'a dyn PermissionGateway,
+    pub role_service: &'a RoleService,
+    pub validator: &'a ValidatorService,
+    pub access_service: &'a AccessService,
+    pub id_provider: Box<dyn IdProvider>,
+}
+
+impl Interactor<CreateRoleDTO, CreateRoleResultDTO> for CreateRole<'_> {
+    async fn execute(&self, data: CreateRoleDTO) -> Result<CreateRoleResultDTO, ApplicationError> {
+        
+        match self.access_service.ensure_can_create_role(
+            self.id_provider.is_auth(),
+            self.id_provider.user_state(),
+            self.id_provider.permissions()
+        ) {
+            Ok(_) => (),
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
+                )
+            }
+        };
+        
 
         let mut validator_err_map: HashMap<String, String> = HashMap::new();
-        self.validator.validate_username(&data.username).unwrap_or_else(|e| {
-            validator_err_map.insert("username".to_string(), e.to_string());
+        self.validator.validate_role_title(&data.title).unwrap_or_else(|e| {
+            validator_err_map.insert("title".to_string(), e.to_string());
         });
 
-        self.validator.validate_password(&data.password).unwrap_or_else(|e| {
-            validator_err_map.insert("password".to_string(), e.to_string());
-        });
-
-        self.validator.validate_email(&data.email).unwrap_or_else(|e| {
-            validator_err_map.insert("email".to_string(), e.to_string());
-        });
-
-        if let Some(first_name) = &data.first_name {
-            self.validator.validate_first_name(first_name).unwrap_or_else(|e| {
-                validator_err_map.insert("first_name".to_string(), e.to_string());
-            });
-        }
-
-        if let Some(last_name) = &data.last_name {
-            self.validator.validate_last_name(last_name).unwrap_or_else(|e| {
-                validator_err_map.insert("last_name".to_string(), e.to_string());
-            });
+        if data.description.is_some() {
+            self.validator.validate_role_description(&data.description.clone().unwrap()).unwrap_or_else(
+                |e| {
+                    validator_err_map.insert("description".to_string(), e.to_string());
+                }
+            );
         }
 
         if !validator_err_map.is_empty() {
@@ -73,20 +92,12 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
             )
         }
 
-        // Todo: to gather
-        let user_by_username = self.user_gateway.get_user_by_username_not_sensitive(data.username.clone()).await;
-        let user_by_email = self.user_gateway.get_user_by_email_not_sensitive(data.email.clone()).await;
-
-        if user_by_username.is_some() {
-            validator_err_map.insert("username".to_string(), "Имя пользователя занято".to_string());
+        let role_by_title = self.role_gateway.get_role_by_title_not_sensitive(&data.title).await;
+        
+        if role_by_title.is_some() {
+            validator_err_map.insert("title".to_string(), "Роль с таким названием уже существует".to_string());
         }
-
-
-        if user_by_email.is_some() {
-            validator_err_map.insert("email".to_string(), "Пользователь с таким Email уже существует".to_string());
-        }
-
-
+        
         if !validator_err_map.is_empty() {
             return Err(
                 ApplicationError::InvalidData(
@@ -94,28 +105,58 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
                 )
             )
         }
-
-
-        let hashed_password = self.password_hasher.hash(&data.password).await;
-
-
-        let user = self.user_service.create_user(
-            data.username,
-            data.email,
-            hashed_password,
-            data.first_name,
-            data.last_name,
-        )?;
-
-        self.user_gateway.save_user(&user).await;
-
-        Ok(CreateUserResultDTO {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            state: user.state,
-            first_name: user.first_name,
-            last_name: user.last_name,
+        
+        let permissions = match self.permission_gateway.get_permissions_by_ids(
+            &data.permissions
+        ).await {
+            Some(permissions) => permissions,
+            None => {
+                validator_err_map.insert(
+                    "permissions".to_string(), "Не все указанные права были найдены".to_string()
+                );
+                return Err(
+                    ApplicationError::InvalidData(
+                        ErrorContent::Map(validator_err_map)
+                    )
+                )
+            }
+        };
+        
+        let role = match self.role_service.create_role(
+            data.title,
+            data.description,
+        ) {
+            Ok(role) => role,
+            Err(_) => {
+                return Err(
+                    ApplicationError::InvalidData(
+                        ErrorContent::Message("Не удалось создать роль".to_string())
+                    )
+                )
+            }
+        };
+        
+        self.role_gateway.save_role(&role).await;
+        
+        if !data.permissions.is_empty() {
+            self.permission_gateway.link_permissions_to_role(
+                &role.id,
+                &data.permissions
+            ).await;
+        }
+        
+        Ok(CreateRoleResultDTO {
+            id: role.id,
+            title: role.title,
+            description: role.description,
+            permissions: permissions.iter().map(|permission| {
+                PermissionItem {
+                    id: permission.id,
+                    text_id: permission.text_id.clone(),
+                    title: permission.title.clone(),
+                    description: permission.description.clone()
+                }
+            }).collect()
         })
     }
 }

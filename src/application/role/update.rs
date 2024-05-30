@@ -1,23 +1,26 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
-
 use crate::application::common::interactor::Interactor;
-use crate::application::common::role_gateway::RoleReader;
-
+use crate::application::common::role_gateway::RoleGateway;
 use crate::domain::exceptions::DomainError;
-use crate::domain::models::role::RoleId;
 use crate::domain::services::access::AccessService;
+use crate::domain::services::role::RoleService;
+
 
 #[derive(Debug, Deserialize)]
-pub struct GetRoleByIdDTO {
-    pub id: RoleId,
+pub struct UpdateRoleDTO {
+    pub id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct RoleByIdResultDTO{
-    id: RoleId,
+pub struct RoleResultDTO{
+    id: Uuid,
     title: String,
     description: Option<String>,
     created_at: DateTime<Utc>,
@@ -25,16 +28,17 @@ pub struct RoleByIdResultDTO{
 }
 
 
-pub struct GetRoleById<'a> {
-    pub role_reader: &'a dyn RoleReader,
-    pub id_provider: Box<dyn IdProvider>,
+pub struct UpdateRole<'a> {
+    pub role_gateway: &'a dyn RoleGateway,
+    pub role_service: &'a RoleService,
+    pub id_provider: &'a dyn IdProvider,
     pub access_service: &'a AccessService,
 }
 
-impl Interactor<GetRoleByIdDTO, RoleByIdResultDTO> for GetRoleById<'_> {
-    async fn execute(&self, data: GetRoleByIdDTO) -> Result<RoleByIdResultDTO, ApplicationError> {
+impl Interactor<UpdateRoleDTO, RoleResultDTO> for UpdateRole<'_> {
+    async fn execute(&self, data: UpdateRoleDTO) -> Result<RoleResultDTO, ApplicationError> {
         
-        match self.access_service.ensure_can_get_role(
+        match self.access_service.ensure_can_update_role(
             self.id_provider.is_auth(),
             self.id_provider.user_state(),
             self.id_provider.permissions()
@@ -54,7 +58,7 @@ impl Interactor<GetRoleByIdDTO, RoleByIdResultDTO> for GetRoleById<'_> {
             }
         };
         
-        let role = match self.role_reader.get_role(&data.id).await {
+        let old_role = match self.role_gateway.get_role(&data.id).await {
             Some(role) => role,
             None => return Err(
                 ApplicationError::InvalidData(
@@ -62,13 +66,28 @@ impl Interactor<GetRoleByIdDTO, RoleByIdResultDTO> for GetRoleById<'_> {
                 )
             )
         };
+
+        let new_role = match self.role_service.update_role(
+            old_role,
+            data.title,
+            data.description
+        ) {
+            Ok(role) => role,
+            Err(error) => return Err(
+                ApplicationError::InvalidData(
+                    ErrorContent::Message(error.to_string())
+                )
+            )
+        };
         
-        Ok(RoleByIdResultDTO{
-            id: role.id,
-            title: role.title,
-            description: role.description,
-            created_at: role.created_at,
-            updated_at: role.updated_at,
+        self.role_gateway.save_role(&new_role).await;
+        
+        Ok(RoleResultDTO{
+            id: new_role.id,
+            title: new_role.title,
+            description: new_role.description,
+            created_at: new_role.created_at,
+            updated_at: new_role.updated_at,
         })
     }
 }
