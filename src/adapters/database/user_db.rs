@@ -3,14 +3,18 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use cached::{Cached, TimedCache};
-use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter, QuerySelect};
+use sea_orm::{DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::sea_query::extension::postgres::PgExpr;
 use uuid::Uuid;
 
 use crate::adapters::database::models::user;
-use crate::application::common::user_gateway::{UserReader, UserWriter, UserGateway as UserGatewayTrait};
+use crate::application::common::user_gateway::{
+    UserReader, 
+    UserWriter, 
+    UserGateway as UserGatewayTrait
+};
 use crate::domain::models::user::User as UserDomain;
 use crate::domain::models::user::UserState as UserStateDomain;
 
