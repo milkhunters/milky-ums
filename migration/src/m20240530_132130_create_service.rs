@@ -20,9 +20,8 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(Services::TextId)
-                            .uuid()
+                            .string()
                             .not_null()
-                            .extra("DEFAULT gen_random_uuid()")
                             .unique_key(),
                     )
                     .col(ColumnDef::new(Services::Title).string_len(64).unique_key().not_null())
