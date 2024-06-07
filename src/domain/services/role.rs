@@ -13,14 +13,14 @@ impl RoleService {
         &self,
         title: String,
         description: Option<String>,
-    ) -> Result<Role, DomainError> {
-        Ok(Role {
+    ) -> Role {
+        Role {
             id: Uuid::new_v4(),
             title,
             description,
             created_at: Default::default(),
             updated_at: None,
-        })
+        }
     }
 
     pub fn update_role(

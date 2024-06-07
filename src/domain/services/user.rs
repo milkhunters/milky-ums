@@ -15,8 +15,8 @@ impl UserService {
         hashed_password: String,
         first_name: Option<String>,
         last_name: Option<String>,
-    ) -> Result<User, ApplicationError> {
-        Ok(User {
+    ) -> User {
+        User {
             id: Uuid::new_v4(),
             username,
             email,
@@ -26,7 +26,7 @@ impl UserService {
             hashed_password,
             created_at: Utc::now(),
             updated_at: None,
-        })
+        }
     }
 
     pub fn update_user(
