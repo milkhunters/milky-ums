@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table(InitState::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(InitState::Id)
+                        ColumnDef::new(InitState::StartDate)
                             .date_time()
                             .not_null()
                             .primary_key(),
@@ -32,5 +32,5 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum InitState {
     Table,
-    Id,
+    StartDate,
 }
