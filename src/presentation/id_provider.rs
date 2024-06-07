@@ -1,6 +1,8 @@
+use std::str::FromStr;
 use actix_web::HttpRequest;
 use crate::adapters::auth::header::IdHeaderProvider;
 use crate::application::common::id_provider::IdProvider;
+use crate::domain::models::session::SessionId;
 
 pub fn get_id_provider(
     req: &HttpRequest
@@ -10,7 +12,9 @@ pub fn get_id_provider(
     
     Box::new(IdHeaderProvider::new(
         match headers.get("session_id") {
-            Some(value) => Some(value.to_str().unwrap().to_string()),
+            Some(value) => Some(
+                SessionId::from_str(value.to_str().unwrap()).unwrap()
+            ),
             None => None
         },
         match headers.get("payload") {
