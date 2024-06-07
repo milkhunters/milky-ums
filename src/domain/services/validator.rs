@@ -1,59 +1,100 @@
-
-
+use crate::domain::models::session::SessionToken;
 
 pub struct ValidatorService {
-    firstname_length: usize,
+    firstname_max_length: usize,
+    firstname_min_length: usize,
     firstname_regex: regex::Regex,
-    lastname_length: usize,
+    lastname_max_length: usize,
+    lastname_min_length: usize,
     lastname_regex: regex::Regex,
-    username_length: usize,
+    username_max_length: usize,
+    username_min_length: usize,
     username_regex: regex::Regex,
-    password_length: usize,
-    email_length: usize,
+    password_max_length: usize,
+    password_min_length: usize,
+    email_max_length: usize,
     email_regex: regex::Regex,
+    role_title_max_length: usize,
+    role_title_min_length: usize,
+    role_description_max_length: usize,
+    role_description_min_length: usize,
+    session_token_length: usize,
 }
 
 impl ValidatorService {
 
     pub fn new() -> Self {
+        
+        // User - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        
         // First name
-        let firstname_length = 64;
+        let firstname_max_length = 64;
+        let firstname_min_length = 4;
         let firstname_regex = regex::Regex::new(r"^[a-zA-Zа-яА-Я]*$").unwrap();
 
         // Last name
-        let lastname_length = 64;
+        let lastname_max_length = 64;
+        let lastname_min_length = 4;
         let lastname_regex = regex::Regex::new(r"^[a-zA-Zа-яА-Я]*$").unwrap();
 
         // Username
-        let username_length = 32;
+        let username_max_length = 32;
+        let username_min_length = 4;
         let username_regex = regex::Regex::new(r"^[a-zA-Z0-9._]*$").unwrap();
 
         // Password
-        let password_length = 32;
+        let password_max_length = 32;
+        let password_min_length = 8;
 
         // Email RFC2822
-        let email_length = 255;
+        let email_max_length = 255;
         let email_regex = regex::Regex::new(r"^([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x22([^\x0d\x22\x5c\x80-\xff]|\x5c[\x00-\x7f])*\x22)(\x2e([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x22([^\x0d\x22\x5c\x80-\xff]|\x5c[\x00-\x7f])*\x22))*\x40([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x5b([^\x0d\x5b-\x5d\x80-\xff]|\x5c[\x00-\x7f])*\x5d)(\x2e([^\x00-\x20\x22\x28\x29\x2c\x2e\x3a-\x3c\x3e\x40\x5b-\x5d\x7f-\xff]+|\x5b([^\x0d\x5b-\x5d\x80-\xff]|\x5c[\x00-\x7f])*\x5d))*$").unwrap();
-
+        
+        // Role - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        
+        let role_title_max_length = 64;
+        let role_title_min_length = 4;
+        
+        let role_description_max_length = 255;
+        let role_description_min_length = 4;
+        
+        // Session 
+        
+        // let session_token_length = 64;
+        let session_token_length = 128;
+        
         ValidatorService {
-            firstname_length,
+            firstname_max_length,
+            firstname_min_length,
             firstname_regex,
-            lastname_length,
+            lastname_max_length,
+            lastname_min_length,
             lastname_regex,
-            username_length,
+            username_max_length,
+            username_min_length,
             username_regex,
-            password_length,
-            email_length,
+            password_max_length,
+            password_min_length,
+            email_max_length,
             email_regex,
+            role_title_max_length,
+            role_title_min_length,
+            role_description_max_length,
+            role_description_min_length,
+            session_token_length,
         }
     }
 
 
     pub fn validate_username(&self, username: &str) -> Result<(), String> {
 
-        if username.len() < 4 || username.len() > self.username_length {
+        if username.len() < self.username_min_length || username.len() > self.username_max_length {
             return Err(
-                format!("Имя пользователя должно содержать от 4 до {} символов", self.username_length)
+                format!(
+                    "Имя пользователя должно содержать от {} до {} символов", 
+                    self.username_min_length, 
+                    self.username_max_length
+                )
             );
         }
 
@@ -68,8 +109,10 @@ impl ValidatorService {
 
     pub fn validate_email(&self, email: &str) -> Result<(), String> {
 
-        if email.len() > self.email_length {
-            return Err(format!("Email должен содержать максимум {} символов", self.email_length));
+        if email.len() > self.email_max_length {
+            return Err(
+                format!("Email должен содержать максимум {} символов", self.email_max_length)
+            );
         }
 
         if !self.email_regex.is_match(email) {
@@ -80,9 +123,13 @@ impl ValidatorService {
 
     pub fn validate_password(&self, password: &str) -> Result<(), String> {
 
-        if password.len() < 8 || password.len() > self.password_length {
+        if password.len() < self.password_min_length || password.len() > self.password_max_length {
             return Err(
-                format!("Пароль должен содержать от 8 до {} символов", self.password_length)
+                format!(
+                    "Пароль должен содержать от {} до {} символов", 
+                    self.password_min_length, 
+                    self.password_max_length
+                )
             );
         }
 
@@ -102,8 +149,12 @@ impl ValidatorService {
     }
 
     pub fn validate_last_name(&self, last_name: &str) -> Result<(), String> {
-        if last_name.len() > self.lastname_length {
-            return Err(format!("Фамилия должна состоять максимум из {} символов", self.lastname_length));
+        if last_name.len() > self.lastname_max_length  || last_name.len() < self.lastname_min_length {
+            return Err(format!(
+                "Фамилия должна содержать от {} до {} символов", 
+                self.lastname_min_length, 
+                self.lastname_max_length
+            ));
         }
 
         if !self.lastname_regex.is_match(last_name) {
@@ -114,8 +165,12 @@ impl ValidatorService {
     }
 
     pub fn validate_first_name(&self, first_name: &str) -> Result<(), String> {
-        if first_name.len() > self.firstname_length {
-            return Err(format!("Имя должно состоять максимум из {} символов", self.firstname_length));
+        if first_name.len() > self.firstname_max_length || first_name.len() < self.firstname_min_length {
+            return Err(format!(
+                "Имя должно содержать от {} до {} символов", 
+                self.firstname_min_length, 
+                self.firstname_max_length
+            ));
         }
 
         if !self.firstname_regex.is_match(first_name) {
@@ -124,5 +179,34 @@ impl ValidatorService {
 
         Ok(())
     }
-
+    
+    pub fn validate_role_title(&self, title: &str) -> Result<(), String> {
+        if title.len() < self.role_title_min_length || title.len() > self.role_title_max_length {
+            return Err(format!(
+                "Название роли должно содержать от {} до {} символов",
+                self.role_title_min_length,
+                self.role_title_max_length
+            ));
+        }
+        Ok(())
+    }
+    
+    pub fn validate_role_description(&self, description: &str) -> Result<(), String> {
+        if description.len() < self.role_description_min_length || description.len() > self.role_description_max_length {
+            return Err(format!(
+                "Описание роли должно содержать от {} до {} символов",
+                self.role_description_min_length,
+                self.role_description_max_length
+            ));
+        }
+        Ok(())
+    }
+    
+    pub fn validate_session_token(&self, session_token: &SessionToken) -> Result<(), String> {
+        if session_token.len() != self.session_token_length {
+            return Err("Неверный формат токена сессии".to_string());
+        }
+        Ok(())
+    }
+    
 }
