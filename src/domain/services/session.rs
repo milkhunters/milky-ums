@@ -1,39 +1,45 @@
-use uuid::Uuid;
 use rand::random;
+use uuid::Uuid;
 
-use crate::application::common::exceptions::ApplicationError;
-use crate::domain::models::session::{Session, SessionId};
+use crate::domain::models::session::{Session, SessionToken, SessionTokenHash};
 
 pub struct SessionService { }
 
 impl SessionService {
+    
+    pub fn is_session_expired(&self, session: &Session) -> bool {
+        let session_age = chrono::Utc::now() - session.updated_at.unwrap_or(session.created_at);
+        session_age > chrono::Duration::minutes(5)
+    }
+    
+    pub fn create_session_token(&self) -> SessionToken {
+        (0..64).map(|_| format!("{:02x}", random::<u8>())).collect::<Vec<_>>().join("")
+    }
 
     pub fn create_session(
         &self,
+        token_hash: SessionTokenHash,
         user_id: Uuid,
         ip: String,
         user_agent: String,
-    ) -> Result<Session, ApplicationError> {
-        let id: SessionId = SessionId::from(
-            (0..128).map(|_| format!("{:02x}", random::<u8>())).collect::<Vec<_>>().join("")
-        );
-        
-        Ok(Session {
-            id,
+    ) -> Session {
+        Session {
+            id: Uuid::new_v4(),
+            token_hash,
             user_id,
             ip,
             user_agent,
             created_at: chrono::Utc::now(),
             updated_at: None,
-        })
+        }
     }
 
     pub fn verify_session(
         &self,
-        session: Session,
+        session: &Session,
         user_agent: String,
-    ) -> Result<bool, ApplicationError> {
-        Ok(session.user_agent == user_agent)
+    ) -> bool {
+        session.user_agent == user_agent
     }
 
     pub fn update_session(
@@ -41,12 +47,12 @@ impl SessionService {
         session: Session,
         new_ip: String,
         new_user_agent: String,
-    ) -> Result<Session, ApplicationError> {
-        Ok(Session {
+    ) -> Session {
+        Session {
             ip: new_ip,
             user_agent: new_user_agent,
             updated_at: Some(chrono::Utc::now()),
             ..session
-        })
+        }
     }
 }
