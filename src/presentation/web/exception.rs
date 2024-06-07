@@ -2,7 +2,6 @@ use std::fmt::{Display, Formatter};
 use actix_web::{error, HttpResponse, Result};
 use actix_web::http::header::ContentType;
 use actix_web::http::StatusCode;
-use serde::Serialize;
 use serde_json::json;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
@@ -36,7 +35,7 @@ impl error::ResponseError for ApplicationError {
                 "error": msg
             }),
             ErrorContent::Map(map) => json!({
-                "error": map.iter().map(|(field, message)| {
+                "errors": map.iter().map(|(field, message)| {
                     json!({
                         "field": field,
                         "message": message
