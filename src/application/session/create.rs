@@ -7,10 +7,12 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
+use crate::application::common::role_gateway::RoleReader;
 use crate::application::common::session_gateway::SessionGateway;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::exceptions::DomainError;
-use crate::domain::models::session::SessionId;
+use crate::domain::models::session::SessionTokenHash;
+use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
@@ -27,6 +29,7 @@ pub struct CreateSessionResultDTO{
     id: Uuid,
     username: String,
     email: String,
+    state: UserState,
     first_name: Option<String>,
     last_name: Option<String>,
 }
@@ -36,14 +39,19 @@ pub struct CreateSession<'a> {
     pub user_gateway: &'a dyn UserReader,
     pub user_service: &'a UserService,
     pub session_service: &'a SessionService,
+    pub session_hasher: &'a dyn Hasher,
+    pub role_reader: &'a dyn RoleReader,
     pub id_provider: Box<dyn IdProvider>,
     pub password_hasher: &'a dyn Hasher,
     pub validator: &'a ValidatorService,
     pub access_service: &'a AccessService
 }
 
-impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for CreateSession<'_> {
-    async fn execute(&self, data: CreateSessionDTO) -> Result<(CreateSessionResultDTO, SessionId), ApplicationError> {
+impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionTokenHash)> for CreateSession<'_> {
+    async fn execute(
+        &self, 
+        data: CreateSessionDTO
+    ) -> Result<(CreateSessionResultDTO, SessionTokenHash), ApplicationError> {
 
         match self.access_service.ensure_can_create_session(
             self.id_provider.is_auth(),
@@ -56,11 +64,7 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for Creat
                         ErrorContent::Message(error.to_string())
                     )
                 ),
-                DomainError::AuthorizationRequired => Err(
-                    ApplicationError::Unauthorized(
-                        ErrorContent::Message(error.to_string())
-                    )
-                )
+                _ => panic!("Unexpected error")
             }
         };
 
@@ -103,13 +107,17 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for Creat
                 )
             )
         };
+        
+        let session_token = self.session_service.create_session_token();
+        let session_token_hash = self.session_hasher.hash(&session_token).await;
 
         let session = self.session_service.create_session(
+            session_token_hash,
             user.id,
             self.id_provider.ip().to_string(),
             self.id_provider.user_agent().to_string()
-        )?;
-
+        );
+        
         self.session_gateway.save_session(&session).await;
 
         Ok((
@@ -117,10 +125,11 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionId)> for Creat
                 id: user.id,
                 username: user.username,
                 email: user.email,
+                state: user.state,
                 first_name: user.first_name,
                 last_name: user.last_name,
             },
-            session.id
+            session_token
         ))
     }
 }
