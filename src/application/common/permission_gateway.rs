@@ -1,0 +1,31 @@
+use async_trait::async_trait;
+
+use crate::domain::models::permission::{Permission as PermissionDomain, PermissionId, PermissionTextId};
+use crate::domain::models::role::RoleId;
+use crate::domain::models::service::ServiceId;
+
+#[async_trait]
+pub trait PermissionReader {
+    async fn get_permission_by_id(&self, permission_id: &PermissionId) -> Option<PermissionDomain>;
+    async fn get_permissions_by_service_id(&self, service_id: &ServiceId) -> Option<Vec<PermissionDomain>>;
+    async fn get_permissions_by_ids(&self, permission_ids: &Vec<PermissionId>) -> Option<Vec<PermissionDomain>>;
+    async fn get_permissions_list(&self, limit: &u64, offset: &u64) -> Vec<PermissionDomain>;
+    async fn get_role_permissions(&self, user_id: &RoleId) -> Vec<PermissionDomain>;
+
+}
+
+#[async_trait]
+pub trait PermissionWriter {
+    async fn save_permission(&self, data: &PermissionDomain);
+    async fn save_permissions(&self, data: &Vec<PermissionDomain>);
+}
+
+#[async_trait]
+pub trait PermissionLinker {
+    async fn link_permission_to_role(&self, role_id: &RoleId, permission_id: &PermissionId);
+    async fn link_permissions_to_role(&self, role_id: &RoleId, permission_ids: &Vec<PermissionId>);
+    async fn unlink_permission_from_role(&self, role_id: &RoleId, permission_id: &PermissionId);
+}
+
+
+pub trait PermissionGateway: PermissionReader + PermissionWriter + PermissionLinker {}
