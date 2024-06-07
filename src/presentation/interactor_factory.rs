@@ -2,6 +2,7 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
+use crate::application::session::extract_payload::EPSession;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
@@ -27,4 +28,5 @@ pub trait InteractorFactory {
     fn get_session_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionById;
     fn get_sessions_by_user_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionsByUserId;
     fn get_sessions_self(&self, id_provider: Box<dyn IdProvider>) -> GetSessionSelf;
+    fn extract_payload(&self, id_provider: Box<dyn IdProvider>) -> EPSession;
 }
