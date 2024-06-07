@@ -1,3 +1,4 @@
+use chrono::Utc;
 use uuid::Uuid;
 
 use crate::application::common::exceptions::ApplicationError;
@@ -23,7 +24,7 @@ impl UserService {
             last_name,
             state: UserState::Active,
             hashed_password,
-            created_at: Default::default(),
+            created_at: Utc::now(),
             updated_at: None,
         })
     }
