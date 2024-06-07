@@ -9,10 +9,10 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(AppInitState::Table)
+                    .table(InitState::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(AppInitState::Id)
+                        ColumnDef::new(InitState::Id)
                             .date_time()
                             .not_null()
                             .primary_key(),
@@ -24,13 +24,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(AppInitState::Table).to_owned())
+            .drop_table(Table::drop().table(InitState::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum AppInitState {
+enum InitState {
     Table,
     Id,
 }
