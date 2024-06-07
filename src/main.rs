@@ -5,7 +5,7 @@ use std::thread;
 use dotenv::dotenv;
 use actix_web::{App, HttpServer, web};
 use sea_orm::{ConnectOptions, Database};
-use deadpool_redis::{redis::{cmd, FromRedisValue}, Config, Runtime};
+use deadpool_redis::{Config, Runtime};
 
 use crate::ioc::IoC;
 use crate::presentation::interactor_factory::InteractorFactory;
@@ -36,7 +36,10 @@ async fn main() -> std::io::Result<()> {
         Ok(workers) => workers.parse::<usize>().ok(),
         Err(_) => None,
     };
-
+    
+    let host = std::env::var("HOST").unwrap_or("127.0.0.1".to_string());
+    let port = std::env::var("PORT").unwrap_or("8080".to_string());
+    let service_name = std::env::var("SERVICE_NAME").unwrap();
     let consul_addr = std::env::var("CONSUL_ADDR").unwrap();
     let consul_root = std::env::var("CONSUL_ROOT").unwrap();
     let build = std::env::var("BUILD").unwrap_or("local".to_string());
@@ -92,6 +95,11 @@ async fn main() -> std::io::Result<()> {
     let session_redis_pool = redis_factory(0).create_pool(Some(Runtime::Tokio1)).unwrap();
     let confirm_manager_redis_pool = redis_factory(1).create_pool(Some(Runtime::Tokio1)).unwrap();
     
+    application::initial::service_permissions(
+        adapters::database::service::ServiceGateway::new(&db),
+        &service_name,
+    ).await;
+    
     let app_builder = move || {
         let branch = branch.clone();
         let build = build.clone();
@@ -124,13 +132,10 @@ async fn main() -> std::io::Result<()> {
             Err(_) => 1,
         }
     );
-
-    let host = "127.0.0.1";
-    let port = 8080;
-
+    
     let listener = match TcpListener::bind(format!("{}:{}", host, port)) {
         Ok(listener) => {
-            log::info!("🚀 Server started at http://{}:{}", host, port);
+            log::info!("🚀 Server started at http://{}", listener.local_addr().unwrap());
             listener
         },
         Err(e) => {
