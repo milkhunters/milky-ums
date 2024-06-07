@@ -39,9 +39,11 @@ deadpool-redis = {  version = "^0.15.0", features = [
 ] }
 async-trait = "^0.1.79"
 derive_more = "^0.99.17"
-argon2-async = "^0.2.0"
+argon2 = "^0.5.3"
 regex = "^1.10.4"
 futures = "^0.3.30"
 cached = { version = "^0.51.3", features = ["async"]}
 rand = "^0.8.5"
-strum_macros = "^0.26.2"
+strum = "^0.26.2"
+strum_macros = "^0.26.3"
+woothee = "^0.13.0"
