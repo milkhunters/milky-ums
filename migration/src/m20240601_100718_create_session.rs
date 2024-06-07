@@ -36,7 +36,7 @@ impl MigrationTrait for Migration {
                             .to(Users::Table, Users::Id)
                             .on_delete(ForeignKeyAction::Cascade)
                     )
-                    .col(ColumnDef::new(Sessions::Ip).string_len(15).unique_key().not_null())
+                    .col(ColumnDef::new(Sessions::Ip).string_len(15).not_null())
                     .col(ColumnDef::new(Sessions::UserAgent).string_len(255).not_null())
                     .col(
                         ColumnDef::new(Sessions::CreatedAt)

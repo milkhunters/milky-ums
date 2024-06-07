@@ -25,6 +25,7 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(Users::State)
                             .custom(UserState::Enum)
+                            .not_null()
                     )
 
                     .col(ColumnDef::new(Users::HashedPassword).string_len(255).not_null())

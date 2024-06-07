@@ -21,9 +21,8 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(Permissions::TextId)
-                            .string()
+                            .string_len(64)
                             .not_null()
-                            .unique_key(),
                     )
                     .col(ColumnDef::new(Permissions::ServiceId)
                         .uuid()
