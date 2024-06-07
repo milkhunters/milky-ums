@@ -1,13 +1,16 @@
 use deadpool_redis::Pool;
 use sea_orm::DbConn;
+use crate::adapters::argon2_password_hasher::Argon2PasswordHasher;
+use crate::adapters::argon2_session_hasher::Argon2SessionHasher;
 
-use crate::adapters::argon2_hasher::Argon2Hasher;
 use crate::adapters::database::session_db::SessionGateway;
 use crate::adapters::database::user_db::UserGateway;
+use crate::adapters::database::role_db::RoleGateway;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
+use crate::application::session::extract_payload::EPSession;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionsByUserId;
 use crate::application::session::get_self::GetSessionSelf;
@@ -27,9 +30,11 @@ use crate::presentation::interactor_factory::InteractorFactory;
 pub struct IoC {
     user_gateway: UserGateway,
     session_gateway: SessionGateway,
+    role_gateway: RoleGateway,
     user_service: UserService,
     session_service: SessionService,
-    hasher: Argon2Hasher,
+    password_hasher: Argon2PasswordHasher,
+    session_hasher: Argon2SessionHasher,
     validator: ValidatorService,
     access_service: AccessService,
 }
@@ -45,10 +50,15 @@ impl IoC {
 
         IoC {
             user_gateway: UserGateway::new(db_pool.clone()),
-            session_gateway: SessionGateway::new(Box::new(session_redis_pool)),
+            session_gateway: SessionGateway::new(
+                Box::new(session_redis_pool),
+                db_pool.clone(),
+            ),
+            role_gateway: RoleGateway::new(db_pool.clone()),
             user_service: UserService{},
             session_service: SessionService{},
-            hasher: Argon2Hasher::new(),
+            password_hasher: Argon2PasswordHasher::new(),
+            session_hasher: Argon2SessionHasher::new(),
             validator: ValidatorService::new(),
             access_service: AccessService{},
         }
@@ -92,7 +102,7 @@ impl InteractorFactory for IoC {
         CreateUser {
             user_gateway: &self.user_gateway,
             user_service: &self.user_service,
-            password_hasher: &self.hasher,
+            password_hasher: &self.password_hasher,
             validator: &self.validator,
             access_service: &self.access_service,
             id_provider,
@@ -120,6 +130,37 @@ impl InteractorFactory for IoC {
     }
 
 
+    fn create_session(&self, id_provider: Box<dyn IdProvider>) -> CreateSession {
+        CreateSession {
+            id_provider,
+            session_gateway: &self.session_gateway,
+            user_gateway: &self.user_gateway,
+            user_service: &self.user_service,
+            session_service: &self.session_service,
+            password_hasher: &self.password_hasher,
+            session_hasher: &self.session_hasher,
+            validator: &self.validator,
+            access_service: &self.access_service,
+            role_reader: &self.role_gateway,
+        }
+    }
+
+    fn delete_session(&self, id_provider: Box<dyn IdProvider>) -> DeleteSession {
+        DeleteSession {
+            session_gateway: &self.session_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn delete_self_session(&self, id_provider: Box<dyn IdProvider>) -> DeleteSessionSelf {
+        DeleteSessionSelf {
+            session_remover: &self.session_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
     fn get_session_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionById {
         GetSessionById {
             session_reader: &self.session_gateway,
@@ -136,35 +177,6 @@ impl InteractorFactory for IoC {
         }
     }
 
-    fn create_session(&self, id_provider: Box<dyn IdProvider>) -> CreateSession {
-        CreateSession {
-            id_provider,
-            session_gateway: &self.session_gateway,
-            user_gateway: &self.user_gateway,
-            user_service: &self.user_service,
-            session_service: &self.session_service,
-            password_hasher: &self.hasher,
-            validator: &self.validator,
-            access_service: &self.access_service,
-        }
-    }
-
-    fn delete_session(&self, id_provider: Box<dyn IdProvider>) -> DeleteSession {
-        DeleteSession {
-            session_gateway: &self.session_gateway,
-            id_provider,
-            access_service: &self.access_service,
-        }
-    }
-
-    fn delete_self_session(&self, id_provider: Box<dyn IdProvider>) -> DeleteSessionSelf {
-        DeleteSessionSelf {
-            session_writer: &self.session_gateway,
-            id_provider,
-            access_service: &self.access_service,
-        }
-    }
-
     fn get_sessions_self(&self, id_provider: Box<dyn IdProvider>) -> GetSessionSelf {
         GetSessionSelf {
             session_reader: &self.session_gateway,
@@ -172,4 +184,16 @@ impl InteractorFactory for IoC {
             id_provider,
         }
     }
+    
+    fn extract_payload(&self, id_provider: Box<dyn IdProvider>) -> EPSession {
+        EPSession {
+            session_gateway: &self.session_gateway,
+            user_gateway: &self.user_gateway,
+            session_service: &self.session_service,
+            session_hasher: &self.session_hasher,
+            id_provider,
+            validator_service: &self.validator,
+        }
+    }
+    
 }
