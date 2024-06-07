@@ -10,3 +10,5 @@ pub mod sea_orm_active_enums;
 pub mod services;
 pub mod sessions;
 pub mod users;
+pub mod default_role;
+pub mod init_state;
