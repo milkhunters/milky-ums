@@ -1,4 +1,5 @@
 use sea_orm_migration::prelude::*;
+use crate::m20240530_130156_create_role::Roles;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -16,6 +17,13 @@ impl MigrationTrait for Migration {
                             .uuid()
                             .not_null()
                             .primary_key(),
+                    )
+                    .foreign_key(
+                        ForeignKey::create()
+                            .name("fk_role_id")
+                            .from(DefaultRole::Table, DefaultRole::Id)
+                            .to(Roles::Table, Roles::Id)
+                            .on_delete(ForeignKeyAction::Restrict),
                     )
                     .to_owned(),
             )
