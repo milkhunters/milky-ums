@@ -96,7 +96,20 @@ async fn main() -> std::io::Result<()> {
     let confirm_manager_redis_pool = redis_factory(1).create_pool(Some(Runtime::Tokio1)).unwrap();
     
     application::initial::service_permissions(
-        adapters::database::service::ServiceGateway::new(&db),
+        adapters::database::service_db::ServiceGateway::new(&db),
+        adapters::database::permission_db::PermissionGateway::new(&db),
+        &service_name,
+    ).await;
+    
+    application::initial::control_account(
+        adapters::database::role_db::RoleGateway::new(&db),
+        domain::services::role::RoleService{},
+        adapters::database::permission_db::PermissionGateway::new(&db),
+        adapters::database::user_db::UserGateway::new(&db),
+        adapters::database::service_db::ServiceGateway::new(&db),
+        &domain::services::user::UserService{},
+        &adapters::argon2_password_hasher::Argon2PasswordHasher::new(),
+        adapters::database::init_state_db::InitStateGateway::new(&db),
         &service_name,
     ).await;
     
