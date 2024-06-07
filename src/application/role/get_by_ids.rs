@@ -1,12 +1,12 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
-
 use crate::application::common::interactor::Interactor;
 use crate::application::common::role_gateway::RoleReader;
 use crate::domain::exceptions::DomainError;
-use crate::domain::models::role::{Role, RoleId};
+use crate::domain::models::role::RoleId;
 use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Deserialize)]
@@ -70,8 +70,8 @@ impl Interactor<GetRolesByIdsDTO, RolesByIdsResultDTO> for GetRolesByIds<'_> {
             id: role.id,
             title: role.title,
             description: role.description,
-            created_at: role.created_at.to_string(),
-            updated_at: role.updated_at.map(|date| date.to_string())
+            created_at: role.created_at,
+            updated_at: role.updated_at
         }).collect())
     }
 }

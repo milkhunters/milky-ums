@@ -9,12 +9,6 @@ use crate::domain::exceptions::DomainError;
 use crate::domain::models::role::RoleId;
 use crate::domain::services::access::AccessService;
 
-#[derive(Debug, Deserialize)]
-pub struct GetRoleRangeDTO {
-    pub page: u64,
-    pub per_page: u64,
-}
-
 #[derive(Debug, Serialize)]
 pub struct RoleItemResult{
     id: RoleId,
@@ -33,8 +27,8 @@ pub struct GetRoleRange<'a> {
     pub access_service: &'a AccessService,
 }
 
-impl Interactor<GetRoleRangeDTO, GetRoleRangeResultDTO> for GetRoleRange<'_> {
-    async fn execute(&self, data: GetRoleRangeDTO) -> Result<GetRoleRangeResultDTO, ApplicationError> {
+impl Interactor<(), GetRoleRangeResultDTO> for GetRoleRange<'_> {
+    async fn execute(&self, data: ()) -> Result<GetRoleRangeResultDTO, ApplicationError> {
         
         match self.access_service.ensure_can_get_role(
             self.id_provider.is_auth(),
@@ -56,19 +50,15 @@ impl Interactor<GetRoleRangeDTO, GetRoleRangeResultDTO> for GetRoleRange<'_> {
             }
         }
         
-        let roles = self.role_gateway.get_roles_list(
-            &data.per_page,
-            &(data.page * data.per_page)
-        ).await;
-
+        let roles = self.role_gateway.get_roles().await;
         
         Ok(
             roles.iter().map(|role| RoleItemResult{
                 id: role.id,
                 title: role.title.clone(),
                 description: role.description.clone(),
-                created_at: role.created_at.to_string(),
-                updated_at: role.updated_at.map(|date| date.to_string())
+                created_at: role.created_at,
+                updated_at: role.updated_at
             }).collect()
         )
         
