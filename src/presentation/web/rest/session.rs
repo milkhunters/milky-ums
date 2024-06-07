@@ -4,6 +4,7 @@ use crate::application::common::exceptions::ApplicationError;
 use crate::application::common::interactor::Interactor;
 use crate::application::session::create::CreateSessionDTO;
 use crate::application::session::delete::DeleteSessionDTO;
+use crate::application::session::extract_payload::EPSessionDTO;
 use crate::application::session::get_by_id::GetSessionByIdDTO;
 use crate::application::session::get_by_user_id::GetSessionsByUserIdDTO;
 use crate::presentation::id_provider::get_id_provider;
@@ -12,6 +13,7 @@ use crate::presentation::interactor_factory::InteractorFactory;
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/sessions")
+            .service(sessions_extract)
             .service(sessions_self)
             .service(sessions_by_user_id)
             .service(create_session)
@@ -28,13 +30,13 @@ async fn create_session(
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     let id_provider = get_id_provider(&req);
-    let (data, session_id) = ioc.create_session(id_provider).execute(
+    let (data, session_token) = ioc.create_session(id_provider).execute(
         data.into_inner()
     ).await?;
     
     let mut response = HttpResponse::Ok().json(data);
     response.add_cookie(
-        &Cookie::build("session_id", session_id.to_string())
+        &Cookie::build("session_token", session_token.to_string())
             .path("/")
             .http_only(true)
             .finish()
@@ -101,3 +103,19 @@ async fn sessions_self(
     let data = ioc.get_sessions_self(id_provider).execute(()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
+
+#[get("extract")]
+async fn sessions_extract(
+    ioc: web::Data<dyn InteractorFactory>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError>{
+    let id_provider = get_id_provider(&req);
+    
+    let data = EPSessionDTO {
+        session_token: req.cookie("session_token").map(|cookie| cookie.value().to_string())
+    };
+
+    let data = ioc.extract_payload(id_provider).execute(data).await?;
+    Ok(HttpResponse::Ok().json(data))
+}
+
