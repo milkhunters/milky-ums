@@ -285,4 +285,89 @@ impl AccessService {
         Err(DomainError::AccessDenied)
     }
     
+    pub fn ensure_can_create_role(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+        
+        if 
+            user_state.unwrap() == &UserState::Active &&
+            permissions.contains(&UMSPermission::CreateRole.to_string())
+        {
+            return Ok(())
+        }
+        
+        Err(DomainError::AccessDenied)
+    }
+    
+    pub fn ensure_can_delete_role(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+        
+        if 
+            user_state.unwrap() == &UserState::Active &&
+            permissions.contains(&UMSPermission::DeleteRole.to_string())
+        {
+            return Ok(())
+        }
+        
+        Err(DomainError::AccessDenied)
+    }
+    
+    pub fn ensure_can_get_role(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+        
+        if 
+            user_state.unwrap() == &UserState::Active &&
+            permissions.contains(&UMSPermission::GetRole.to_string())
+        {
+            return Ok(())
+        }
+        
+        Err(DomainError::AccessDenied)
+    }
+    
+    pub fn ensure_can_update_role(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+        
+        if 
+            user_state.unwrap() == &UserState::Active &&
+            permissions.contains(&UMSPermission::UpdateRole.to_string())
+        {
+            return Ok(())
+        }
+        
+        Err(DomainError::AccessDenied)
+    }
+    
+    
 }
