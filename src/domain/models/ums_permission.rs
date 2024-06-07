@@ -1,6 +1,6 @@
-use strum_macros::Display;
+use strum_macros::{Display, EnumIter};
 
-#[derive(Display)]
+#[derive(Display, EnumIter)]
 pub enum UMSPermission {
     GetUserSelf,
     GetUser,
