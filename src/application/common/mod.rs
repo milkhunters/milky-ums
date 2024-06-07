@@ -1,7 +1,9 @@
 pub mod interactor;
 pub mod user_gateway;
-
+pub mod role_gateway;
 pub mod session_gateway;
+pub mod permission_gateway;
+pub mod service_gateway;
 pub mod id_provider;
 pub mod exceptions;
 pub mod hasher;
