@@ -48,10 +48,9 @@ impl Interactor<(), SessionSelfResultDTO> for GetSessionSelf<'_> {
             }
         };
 
-        let session = match self.session_reader.get_session(&self.id_provider.session_id().unwrap()).await {
-            Some(session) => session,
-            None => panic!("Session not found")
-        };
+        let session = self.session_reader.get_session(
+            &self.id_provider.session_id().unwrap()
+        ).await.unwrap();
 
         Ok(SessionSelfResultDTO {
             id: session.id,

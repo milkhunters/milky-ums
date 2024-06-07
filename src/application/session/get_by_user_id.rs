@@ -7,7 +7,7 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionReader;
 use crate::domain::exceptions::DomainError;
-use crate::domain::models::session::{Session, SessionId};
+use crate::domain::models::session::SessionId;
 use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Deserialize)]
@@ -59,7 +59,7 @@ impl Interactor<GetSessionsByUserIdDTO, SessionsByUserIdResultDTO> for GetSessio
             } 
         }
         
-        let sessions: Vec<Session> = self.session_reader.get_sessions(&data.id).await;
+        let sessions = self.session_reader.get_user_sessions(&data.id).await;
         
         Ok(
             sessions.iter().map(|session| SessionItemResult {
