@@ -53,8 +53,8 @@ impl Interactor<DeleteSessionDTO, ()> for DeleteSession<'_> {
             )
         };
 
-        self.session_gateway.delete_session(&data.id, &self.id_provider.user_id().unwrap()).await;
-
+        self.session_gateway.remove_session(&data.id).await;
+        
         Ok(())
     }
 }
