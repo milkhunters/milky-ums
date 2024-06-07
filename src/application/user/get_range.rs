@@ -6,6 +6,7 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
+use crate::domain::exceptions::DomainError;
 use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Deserialize)]
@@ -38,16 +39,23 @@ impl Interactor<GetUserRangeDTO, GetUserRangeResultDTO> for GetUserRange<'_> {
             &self.id_provider.permissions()
         ) {
             Ok(_) => (),
-            Err(error) => return Err(
-                ApplicationError::Forbidden(
-                    ErrorContent::Message(error.to_string())
+            Err(error) => return match error {
+                DomainError::AccessDenied => Err(
+                    ApplicationError::Forbidden(
+                        ErrorContent::Message(error.to_string())
+                    )
+                ),
+                DomainError::AuthorizationRequired => Err(
+                    ApplicationError::Unauthorized(
+                        ErrorContent::Message(error.to_string())
+                    )
                 )
-            )
+            }
         };
 
         let mut validator_err_map: HashMap<String, String> = HashMap::new();
         if data.page == 0 {
-            validator_err_map.insert("page".to_string(), "Страница должна быть больше 0".to_string());
+            validator_err_map.insert("page".to_string(), "Номер страницы должен быть больше 0".to_string());
         }
         
         if data.per_page == 0 {

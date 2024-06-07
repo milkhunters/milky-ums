@@ -92,7 +92,7 @@ impl Interactor<UpdateSelfDTO, UpdateSelfResultDTO> for UpdateUserSelf<'_> {
             if &user.id != self.id_provider.user_id().unwrap() {
                 validator_err_map.insert(
                     "username".to_string(), 
-                    "Имя пользователя уже занято".to_string()
+                    "Имя пользователя занято".to_string()
                 );
                 return Err(
                     ApplicationError::InvalidData(
@@ -103,10 +103,7 @@ impl Interactor<UpdateSelfDTO, UpdateSelfResultDTO> for UpdateUserSelf<'_> {
         }
         
 
-        let user = match self.user_gateway.get_user_by_id(self.id_provider.user_id().unwrap()).await {
-            Some(user) => user,
-            None => panic!("User not found internal error"),
-        };
+        let user = self.user_gateway.get_user_by_id(self.id_provider.user_id().unwrap()).await.unwrap();
 
         let updated_user = self.user_service.update_user_self(
             user,

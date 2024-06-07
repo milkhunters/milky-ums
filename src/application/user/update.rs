@@ -93,6 +93,27 @@ impl Interactor<UpdateUserDTO, UpdateUserResultDTO> for UpdateUser<'_> {
                 )
             )
         }
+
+        // Todo: to gather
+        let user_by_username = self.user_gateway.get_user_by_username_not_sensitive(&data.username).await;
+        let user_by_email = self.user_gateway.get_user_by_email_not_sensitive(&data.email).await;
+
+        // let (user_by_username, user_by_email) = match tokio::try_join!(
+        //     tokio::spawn(async move { self.user_gateway.get_user_by_username_not_sensitive(&data.username).await }),
+        //     tokio::spawn(async move { self.user_gateway.get_user_by_email_not_sensitive(&data.email).await })
+        // ) {
+        //     Ok((user_by_username, user_by_email)) => (user_by_username, user_by_email),
+        //     Err(e) => panic!("Error: {:?}", e)
+        // };
+        
+        if user_by_username.is_some() && user_by_username.unwrap().id != data.id {
+            validator_err_map.insert("username".to_string(), "Имя пользователя занято".to_string());
+        }
+        
+        if user_by_email.is_some() && user_by_email.unwrap().id != data.id{
+            validator_err_map.insert("email".to_string(), "Email занят".to_string());
+        }
+        
         
 
         let user = match self.user_gateway.get_user_by_id(&data.id).await {

@@ -5,12 +5,15 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
+use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Serialize)]
 pub struct UserSelfResultDTO{
     id: Uuid,
     username: String,
+    email: String,
+    state: UserState,
     first_name: Option<String>,
     last_name: Option<String>,
 }
@@ -40,18 +43,13 @@ impl Interactor<(), UserSelfResultDTO> for GetUserSelf<'_> {
         };
         
         
-        let user = match self.user_reader.get_user_by_id(self.id_provider.user_id().unwrap()).await {
-            Some(u) => u,
-            None => return Err(
-                ApplicationError::NotFound(
-                    ErrorContent::Message("Пользователь не найден".to_string())
-                )
-            ),
-        };
+        let user = self.user_reader.get_user_by_id(self.id_provider.user_id().unwrap()).await.unwrap();
 
         Ok(UserSelfResultDTO {
             id: user.id,
             username: user.username,
+            email: user.email,
+            state: user.state,
             first_name: user.first_name,
             last_name: user.last_name,
         })
