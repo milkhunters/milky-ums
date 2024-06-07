@@ -3,3 +3,4 @@ pub mod session;
 pub mod permission;
 pub mod role;
 pub mod ums_permission;
+pub mod service;
