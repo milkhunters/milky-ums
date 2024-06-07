@@ -15,10 +15,30 @@ pub enum UMSPermission {
     UpdateSession,
     DeleteSession,
     DeleteSessionSelf,
-
-    GetRoleSelf,
+    
     GetRole,
     CreateRole,
     UpdateRole,
     DeleteRole,
+
+    SetDefaultRole,
+    GetDefaultRole,
+    
+    LinkUserRole,
+    UnlinkUserRole,
+    GetUserRole,
+    GetSelfRole,
+    
+    CreatePermission,
+    GetPermission,
+    UpdatePermission,
+    DeletePermission,
+    
+    LinkRolePermission,
+    UnlinkRolePermission,
+    
+    GetService,
+    UpdateService,
+    DeleteService,
+    
 }
