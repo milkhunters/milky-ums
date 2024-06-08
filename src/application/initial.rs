@@ -63,7 +63,7 @@ pub async fn service_permissions(
 
 pub async fn control_account(
     role_gateway: &dyn RoleGateway,
-    role_service: RoleService,
+    role_service: &RoleService,
     permission_gateway: &dyn PermissionGateway,
     user_gateway: &dyn UserGateway,
     service_gateway: &dyn ServiceGateway,
