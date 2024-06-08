@@ -41,12 +41,12 @@ pub struct IoC {
 
 impl IoC {
     pub fn new(
-        db: DbConn,
+        db_pool: Box<DbConn>,
         session_redis_pool: Pool,
         confirm_manager_redis_pool: Pool,
     ) -> IoC {
 
-        let db_pool = Box::new(db);
+        // let db_pool = Box::new(db);
 
         IoC {
             user_gateway: UserGateway::new(db_pool.clone()),
