@@ -4,7 +4,7 @@ use std::thread;
 
 use dotenv::dotenv;
 use actix_web::{App, HttpServer, web};
-use sea_orm::{ConnectOptions, Database};
+use sea_orm::{ConnectOptions, Database, DbConn};
 use deadpool_redis::{Config, Runtime};
 
 use crate::ioc::IoC;
@@ -54,7 +54,7 @@ async fn main() -> std::io::Result<()> {
         },
     };
 
-    let db = match {
+    let db: Box<DbConn> = match {
         let mut opt = ConnectOptions::new(
             format!(
                 "postgresql://{username}:{password}@{host}:{port}/{database}",
@@ -70,7 +70,7 @@ async fn main() -> std::io::Result<()> {
             .sqlx_logging(false);
         Database::connect(opt)
     }.await {
-        Ok(db) => db,
+        Ok(db) => Box::new(db),
         Err(e) => {
             log::error!("Failed to connect to database: {}", e);
             return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
@@ -96,20 +96,20 @@ async fn main() -> std::io::Result<()> {
     let confirm_manager_redis_pool = redis_factory(1).create_pool(Some(Runtime::Tokio1)).unwrap();
     
     application::initial::service_permissions(
-        adapters::database::service_db::ServiceGateway::new(&db),
-        adapters::database::permission_db::PermissionGateway::new(&db),
+        &adapters::database::service_db::ServiceGateway::new(db.clone()),
+        &adapters::database::permission_db::PermissionGateway::new(db.clone()),
         &service_name,
     ).await;
     
     application::initial::control_account(
-        adapters::database::role_db::RoleGateway::new(&db),
-        domain::services::role::RoleService{},
-        adapters::database::permission_db::PermissionGateway::new(&db),
-        adapters::database::user_db::UserGateway::new(&db),
-        adapters::database::service_db::ServiceGateway::new(&db),
+        &adapters::database::role_db::RoleGateway::new(db.clone()),
+        &domain::services::role::RoleService{},
+        &adapters::database::permission_db::PermissionGateway::new(db.clone()),
+        &adapters::database::user_db::UserGateway::new(db.clone()),
+        &adapters::database::service_db::ServiceGateway::new(db.clone()),
         &domain::services::user::UserService{},
         &adapters::argon2_password_hasher::Argon2PasswordHasher::new(),
-        adapters::database::init_state_db::InitStateGateway::new(&db),
+        &adapters::database::init_state_db::InitStateGateway::new(db.clone()),
         &service_name,
     ).await;
     
