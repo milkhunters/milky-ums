@@ -3,13 +3,14 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use cached::{Cached, TimedCache};
-use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter, QuerySelect};
+use futures::StreamExt;
+use sea_orm::{DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::sea_query::extension::postgres::PgExpr;
 use uuid::Uuid;
 
-use crate::adapters::database::models::roles;
+use crate::adapters::database::models::{default_role, role_user, roles};
 use crate::application::common::role_gateway::{RoleGateway as RoleGatewayTrait, RoleReader, RoleRemover, RoleWriter};
 use crate::domain::models::permission::Permission;
 use crate::domain::models::role::{Role as RoleDomain, RoleId};
@@ -140,6 +141,13 @@ impl RoleReader for RoleGateway {
             None => None
         }
     }
+
+    async fn get_default_role(&self) -> Option<RoleDomain> {
+        default_role::Entity::find().find_also_related(roles::Entity).one(&*self.db).await.unwrap()
+            .map(
+                |(_, role)| map_role_model_to_domain(role.unwrap())
+            )
+    }
 }
 
 #[async_trait]
@@ -161,6 +169,31 @@ impl RoleWriter for RoleGateway {
                 roles::Entity::insert(role_model).exec(&*self.db).await.unwrap();
             }
         }
+    }
+
+    async fn set_default_role(&self, role_id: &RoleId) {
+        default_role::Entity::delete_many().exec(&*self.db).await.unwrap();
+        default_role::Entity::insert(default_role::ActiveModel {
+            id: Set(role_id.clone()),
+        }).exec(&*self.db).await.unwrap();
+    }
+
+    async fn link_role_to_user(&self, role_id: &RoleId, user_id: &Uuid) {
+        role_user::Entity::insert(role_user::ActiveModel {
+            role_id: Set(role_id.clone()),
+            user_id: Set(user_id.clone())
+        }).exec(&*self.db).await.unwrap();
+    }
+
+    async fn unlink_role_from_user(&self, role_id: &RoleId, user_id: &Uuid) {
+        role_user::Entity::delete_many()
+            .filter(
+                Expr::col(role_user::Column::RoleId).eq(role_id.clone())
+                    .and(Expr::col(role_user::Column::UserId).eq(user_id.clone()))
+            )
+            .exec(&*self.db)
+            .await
+            .unwrap();
     }
 }
 
