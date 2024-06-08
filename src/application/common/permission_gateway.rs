@@ -21,6 +21,11 @@ pub trait PermissionWriter {
 }
 
 #[async_trait]
+pub trait PermissionRemover {
+    async fn remove_permission(&self, permission_id: PermissionId );
+}
+
+#[async_trait]
 pub trait PermissionLinker {
     async fn link_permission_to_role(&self, role_id: &RoleId, permission_id: &PermissionId);
     async fn link_permissions_to_role(&self, role_id: &RoleId, permission_ids: &Vec<PermissionId>);
