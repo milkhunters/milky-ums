@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 #[sea_orm(table_name = "init_state")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub start_time: DateTime<Utc>,
+    pub start_date: DateTime<Utc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
