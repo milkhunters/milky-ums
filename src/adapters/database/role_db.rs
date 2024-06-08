@@ -11,7 +11,7 @@ use sea_orm::sea_query::extension::postgres::PgExpr;
 use uuid::Uuid;
 
 use crate::adapters::database::models::{default_role, role_user, roles};
-use crate::application::common::role_gateway::{RoleGateway as RoleGatewayTrait, RoleReader, RoleRemover, RoleWriter};
+use crate::application::common::role_gateway::{RoleGateway as RoleGatewayTrait, RoleLinker, RoleReader, RoleRemover, RoleWriter};
 use crate::domain::models::permission::Permission;
 use crate::domain::models::role::{Role as RoleDomain, RoleId};
 
@@ -177,7 +177,10 @@ impl RoleWriter for RoleGateway {
             id: Set(role_id.clone()),
         }).exec(&*self.db).await.unwrap();
     }
+}
 
+#[async_trait]
+impl RoleLinker for RoleGateway {
     async fn link_role_to_user(&self, role_id: &RoleId, user_id: &Uuid) {
         role_user::Entity::insert(role_user::ActiveModel {
             role_id: Set(role_id.clone()),

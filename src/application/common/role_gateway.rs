@@ -21,6 +21,10 @@ pub trait RoleReader {
 pub trait RoleWriter {
     async fn save_role(&self, data: &RoleDomain);
     async fn set_default_role(&self, role_id: &RoleId);
+}
+
+#[async_trait]
+pub trait RoleLinker {
     async fn link_role_to_user(&self, role_id: &RoleId, user_id: &Uuid);
     async fn unlink_role_from_user(&self, role_id: &RoleId, user_id: &Uuid);
 }
@@ -30,4 +34,4 @@ pub trait RoleRemover {
     async fn remove_role(&self, role_id: &RoleId);
 }
 
-pub trait RoleGateway: RoleReader + RoleWriter + RoleRemover {}
+pub trait RoleGateway: RoleReader + RoleWriter + RoleRemover + RoleLinker {}
