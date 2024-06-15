@@ -42,7 +42,7 @@ pub async fn service_permissions(
     
     let permissions_from_repo = permission_gateway.get_permissions_by_service_id(
         &service.id
-    ).await.unwrap_or_default().iter().map(|permission| {
+    ).await.iter().map(|permission| {
         permission.text_id.clone()
     }).collect::<Vec<PermissionTextId>>();
     
@@ -66,19 +66,10 @@ pub async fn control_account(
     role_service: &RoleService,
     permission_gateway: &dyn PermissionGateway,
     user_gateway: &dyn UserGateway,
-    service_gateway: &dyn ServiceGateway,
     user_service: &UserService,
     password_hasher: &dyn Hasher,
     init_state_gateway: &dyn InitStateGateway,
-    service_name: &ServiceTextId,
 ) {
-    let service_id = match service_gateway.get_services_by_text_id(
-        &service_name
-    ).await {
-        Some(service) => service.id,
-        None => panic!("Service not found in control_account init"),
-    };
-    
     match init_state_gateway.get_state().await {
         Some(_) => return,
         None => {
@@ -87,7 +78,7 @@ pub async fn control_account(
                 Some("Временная роль для инициализации системы".to_string()),
             );
             
-            let permissions = vec![
+            let permission_text_ids = vec![
                 UMSPermission::GetUserSelf,
                 
                 UMSPermission::GetUser,
@@ -95,7 +86,6 @@ pub async fn control_account(
                 UMSPermission::UpdateUser,
                 UMSPermission::DeleteUser,
                 
-                UMSPermission::DeleteUser,
                 UMSPermission::CreateRole,
                 UMSPermission::GetRole,
                 UMSPermission::UpdateRole,
@@ -116,15 +106,15 @@ pub async fn control_account(
                 
                 UMSPermission::DeleteSessionSelf,
             ].iter().map(|permission| {
-                Permission::new(
-                    permission.to_string(),
-                    service_id,
-                    permission.to_string(),
-                    None,
-                )
-            }).collect::<Vec<Permission>>();
+                permission.to_string()
+            }).collect::<Vec<PermissionTextId>>();
             
-            permission_gateway.save_permissions(&permissions).await;
+            let permissions = match permission_gateway.get_permissions_by_text_ids(
+                &permission_text_ids
+            ).await {
+                Some(permissions) => permissions,
+                None => panic!("Permissions not found in control_account init")
+            };
             role_gateway.save_role(&role).await;
             
             permission_gateway.link_permissions_to_role(
@@ -181,7 +171,7 @@ pub async fn control_account(
             
             init_state_gateway.set_state(&Utc::now()).await;
             
-            log::info!("Control account created");
+            log::info!("Control account created!");
             log::info!("Login: control");
             log::info!("Password: {}", password);
         }
