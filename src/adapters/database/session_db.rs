@@ -1,24 +1,17 @@
-use std::str::FromStr;
-
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use deadpool_redis::Pool;
-use futures::future::select;
 use redis::cmd;
-use sea_orm::{ActiveEnum, DbBackend, DbConn, EntityOrSelect, EntityTrait, FromQueryResult, JoinType, JsonValue, ModelTrait, QueryFilter, QuerySelect, QueryTrait, Related, RelationTrait, SelectColumns, Statement};
+use sea_orm::{DbConn, EntityTrait, QueryFilter};
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::Expr;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::adapters::database::models::{permissions, role_permissions, role_user, roles, sessions, users};
-use crate::adapters::database::models::prelude::Users;
-use crate::adapters::database::models::services::Relation::Permissions;
+use crate::adapters::database::models::sessions;
 use crate::application::common::session_gateway::{SessionGateway as SessionGatewayTrait, SessionReader, SessionRemover, SessionWriter};
 use crate::domain::models::permission::PermissionTextId;
 use crate::domain::models::role::RoleId;
 use crate::domain::models::session::{
-    Session, 
+    Session,
     SessionId,
     SessionTokenHash
 };
@@ -82,45 +75,6 @@ impl SessionReader for SessionGateway {
         //     )
         //     .all(&*self.db)
         //     .await.unwrap();
-        let session_vec= sessions::Entity::find()
-            .filter(Expr::col(sessions::Column::TokenHash).eq(token_hash.as_str()))
-            .all(&*self.db)
-            .await.unwrap();
-        
-        if session_vec.is_empty() {
-            return None;
-        }
-        
-        if session_vec.len() > 1 {
-            panic!("Multiple sessions with the same token hash");
-        }
-        
-        let session = session_vec.first().unwrap();
-        
-        let user = session.find_related(Users).one(&*self.db).await.unwrap().unwrap();
-        let user_state = UserState::from_str(user.state.to_value().as_str()).unwrap();
-        
-        let roles = user.find_related(roles::Entity).all(&*self.db).await.unwrap();
-        
-        let subquery = user.find_related(role_user::Entity).select_column(role_user::Column::RoleId).as_query();
-        let permissions = role_permissions::Entity::find()
-            .filter(Expr::col(role_permissions::Column::RoleId).in_subquery(
-                user.find_related(role_user::Entity)
-                    .select_column(role_user::Column::RoleId)
-                    .as_query().to_owned()
-            ))
-            .join(
-                JoinType::LeftJoin,
-                role_permissions::Relation::Permissions.def()
-            )
-            .join(
-                JoinType::LeftJoin,
-                role_permissions::Relation::Roles.def()
-            )
-            .all(&*self.db)
-            .await.unwrap();
-
-        let mut roles_permissions: Vec<(RoleId, Vec<PermissionTextId>)> = Vec::new();
         None
         
 
