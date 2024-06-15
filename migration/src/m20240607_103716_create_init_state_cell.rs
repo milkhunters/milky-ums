@@ -13,7 +13,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(
                         ColumnDef::new(InitState::StartDate)
-                            .date_time()
+                            .timestamp_with_time_zone()
                             .not_null()
                             .primary_key(),
                     )
