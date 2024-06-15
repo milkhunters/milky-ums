@@ -28,8 +28,17 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     // env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-    std::env::set_var("RUST_LOG", "debug");
-    env_logger::init();
+    match std::env::var("RUST_LOG") {
+        Ok(_) => {},
+        Err(_) => {
+            std::env::set_var("RUST_LOG", "info");
+        },
+    }
+    env_logger::builder()
+        .filter_module("consulrs", log::LevelFilter::Error)
+        .filter_module("tracing", log::LevelFilter::Error)
+        .filter_module("rustify", log::LevelFilter::Error)
+        .init();
 
 
     let workers = match std::env::var("WORKERS") {
@@ -50,7 +59,7 @@ async fn main() -> std::io::Result<()> {
         Ok(config) => config,
         Err(error) => {
             log::error!("Failed to load config: {}", error);
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, error));
+            std::process::exit(1);
         },
     };
 
@@ -73,13 +82,14 @@ async fn main() -> std::io::Result<()> {
         Ok(db) => Box::new(db),
         Err(e) => {
             log::error!("Failed to connect to database: {}", e);
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+            std::process::exit(1);
         },
     };
 
     let redis_factory = move |db| {
         if !(0 <= db && db <= 15) {
-            panic!("Invalid Redis database number: {}", db);
+            log::error!("Invalid Redis database number: {}", db);
+            std::process::exit(1);
         }
         let cfg = config.database.redis.clone();
         Config::from_url(format!(
@@ -106,11 +116,9 @@ async fn main() -> std::io::Result<()> {
         &domain::services::role::RoleService{},
         &adapters::database::permission_db::PermissionGateway::new(db.clone()),
         &adapters::database::user_db::UserGateway::new(db.clone()),
-        &adapters::database::service_db::ServiceGateway::new(db.clone()),
         &domain::services::user::UserService{},
         &adapters::argon2_password_hasher::Argon2PasswordHasher::new(),
         &adapters::database::init_state_db::InitStateGateway::new(db.clone()),
-        &service_name,
     ).await;
     
     let app_builder = move || {
@@ -148,17 +156,23 @@ async fn main() -> std::io::Result<()> {
     
     let listener = match TcpListener::bind(format!("{}:{}", host, port)) {
         Ok(listener) => {
-            log::info!("🚀 Server started at http://{}", listener.local_addr().unwrap());
             listener
         },
         Err(e) => {
             log::error!("Failed to bind to port {} in host {}: {}", port, host, e);
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+            std::process::exit(1);
         },
     };
 
-    HttpServer::new(app_builder)
-        .listen(listener)?
-        .workers(available_workers)
-        .run().await
+    let server = HttpServer::new(app_builder).listen(listener)?.workers(available_workers);
+
+    server.addrs_with_scheme().iter().for_each(|addr| {
+        let (socket_addr, str_ref) = addr;
+        log::info!("🚀 Server started at {}://{:?}", str_ref, socket_addr);
+    });
+    
+    server.run().await.and_then(|_| {
+        log::info!("Server stopped!");
+        Ok(())
+    })
 }
