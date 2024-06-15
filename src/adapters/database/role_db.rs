@@ -3,17 +3,16 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use cached::{Cached, TimedCache};
-use futures::StreamExt;
-use sea_orm::{DbConn, EntityTrait, QueryFilter, QuerySelect};
+use sea_orm::{DbConn, EntityTrait, QueryFilter};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::sea_query::extension::postgres::PgExpr;
-use uuid::Uuid;
 
 use crate::adapters::database::models::{default_role, role_user, roles};
 use crate::application::common::role_gateway::{RoleGateway as RoleGatewayTrait, RoleLinker, RoleReader, RoleRemover, RoleWriter};
 use crate::domain::models::permission::Permission;
 use crate::domain::models::role::{Role as RoleDomain, RoleId};
+use crate::domain::models::user::UserId;
 
 pub struct RoleGateway{
     pub db: Box<DbConn>,
@@ -32,7 +31,7 @@ impl RoleGateway {
 
 #[async_trait]
 impl RoleReader for RoleGateway {
-    async fn get_role(&self, role_id: &Uuid) -> Option<RoleDomain> {
+    async fn get_role(&self, role_id: &RoleId) -> Option<RoleDomain> {
 
         let cached_value = self.cache_role_by_id.lock().unwrap().cache_get(role_id).cloned();
         if cached_value.is_some() {
@@ -51,7 +50,7 @@ impl RoleReader for RoleGateway {
         }
     }
 
-    async fn get_roles_by_ids(&self, role_ids: &Vec<Uuid>) -> Option<Vec<RoleDomain>> {
+    async fn get_roles_by_ids(&self, role_ids: &Vec<RoleId>) -> Option<Vec<RoleDomain>> {
         let roles: Vec<roles::Model> = roles::Entity::find().filter(
             {
                 let mut condition = Condition::any();
@@ -84,7 +83,7 @@ impl RoleReader for RoleGateway {
         roles.iter().map(|role| map_role_model_to_domain(role.clone())).collect()
     }
 
-    async fn get_roles_by_user_with_perms(&self, user_id: &Uuid) -> Vec<(RoleDomain, Vec<Permission>)> {
+    async fn get_roles_by_user_with_perms(&self, user_id: &UserId) -> Vec<(RoleDomain, Vec<Permission>)> {
         // let roles_with_permissions = roles::Entity::find()
         //     .join(
         //         role_user::Entity::find()
@@ -181,14 +180,14 @@ impl RoleWriter for RoleGateway {
 
 #[async_trait]
 impl RoleLinker for RoleGateway {
-    async fn link_role_to_user(&self, role_id: &RoleId, user_id: &Uuid) {
+    async fn link_role_to_user(&self, role_id: &RoleId, user_id: &UserId) {
         role_user::Entity::insert(role_user::ActiveModel {
             role_id: Set(role_id.clone()),
             user_id: Set(user_id.clone())
         }).exec(&*self.db).await.unwrap();
     }
 
-    async fn unlink_role_from_user(&self, role_id: &RoleId, user_id: &Uuid) {
+    async fn unlink_role_from_user(&self, role_id: &RoleId, user_id: &UserId) {
         role_user::Entity::delete_many()
             .filter(
                 Expr::col(role_user::Column::RoleId).eq(role_id.clone())

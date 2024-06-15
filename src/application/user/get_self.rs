@@ -1,16 +1,15 @@
 use serde::Serialize;
-use uuid::Uuid;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
-use crate::domain::models::user::UserState;
+use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Serialize)]
 pub struct UserSelfResultDTO{
-    id: Uuid,
+    id: UserId,
     username: String,
     email: String,
     state: UserState,

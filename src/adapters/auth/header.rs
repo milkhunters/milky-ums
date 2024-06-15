@@ -1,19 +1,18 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::application::common::id_provider::IdProvider;
 use crate::domain::models::session::SessionId;
-use crate::domain::models::user::UserState;
+use crate::domain::models::user::{UserId, UserState};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct HeaderPayload {
-    pub user_id: Uuid,
+    pub user_id: UserId,
     pub user_state: UserState,  
     pub permissions: Vec<String>,
 }
 
 pub struct IdHeaderProvider {
-    user_id: Option<Uuid>,
+    user_id: Option<UserId>,
     session_id: Option<SessionId>,
     user_state: Option<UserState>,
     permissions: Vec<String>,
@@ -69,7 +68,7 @@ impl IdProvider for IdHeaderProvider {
         }
     }
 
-    fn user_id(&self) -> Option<&Uuid> {
+    fn user_id(&self) -> Option<&UserId> {
         match &self.user_id {
             Some(user_id) => Some(user_id),
             None => None

@@ -4,7 +4,6 @@ use redis::cmd;
 use sea_orm::{DbConn, EntityTrait, QueryFilter};
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::Expr;
-use uuid::Uuid;
 
 use crate::adapters::database::models::sessions;
 use crate::application::common::session_gateway::{SessionGateway as SessionGatewayTrait, SessionReader, SessionRemover, SessionWriter};
@@ -15,7 +14,7 @@ use crate::domain::models::session::{
     SessionId,
     SessionTokenHash
 };
-use crate::domain::models::user::UserState;
+use crate::domain::models::user::{UserId, UserState};
 
 pub struct SessionGateway {
     cache_redis_pool: Box<Pool>,
@@ -104,7 +103,7 @@ impl SessionReader for SessionGateway {
         }
     }
 
-    async fn get_user_sessions(&self, user_id: &Uuid) -> Vec<Session> {
+    async fn get_user_sessions(&self, user_id: &UserId) -> Vec<Session> {
         let sessions: Vec<sessions::Model> = sessions::Entity::find().filter(
             Expr::col(sessions::Column::UserId).eq(user_id.to_string())
         )

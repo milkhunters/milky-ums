@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::exceptions::DomainError;
+use crate::domain::models::user::UserId;
 use crate::domain::services::access::AccessService;
 
 #[derive(Debug, Deserialize)]
@@ -17,7 +17,7 @@ pub struct GetUserRangeDTO {
 
 #[derive(Debug, Serialize)]
 pub struct UserItemResult{
-    id: Uuid,
+    id: UserId,
     username: String,
     first_name: Option<String>,
     last_name: Option<String>,

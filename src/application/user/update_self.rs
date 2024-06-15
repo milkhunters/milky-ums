@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserGateway;
 use crate::domain::exceptions::DomainError;
-use crate::domain::models::user::UserState;
+use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -22,7 +22,7 @@ pub struct UpdateSelfDTO {
 
 #[derive(Debug, Serialize)]
 pub struct UpdateSelfResultDTO{
-    id: Uuid,
+    id: UserId,
     email: String,
     username: String,
     state: UserState,

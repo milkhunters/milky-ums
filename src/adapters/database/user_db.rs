@@ -7,7 +7,7 @@ use sea_orm::{DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::sea_query::extension::postgres::PgExpr;
-use uuid::Uuid;
+
 use crate::adapters::database::models::sea_orm_active_enums::UserState;
 
 use crate::adapters::database::models::users;
@@ -16,12 +16,12 @@ use crate::application::common::user_gateway::{
     UserWriter, 
     UserGateway as UserGatewayTrait
 };
-use crate::domain::models::user::User as UserDomain;
+use crate::domain::models::user::{User as UserDomain, UserId};
 use crate::domain::models::user::UserState as UserStateDomain;
 
 pub struct UserGateway{
     pub db: Box<DbConn>,
-    cache_user_by_id: Arc<Mutex<TimedCache<Uuid, users::Model>>>,
+    cache_user_by_id: Arc<Mutex<TimedCache<UserId, users::Model>>>,
 }
 
 impl UserGateway {
@@ -36,7 +36,7 @@ impl UserGateway {
 
 #[async_trait]
 impl UserReader for UserGateway {
-    async fn get_user_by_id(&self, user_id: &Uuid) -> Option<UserDomain> {
+    async fn get_user_by_id(&self, user_id: &UserId) -> Option<UserDomain> {
 
         let cached_value = self.cache_user_by_id.lock().unwrap().cache_get(user_id).cloned();
         if cached_value.is_some() {
@@ -55,7 +55,7 @@ impl UserReader for UserGateway {
         }
     }
 
-    async fn get_users_by_ids(&self, user_ids: &Vec<Uuid>) -> Option<Vec<UserDomain>> {
+    async fn get_users_by_ids(&self, user_ids: &Vec<UserId>) -> Option<Vec<UserDomain>> {
         let users: Vec<users::Model> = users::Entity::find().filter(
             {
                 let mut condition = Condition::any();

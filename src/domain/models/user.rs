@@ -1,9 +1,7 @@
-use sea_orm::strum;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use strum_macros::EnumString;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumString)]
 pub enum UserState {
@@ -13,9 +11,11 @@ pub enum UserState {
     Deleted,
 }
 
+pub type UserId = Uuid;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct User {
-    pub id: Uuid,
+    pub id: UserId,
     pub username: String,
     pub email: String,
     pub first_name: Option<String>,

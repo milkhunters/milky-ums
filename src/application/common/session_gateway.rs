@@ -1,10 +1,9 @@
 use async_trait::async_trait;
-use uuid::Uuid;
 use crate::domain::models::permission::PermissionTextId;
 use crate::domain::models::role::RoleId;
 
 use crate::domain::models::session::{Session, SessionId, SessionTokenHash};
-use crate::domain::models::user::UserState;
+use crate::domain::models::user::{UserId, UserState};
 
 #[async_trait]
 pub trait SessionReader {
@@ -17,7 +16,7 @@ pub trait SessionReader {
         &self, 
         token_hash: &SessionTokenHash
     ) -> Option<(Session, UserState, Vec<(RoleId, Vec<PermissionTextId>)>)>;
-    async fn get_user_sessions(&self, user_id: &Uuid) -> Vec<Session>;
+    async fn get_user_sessions(&self, user_id: &UserId) -> Vec<Session>;
 }
 
 #[async_trait]
