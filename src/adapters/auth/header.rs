@@ -49,7 +49,10 @@ impl IdHeaderProvider {
                 user_id: None,
                 session_id: None,
                 user_state: None,
-                permissions: vec!["CreateUser".parse().unwrap()],
+                permissions: vec![
+                    "CreateUser".parse().unwrap(), 
+                    "CreateSession".parse().unwrap()
+                ],
                 user_agent,
                 ip,
                 is_auth: false
