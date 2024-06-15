@@ -128,7 +128,7 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
             hashed_password,
             data.first_name,
             data.last_name,
-        )?;
+        );
 
         self.user_gateway.save_user(&user).await;
 

@@ -122,19 +122,10 @@ impl Interactor<CreateRoleDTO, CreateRoleResultDTO> for CreateRole<'_> {
             }
         };
         
-        let role = match self.role_service.create_role(
+        let role = self.role_service.create_role(
             data.title,
             data.description,
-        ) {
-            Ok(role) => role,
-            Err(_) => {
-                return Err(
-                    ApplicationError::InvalidData(
-                        ErrorContent::Message("Не удалось создать роль".to_string())
-                    )
-                )
-            }
-        };
+        );
         
         self.role_gateway.save_role(&role).await;
         
