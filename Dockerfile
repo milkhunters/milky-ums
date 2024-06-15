@@ -1,12 +1,20 @@
-FROM rust:1.43.1 as build
+# Build image
+FROM rust:1.79.0-alpine3.20 as build
 
-WORKDIR /usr/src/api-service
+WORKDIR /usr/service
+
+RUN apk add --no-cache musl-dev
+
 COPY . .
+
 
 RUN cargo install --path .
 
-FROM gcr.io/distroless/cc-debian10
+# Runtime image
+FROM alpine:3.20.0
 
-COPY —from=cargo-build /usr/local/cargo/bin/api-service /usr/local/bin/api-service
+WORKDIR /usr/local/bin
 
-CMD [“api-service”]
+COPY --from=build /usr/local/cargo/bin/service .
+
+CMD ["service"]
