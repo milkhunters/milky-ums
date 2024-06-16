@@ -1,11 +1,13 @@
+use std::str::FromStr;
 use async_trait::async_trait;
 use deadpool_redis::Pool;
 use redis::cmd;
-use sea_orm::{DbConn, EntityTrait, QueryFilter};
+use sea_orm::{DbBackend, DbConn, EntityTrait, FromQueryResult, JoinType, JsonValue, QueryFilter, QuerySelect, RelationTrait, SelectColumns, Statement};
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::Expr;
+use serde::Deserialize;
 
-use crate::adapters::database::models::sessions;
+use crate::adapters::database::models::{permissions, role_permissions, role_user, roles, sessions, users};
 use crate::application::common::session_gateway::{SessionGateway as SessionGatewayTrait, SessionReader, SessionRemover, SessionWriter};
 use crate::domain::models::permission::PermissionTextId;
 use crate::domain::models::role::RoleId;
@@ -33,6 +35,14 @@ impl SessionGateway {
     }
 }
 
+
+#[derive(Deserialize)]
+struct SessionRoleQueryModel {
+    role_id: RoleId,
+    permission_text_id: PermissionTextId
+}
+
+
 #[async_trait]
 impl SessionReader for SessionGateway {
     async fn get_session(&self, session_id: &SessionId) -> Option<Session> {
@@ -51,7 +61,7 @@ impl SessionReader for SessionGateway {
         // let session_vec= sessions::Entity::find()
         //     .select_with(permissions::Entity)
         //     .select_column(roles::Column::Id)
-        //     .filter(Expr::col(sessions::Column::TokenHash).eq(token_hash.as_str()))
+        //     .filter(Expr::col(sessions::Column::TokenHash).eq(token_hash))
         //     .join(
         //         JoinType::LeftJoin,
         //         sessions::Relation::Users.def()
@@ -74,9 +84,56 @@ impl SessionReader for SessionGateway {
         //     )
         //     .all(&*self.db)
         //     .await.unwrap();
-        None
-        
 
+        let raw_sql = r#"
+            SELECT
+                sessions.*,
+                users.state::text AS user_state,
+                role_user.role_id,
+                permissions.text_id AS permission_text_id
+            FROM
+                sessions
+            JOIN
+                users ON sessions.user_id = users.id
+            JOIN
+                role_user ON users.id = role_user.user_id
+            JOIN
+                role_permissions ON role_user.role_id = role_permissions.role_id
+            JOIN
+                permissions ON role_permissions.permission_id = permissions.id
+            WHERE
+                sessions.token_hash = $1;
+        "#;
+        
+        let raw_values: Vec<JsonValue> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            raw_sql,
+            vec![token_hash.as_str().into()],
+        ))
+            .all(&*self.db)
+            .await.unwrap();
+
+        if raw_values.is_empty() {
+            return None;
+        }
+
+        let session = serde_json::from_value::<Session>(raw_values[0].clone()).unwrap();
+        let user_state: UserState = UserState::from_str(
+            raw_values[0].get("user_state").unwrap().as_str().unwrap()
+        ).unwrap();
+        let roles: Vec<(RoleId, Vec<PermissionTextId>)> = raw_values.iter().map(
+            |value| {
+                let role_id: RoleId = RoleId::from_str(
+                    value.get("role_id").unwrap().as_str().unwrap()
+                ).unwrap();
+                let permission_text_id: PermissionTextId = PermissionTextId::from_str(
+                    value.get("permission_text_id").unwrap().as_str().unwrap()
+                ).unwrap();
+                (role_id, vec![permission_text_id])
+            }
+        ).collect();
+        
+        Some((session, user_state, roles))
     }
 
     async fn get_session_by_token_hash_from_cache(
@@ -129,14 +186,6 @@ impl SessionWriter for SessionGateway {
             created_at: Set(data.created_at),
             updated_at: Set(data.updated_at.clone())
         };
-
-        let mut conn = self.cache_redis_pool.get().await.unwrap();
-
-        cmd("SET")
-            .arg(data.token_hash.as_str())
-            .arg(serde_json::to_string(&data).unwrap().as_str())
-            .query_async::<_, ()>(&mut conn)
-            .await.unwrap();
         
         match sessions::Entity::find_by_id(data.id).one(&*self.db).await.unwrap() {
             Some(_) => {
