@@ -37,8 +37,7 @@ pub struct EPSession<'a> {
 
 impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
     async fn execute(&self, data: EPSessionDTO) -> Result<Option<EPSessionResultDTO>, ApplicationError> {
-        
-        let session_token_hash = match data.session_token {
+        let session_token_hash = match data.session_token.clone() {
             Some(session_token) => {
                 match self.validator_service.validate_session_token(&session_token) {
                     Ok(_) => self.session_hasher.hash(session_token.as_str()).await,
@@ -49,7 +48,9 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
                     )
                 }
             },
-            None => return Ok(None)
+            None => return Err(ApplicationError::Unauthorized(
+                ErrorContent::Message("Токен не установлен".to_string())
+            ))
         };
         
         let mut need_update = false;
@@ -67,7 +68,9 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
                     need_update = true;
                     data
                 },
-                None => return Ok(None) // No session found todo: error as incorrect session?
+                None => return Err(ApplicationError::Unauthorized(
+                    ErrorContent::Message("Токен не найден".to_string())
+                ))
             }
         };
         
@@ -79,8 +82,10 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
             &session,
             self.id_provider.user_agent().to_string()
         ) {
-            log::warn!("Сессия не прошла проверку по отпечатку");
-            return Ok(None) // todo спросить что делать 
+            log::warn!("Сессия {} не прошла проверку по отпечатку", session.id);
+            return Err(ApplicationError::Unauthorized(
+                ErrorContent::Message("Отпечаток сессии не совпадает с клиентским".to_string())
+            ))
         }
         
         if need_update {
