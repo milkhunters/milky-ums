@@ -4,6 +4,8 @@ use strum_macros::EnumString;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, EnumString)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
 pub enum UserState {
     Active,
     Inactive,
