@@ -60,7 +60,6 @@ impl ValidatorService {
         
         // Session 
         
-        // let session_token_length = 64;
         let session_token_length = 128;
         
         ValidatorService {
