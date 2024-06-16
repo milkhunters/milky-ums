@@ -1,7 +1,7 @@
 use deadpool_redis::Pool;
 use sea_orm::DbConn;
 use crate::adapters::argon2_password_hasher::Argon2PasswordHasher;
-use crate::adapters::argon2_session_hasher::Argon2SessionHasher;
+use crate::adapters::sha256_session_hasher::Sha256SessionHasher;
 
 use crate::adapters::database::session_db::SessionGateway;
 use crate::adapters::database::user_db::UserGateway;
@@ -34,7 +34,7 @@ pub struct IoC {
     user_service: UserService,
     session_service: SessionService,
     password_hasher: Argon2PasswordHasher,
-    session_hasher: Argon2SessionHasher,
+    session_hasher: Sha256SessionHasher,
     validator: ValidatorService,
     access_service: AccessService,
 }
@@ -45,9 +45,6 @@ impl IoC {
         session_redis_pool: Pool,
         confirm_manager_redis_pool: Pool,
     ) -> IoC {
-
-        // let db_pool = Box::new(db);
-
         IoC {
             user_gateway: UserGateway::new(db_pool.clone()),
             session_gateway: SessionGateway::new(
@@ -58,7 +55,7 @@ impl IoC {
             user_service: UserService{},
             session_service: SessionService{},
             password_hasher: Argon2PasswordHasher::new(),
-            session_hasher: Argon2SessionHasher::new(),
+            session_hasher: Sha256SessionHasher {},
             validator: ValidatorService::new(),
             access_service: AccessService{},
         }
