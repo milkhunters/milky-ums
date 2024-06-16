@@ -11,7 +11,7 @@ pub fn get_id_provider(
     let headers = req.headers();
     
     Box::new(IdHeaderProvider::new(
-        match headers.get("session_id") {
+        match headers.get("session_token") {
             Some(value) => Some(
                 SessionId::from_str(value.to_str().unwrap()).unwrap()
             ),
