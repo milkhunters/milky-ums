@@ -23,6 +23,7 @@ struct AppConfigProvider {
     branch: String,
     build: String,
     service_name: ServiceTextId,
+    version: &'static str,
 }
 
 #[actix_web::main]
@@ -48,7 +49,7 @@ async fn main() -> std::io::Result<()> {
     let consul_root = std::env::var("CONSUL_ROOT").unwrap();
     let build = std::env::var("BUILD").unwrap_or("local".to_string());
     let branch = std::env::var("BRANCH").unwrap_or("unknown".to_string());
-
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
 
     let config = match config::Config::from_consul(&consul_addr, &consul_root).await {
         Ok(config) => config,
@@ -136,6 +137,7 @@ async fn main() -> std::io::Result<()> {
                 branch,
                 build,
                 service_name: service_name.clone(),
+                version: VERSION,
             }))
             .app_data(ioc_data)
             .default_service(web::route().to(presentation::web::exception::not_found))
