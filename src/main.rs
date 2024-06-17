@@ -6,6 +6,7 @@ use dotenv::dotenv;
 use actix_web::{App, HttpServer, web};
 use sea_orm::{ConnectOptions, Database, DbConn};
 use deadpool_redis::{Config, Runtime};
+use crate::domain::models::service::ServiceTextId;
 
 use crate::ioc::IoC;
 use crate::presentation::interactor_factory::InteractorFactory;
@@ -21,19 +22,13 @@ mod ioc;
 struct AppConfigProvider {
     branch: String,
     build: String,
+    service_name: ServiceTextId,
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-
-    // env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-    match std::env::var("RUST_LOG") {
-        Ok(_) => {},
-        Err(_) => {
-            std::env::set_var("RUST_LOG", "info");
-        },
-    }
+    
     env_logger::builder()
         .filter_module("consulrs", log::LevelFilter::Error)
         .filter_module("tracing", log::LevelFilter::Error)
@@ -48,7 +43,7 @@ async fn main() -> std::io::Result<()> {
     
     let host = std::env::var("HOST").unwrap_or("127.0.0.1".to_string());
     let port = std::env::var("PORT").unwrap_or("8080".to_string());
-    let service_name = std::env::var("SERVICE_NAME").unwrap();
+    let service_name: ServiceTextId = std::env::var("SERVICE_NAME").unwrap();
     let consul_addr = std::env::var("CONSUL_ADDR").unwrap();
     let consul_root = std::env::var("CONSUL_ROOT").unwrap();
     let build = std::env::var("BUILD").unwrap_or("local".to_string());
@@ -140,6 +135,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(AppConfigProvider {
                 branch,
                 build,
+                service_name: service_name.clone(),
             }))
             .app_data(ioc_data)
             .default_service(web::route().to(presentation::web::exception::not_found))
