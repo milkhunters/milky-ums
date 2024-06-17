@@ -57,3 +57,25 @@ impl Hasher for Argon2PasswordHasher {
         result
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_hash() {
+        let hasher = Argon2PasswordHasher::new();
+        let value = "test";
+        let hash = hasher.hash(value).await;
+        assert_ne!(hash, value);
+    }
+
+    #[tokio::test]
+    async fn test_verify() {
+        let hasher = Argon2PasswordHasher::new();
+        let value = "test";
+        let hash = hasher.hash(value).await;
+        let result = hasher.verify(value, &hash).await;
+        assert_eq!(result, true);
+    }
+}
