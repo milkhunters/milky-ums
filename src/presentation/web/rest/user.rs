@@ -2,6 +2,7 @@ use actix_web::{get, HttpRequest, HttpResponse, post, put, Responder, Result, we
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::AppConfigProvider;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
 use crate::application::user::create::CreateUserDTO;
@@ -10,8 +11,6 @@ use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
 use crate::application::user::update::UpdateUserDTO;
 use crate::application::user::update_self::UpdateSelfDTO;
-use crate::domain::models::service::ServiceTextId;
-
 use crate::presentation::id_provider::get_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
@@ -45,11 +44,11 @@ struct UsersQuery {
 async fn users_by_query(
     data: web::Query<UsersQuery>,
     ioc: web::Data<dyn InteractorFactory>,
-    service_name: web::Data<ServiceTextId>,
+    app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     
-    let id_provider = get_id_provider(&service_name, &req);
+    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
 
     if let Some(id) = &data.id {
         let data = ioc.get_user_by_id(id_provider).execute(
@@ -76,10 +75,10 @@ async fn users_by_query(
 #[get("/self")]
 async fn user_self(
     ioc: web::Data<dyn InteractorFactory>,
-    service_name: web::Data<ServiceTextId>,
+    app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&service_name, &req);
+    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
     let data = ioc.get_user_self(id_provider).execute(()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
@@ -88,10 +87,10 @@ async fn user_self(
 async fn create_user(
     data: web::Json<CreateUserDTO>,
     ioc: web::Data<dyn InteractorFactory>,
-    service_name: web::Data<ServiceTextId>,
+    app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&service_name, &req);
+    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
     let data = ioc.create_user(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
@@ -100,10 +99,10 @@ async fn create_user(
 async fn update_user(
     data: web::Json<UpdateUserDTO>,
     ioc: web::Data<dyn InteractorFactory>,
-    service_name: web::Data<ServiceTextId>,
+    app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&service_name, &req);
+    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
     let data = ioc.update_user(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
@@ -112,10 +111,10 @@ async fn update_user(
 async fn update_user_self(
     data: web::Json<UpdateSelfDTO>,
     ioc: web::Data<dyn InteractorFactory>,
-    service_name: web::Data<ServiceTextId>,
+    app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&service_name, &req);
+    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
     let data = ioc.update_user_self(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
