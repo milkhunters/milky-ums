@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
@@ -7,8 +8,8 @@ use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionGateway;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::models::permission::PermissionTextId;
-use crate::domain::models::role::RoleId;
-use crate::domain::models::session::SessionToken;
+use crate::domain::models::service::ServiceTextId;
+use crate::domain::models::session::{SessionId, SessionToken};
 use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::session::SessionService;
 use crate::domain::services::validator::ValidatorService;
@@ -20,10 +21,10 @@ pub struct EPSessionDTO {
 
 #[derive(Debug, Serialize)]
 pub struct EPSessionResultDTO{
-    session_token: SessionToken,
+    session_id: SessionId,
     user_id: UserId,
     user_state: UserState,
-    roles: Vec<(RoleId, Vec<PermissionTextId>)>
+    permissions: HashMap<ServiceTextId, Vec<PermissionTextId>>
 }
 
 pub struct EPSession<'a> {
@@ -58,7 +59,7 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
         let (
             mut session, 
             user_state, 
-            roles
+            permissions
         ) = match self.session_gateway.get_session_by_token_hash_from_cache(
             &session_token_hash
         ).await {
@@ -98,15 +99,15 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
             self.session_gateway.save_session_to_cache(
                 &session,
                 &user_state,
-                &roles
+                &permissions
             ).await;
         }
         
         Ok(Some(EPSessionResultDTO{
-            session_token: data.session_token.unwrap(),
+            session_id: session.id,
             user_id: session.user_id,
             user_state,
-            roles
+            permissions
         }))
     }
 }

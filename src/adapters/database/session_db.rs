@@ -1,16 +1,24 @@
+use std::collections::HashMap;
 use std::str::FromStr;
+
 use async_trait::async_trait;
 use deadpool_redis::Pool;
 use redis::cmd;
-use sea_orm::{DbBackend, DbConn, EntityTrait, FromQueryResult, JoinType, JsonValue, QueryFilter, QuerySelect, RelationTrait, SelectColumns, Statement};
+use sea_orm::{DbBackend, DbConn, EntityTrait, FromQueryResult, JsonValue, QueryFilter, Statement};
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::Expr;
 use serde::Deserialize;
 
-use crate::adapters::database::models::{permissions, role_permissions, role_user, roles, sessions, users};
-use crate::application::common::session_gateway::{SessionGateway as SessionGatewayTrait, SessionReader, SessionRemover, SessionWriter};
+use crate::adapters::database::models::sessions;
+use crate::application::common::session_gateway::{
+    SessionGateway as SessionGatewayTrait, 
+    SessionReader, 
+    SessionRemover, 
+    SessionWriter
+};
 use crate::domain::models::permission::PermissionTextId;
 use crate::domain::models::role::RoleId;
+use crate::domain::models::service::ServiceTextId;
 use crate::domain::models::session::{
     Session,
     SessionId,
@@ -57,39 +65,12 @@ impl SessionReader for SessionGateway {
     async fn get_session_by_token_hash(
         &self,
         token_hash: &SessionTokenHash
-    ) -> Option<(Session, UserState, Vec<(RoleId, Vec<PermissionTextId>)>)> {
-        // let session_vec= sessions::Entity::find()
-        //     .select_with(permissions::Entity)
-        //     .select_column(roles::Column::Id)
-        //     .filter(Expr::col(sessions::Column::TokenHash).eq(token_hash))
-        //     .join(
-        //         JoinType::LeftJoin,
-        //         sessions::Relation::Users.def()
-        //     )
-        //     .join(
-        //         JoinType::LeftJoin,
-        //         users::Relation::RoleUser.def()
-        //     )
-        //     .join(
-        //         JoinType::LeftJoin,
-        //         role_user::Relation::Roles.def()
-        //     )
-        //     .join(
-        //         JoinType::LeftJoin,
-        //         roles::Relation::RolePermissions.def()
-        //     )
-        //     .join(
-        //         JoinType::LeftJoin,
-        //         role_permissions::Relation::Permissions.def()
-        //     )
-        //     .all(&*self.db)
-        //     .await.unwrap();
-
+    ) -> Option<(Session, UserState, HashMap<ServiceTextId, Vec<PermissionTextId>>)> {
         let raw_sql = r#"
             SELECT
                 sessions.*,
                 users.state::text AS user_state,
-                role_user.role_id,
+                services.text_id AS service_text_id,
                 permissions.text_id AS permission_text_id
             FROM
                 sessions
@@ -101,15 +82,19 @@ impl SessionReader for SessionGateway {
                 role_permissions ON role_user.role_id = role_permissions.role_id
             JOIN
                 permissions ON role_permissions.permission_id = permissions.id
+            JOIN
+                services ON permissions.service_id = services.id
             WHERE
                 sessions.token_hash = $1;
         "#;
         
-        let raw_values: Vec<JsonValue> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            raw_sql,
-            vec![token_hash.as_str().into()],
-        ))
+        let raw_values: Vec<JsonValue> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                raw_sql,
+                vec![token_hash.as_str().into()],
+            )
+        )
             .all(&*self.db)
             .await.unwrap();
 
@@ -121,25 +106,28 @@ impl SessionReader for SessionGateway {
         let user_state: UserState = UserState::from_str(
             raw_values[0].get("user_state").unwrap().as_str().unwrap()
         ).unwrap();
-        let roles: Vec<(RoleId, Vec<PermissionTextId>)> = raw_values.iter().map(
+
+        let mut data: HashMap<ServiceTextId, Vec<PermissionTextId>> = HashMap::new();
+        raw_values.iter().for_each(
             |value| {
-                let role_id: RoleId = RoleId::from_str(
-                    value.get("role_id").unwrap().as_str().unwrap()
+                let service_text_id: ServiceTextId = ServiceTextId::from_str(
+                    value.get("service_text_id").unwrap().as_str().unwrap()
                 ).unwrap();
                 let permission_text_id: PermissionTextId = PermissionTextId::from_str(
                     value.get("permission_text_id").unwrap().as_str().unwrap()
                 ).unwrap();
-                (role_id, vec![permission_text_id])
+                
+                data.entry(service_text_id).or_insert(Vec::new()).push(permission_text_id);
             }
-        ).collect();
+        );
         
-        Some((session, user_state, roles))
+        Some((session, user_state, data))
     }
 
     async fn get_session_by_token_hash_from_cache(
         &self,
         token_hash: &SessionTokenHash
-    ) -> Option<(Session, UserState, Vec<(RoleId, Vec<PermissionTextId>)>)> {
+    ) -> Option<(Session, UserState, HashMap<ServiceTextId, Vec<PermissionTextId>>)> {
         let mut conn = self.cache_redis_pool.get().await.unwrap();
         match cmd("GET")
             .arg(token_hash.as_str())
@@ -150,7 +138,7 @@ impl SessionReader for SessionGateway {
                     serde_json::from_str::<(
                         Session,
                         UserState,
-                        Vec<(RoleId, Vec<PermissionTextId>)>
+                        HashMap<ServiceTextId, Vec<PermissionTextId>>
                     )>(value.as_str()).unwrap()
                 )
             },
@@ -201,14 +189,14 @@ impl SessionWriter for SessionGateway {
         &self,
         data: &Session,
         user_state: &UserState,
-        roles: &Vec<(RoleId, Vec<PermissionTextId>)>
+        permissions: &HashMap<ServiceTextId, Vec<PermissionTextId>>
     ) {
         let mut conn = self.cache_redis_pool.get().await.unwrap();
         
         let serde_json = serde_json::to_string(&(
             data.clone(),
             user_state.clone(),
-            roles.clone()
+            permissions.clone()
         )).unwrap();
         
         cmd("SET")
