@@ -1,21 +1,26 @@
+use std::collections::HashMap;
+use log::warn;
 use serde::{Deserialize, Serialize};
 
 use crate::application::common::id_provider::IdProvider;
+use crate::domain::models::permission::PermissionTextId;
+use crate::domain::models::service::ServiceTextId;
 use crate::domain::models::session::SessionId;
 use crate::domain::models::user::{UserId, UserState};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct HeaderPayload {
+    pub session_id: SessionId,
     pub user_id: UserId,
     pub user_state: UserState,  
-    pub permissions: Vec<String>,
+    pub permissions: HashMap<ServiceTextId, Vec<PermissionTextId>>
 }
 
 pub struct IdHeaderProvider {
     user_id: Option<UserId>,
     session_id: Option<SessionId>,
     user_state: Option<UserState>,
-    permissions: Vec<String>,
+    permissions: Vec<PermissionTextId>,
     user_agent: String,
     ip: String,
     is_auth: bool
@@ -24,24 +29,35 @@ pub struct IdHeaderProvider {
 
 impl IdHeaderProvider {
     pub fn new(
-        session_id: Option<SessionId>,
+        service_name: &str,
         payload_raw: Option<String>,
-        user_agent: String,
-        ip: String,
+        user_agent: &str,
+        ip: &str
     ) -> Self {
         let payload: Option<HeaderPayload> = match payload_raw {
-            Some(payload_raw) => serde_json::from_str(&payload_raw).unwrap_or_else(|_| None),
+            Some(payload_raw) => serde_json::from_str(&payload_raw).unwrap(),
             None => None
         };
+
         
         match payload {
             Some(payload) => Self {
                 user_id: Some(payload.user_id),
-                session_id,
+                session_id: Some(payload.session_id),
                 user_state: Some(payload.user_state),
-                permissions: payload.permissions,
-                user_agent,
-                ip,
+                permissions: match payload.permissions.get(service_name) {
+                    Some(permissions) => permissions.to_owned(),
+                    None => {
+                        warn!(
+                            "Permissions not found for service: {}, user_id: {}",
+                            payload.user_id,
+                            service_name
+                        );
+                        vec![]
+                    }
+                },
+                user_agent: user_agent.to_string(),
+                ip: ip.to_string(),
                 is_auth: true
             },
             None => Self {
@@ -52,8 +68,8 @@ impl IdHeaderProvider {
                     "CreateUser".parse().unwrap(), 
                     "CreateSession".parse().unwrap()
                 ],
-                user_agent,
-                ip,
+                user_agent: user_agent.to_string(),
+                ip: ip.to_string(),
                 is_auth: false
             }
         }
