@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
@@ -10,18 +9,19 @@ use crate::application::common::user_gateway::UserReader;
 use crate::domain::models::permission::PermissionTextId;
 use crate::domain::models::role::RoleId;
 use crate::domain::models::session::SessionToken;
-use crate::domain::models::user::UserState;
+use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::session::SessionService;
 use crate::domain::services::validator::ValidatorService;
 
 #[derive(Debug, Deserialize)]
 pub struct EPSessionDTO {
-    pub(crate) session_token: Option<SessionToken>,
+    pub session_token: Option<SessionToken>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct EPSessionResultDTO{
-    user_id: Uuid,
+    session_token: SessionToken,
+    user_id: UserId,
     user_state: UserState,
     roles: Vec<(RoleId, Vec<PermissionTextId>)>
 }
@@ -103,6 +103,7 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
         }
         
         Ok(Some(EPSessionResultDTO{
+            session_token: data.session_token.unwrap(),
             user_id: session.user_id,
             user_state,
             roles
