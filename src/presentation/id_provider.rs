@@ -21,6 +21,6 @@ pub fn get_id_provider(
             Some(value) => value.to_str().unwrap_or(""),
             None => ""
         },
-        req.connection_info().host() // todo: check if this is correct
+        req.connection_info().realip_remote_addr().unwrap()
     ))
 }
