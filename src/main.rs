@@ -1,14 +1,22 @@
 use std::net::TcpListener;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 
 use dotenv::dotenv;
 use actix_web::{App, HttpServer, web};
+use actix_web::http::KeepAlive;
+use actix_web::middleware::Logger;
 use sea_orm::{ConnectOptions, Database, DbConn};
 use deadpool_redis::{Config, Runtime};
+
 use crate::domain::models::service::ServiceTextId;
 
+use tonic::transport::Server as GrpcServer;
+
 use crate::ioc::IoC;
+use crate::presentation::grpc::greeter::proto::ums_control_server::UmsControlServer;
+use crate::presentation::grpc::greeter::UMSGreeter;
 use crate::presentation::interactor_factory::InteractorFactory;
 
 
@@ -29,21 +37,22 @@ struct AppConfigProvider {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    
+
     env_logger::builder()
         .filter_module("consulrs", log::LevelFilter::Error)
         .filter_module("tracing", log::LevelFilter::Error)
         .filter_module("rustify", log::LevelFilter::Error)
         .init();
 
-
     let workers = match std::env::var("WORKERS") {
         Ok(workers) => workers.parse::<usize>().ok(),
         Err(_) => None,
     };
     
-    let host = std::env::var("HOST").unwrap_or("127.0.0.1".to_string());
-    let port = std::env::var("PORT").unwrap_or("8080".to_string());
+    let http_host = std::env::var("HTTP_HOST").unwrap_or("127.0.0.1".to_string());
+    let http_port = std::env::var("HTTP_PORT").unwrap_or("8080".to_string());
+    let grpc_host = std::env::var("GRPC_HOST").unwrap_or("127.0.0.1".to_string());
+    let grpc_port = std::env::var("GRPC_PORT").unwrap_or("50051".to_string());
     let service_name: ServiceTextId = std::env::var("SERVICE_NAME").unwrap();
     let consul_addr = std::env::var("CONSUL_ADDR").unwrap();
     let consul_root = std::env::var("CONSUL_ROOT").unwrap();
@@ -116,18 +125,18 @@ async fn main() -> std::io::Result<()> {
         &adapters::argon2_password_hasher::Argon2PasswordHasher::new(),
         &adapters::database::init_state_db::InitStateGateway::new(db.clone()),
     ).await;
-    
+
     let app_builder = move || {
         let branch = branch.clone();
         let build = build.clone();
-        
+
         let ioc_arc: Arc<dyn InteractorFactory> = Arc::new(IoC::new(
             db.clone(),
             session_redis_pool.clone(),
             confirm_manager_redis_pool.clone(),
         ));
         let ioc_data: web::Data<dyn InteractorFactory> = web::Data::from(ioc_arc);
-        
+
         App::new()
             .service(web::scope("/api")
                 .configure(presentation::web::rest::user::router)
@@ -141,7 +150,7 @@ async fn main() -> std::io::Result<()> {
             }))
             .app_data(ioc_data)
             .default_service(web::route().to(presentation::web::exception::not_found))
-        // .wrap(Logger::new("[%s] [%{r}a] %U"))
+            // .wrap(Logger::new("[%s] [%{r}a] %U"))
     };
 
 
@@ -151,26 +160,46 @@ async fn main() -> std::io::Result<()> {
             Err(_) => 1,
         }
     );
-    
-    let listener = match TcpListener::bind(format!("{}:{}", host, port)) {
+
+    let listener = match TcpListener::bind(format!("{}:{}", http_host, http_port)) {
         Ok(listener) => {
             listener
         },
-        Err(e) => {
-            log::error!("Failed to bind to port {} in host {}: {}", port, host, e);
+        Err(error) => {
+            log::error!("Failed to bind to port {} in host {}: {}", http_host, http_port, error);
             std::process::exit(1);
         },
     };
+    
+    let http_server = HttpServer::new(app_builder)
+        .listen(listener)?
+        .keep_alive(KeepAlive::Timeout(Duration::from_secs(5))) // TODO: Поэкспериментировать с gateway
+        .workers(available_workers);
 
-    let server = HttpServer::new(app_builder).listen(listener)?.workers(available_workers);
+    let ums_greeter = UMSGreeter::default();
+    
+    let grpc_server_addr = format!("{}:{}", grpc_host, grpc_port);
+    
+    let grpc_server = GrpcServer::builder()
+        .add_service(UmsControlServer::new(ums_greeter))
+        .serve(grpc_server_addr.parse().unwrap());
 
-    server.addrs_with_scheme().iter().for_each(|addr| {
+    http_server.addrs_with_scheme().iter().for_each(|addr| {
         let (socket_addr, str_ref) = addr;
-        log::info!("🚀 Server started at {}://{:?}", str_ref, socket_addr);
+        log::info!("🚀 Http Server started at {}://{:?}", str_ref, socket_addr);
     });
     
-    server.run().await.and_then(|_| {
-        log::info!("Server stopped!");
+    thread::Builder::new()
+        .name("gRPC Server".into())
+        .spawn(move || {
+            log::info!("🚀 gRPC Server started at {}", grpc_server_addr);
+            let _ = tokio::runtime::Runtime::new().unwrap().block_on(grpc_server);
+            log::info!("gRPC Server stopped!");
+        }).unwrap();
+    
+    http_server.run().await.and_then(|_| {
+        log::info!("Http Server stopped!");
         Ok(())
-    })
+    })?;
+    Ok(())
 }
