@@ -35,7 +35,7 @@ impl IdHeaderProvider {
         ip: &str
     ) -> Self {
         let payload: Option<HeaderPayload> = match payload_raw {
-            Some(payload_raw) => serde_json::from_str(&payload_raw).unwrap(),
+            Some(payload_raw) => serde_json::from_str(&payload_raw).ok(),
             None => None
         };
 
