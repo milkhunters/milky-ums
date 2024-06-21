@@ -9,7 +9,7 @@ use crate::domain::models::session::SessionId;
 use crate::domain::models::user::{UserId, UserState};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct HeaderPayload {
+pub struct HeaderPayload {
     pub session_id: SessionId,
     pub user_id: UserId,
     pub user_state: UserState,  
@@ -30,16 +30,10 @@ pub struct IdHeaderProvider {
 impl IdHeaderProvider {
     pub fn new(
         service_name: &str,
-        payload_raw: Option<String>,
-        user_agent: &str,
+        payload: Option<HeaderPayload>,
+        user_agent: String,
         ip: &str
     ) -> Self {
-        let payload: Option<HeaderPayload> = match payload_raw {
-            Some(payload_raw) => serde_json::from_str(&payload_raw).ok(),
-            None => None
-        };
-
-        
         match payload {
             Some(payload) => Self {
                 user_id: Some(payload.user_id),
@@ -56,7 +50,7 @@ impl IdHeaderProvider {
                         vec![]
                     }
                 },
-                user_agent: user_agent.to_string(),
+                user_agent,
                 ip: ip.to_string(),
                 is_auth: true
             },
@@ -68,7 +62,7 @@ impl IdHeaderProvider {
                     "CreateUser".parse().unwrap(), 
                     "CreateSession".parse().unwrap()
                 ],
-                user_agent: user_agent.to_string(),
+                user_agent,
                 ip: ip.to_string(),
                 is_auth: false
             }
