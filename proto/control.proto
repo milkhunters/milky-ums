@@ -8,6 +8,8 @@ service UMSControl {
 
 message EPRequest {
   string session_token = 1;
+  string user_agent = 2;
+  string user_ip = 3;
 }
 
 message EPResponse {

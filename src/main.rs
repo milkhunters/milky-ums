@@ -9,6 +9,7 @@ use actix_web::http::KeepAlive;
 use actix_web::middleware::Logger;
 use sea_orm::{ConnectOptions, Database, DbConn};
 use deadpool_redis::{Config, Runtime};
+use tokio::runtime::Builder;
 
 use crate::domain::models::service::ServiceTextId;
 
@@ -32,6 +33,7 @@ struct AppConfigProvider {
     build: String,
     service_name: ServiceTextId,
     version: &'static str,
+    is_intermediate: bool,
 }
 
 #[actix_web::main]
@@ -53,6 +55,7 @@ async fn main() -> std::io::Result<()> {
     let http_port = std::env::var("HTTP_PORT").unwrap_or("8080".to_string());
     let grpc_host = std::env::var("GRPC_HOST").unwrap_or("127.0.0.1".to_string());
     let grpc_port = std::env::var("GRPC_PORT").unwrap_or("50051".to_string());
+    let is_intermediate: bool = std::env::var("IS_INTERMEDIATE").unwrap_or("false".to_string()).parse().unwrap();
     let service_name: ServiceTextId = std::env::var("SERVICE_NAME").unwrap();
     let consul_addr = std::env::var("CONSUL_ADDR").unwrap();
     let consul_root = std::env::var("CONSUL_ROOT").unwrap();
@@ -126,6 +129,14 @@ async fn main() -> std::io::Result<()> {
         &adapters::database::init_state_db::InitStateGateway::new(db.clone()),
     ).await;
 
+    let ioc_grpc: Arc<dyn InteractorFactory> = Arc::new(IoC::new(
+        db.clone(),
+        session_redis_pool.clone(),
+        confirm_manager_redis_pool.clone(),
+    ));
+
+    let ums_greeter = UMSGreeter::new(ioc_grpc, service_name.clone());
+    
     let app_builder = move || {
         let branch = branch.clone();
         let build = build.clone();
@@ -135,8 +146,9 @@ async fn main() -> std::io::Result<()> {
             session_redis_pool.clone(),
             confirm_manager_redis_pool.clone(),
         ));
+        
         let ioc_data: web::Data<dyn InteractorFactory> = web::Data::from(ioc_arc);
-
+        
         App::new()
             .service(web::scope("/api")
                 .configure(presentation::web::rest::user::router)
@@ -147,6 +159,7 @@ async fn main() -> std::io::Result<()> {
                 build,
                 service_name: service_name.clone(),
                 version: VERSION,
+                is_intermediate,
             }))
             .app_data(ioc_data)
             .default_service(web::route().to(presentation::web::exception::not_found))
@@ -173,14 +186,16 @@ async fn main() -> std::io::Result<()> {
     
     let http_server = HttpServer::new(app_builder)
         .listen(listener)?
-        .keep_alive(KeepAlive::Timeout(Duration::from_secs(5))) // TODO: Поэкспериментировать с gateway
+        .keep_alive(KeepAlive::Timeout(Duration::from_secs(100)))
+        .// TODO: Поэкспериментировать с gateway
         .workers(available_workers);
-
-    let ums_greeter = UMSGreeter::default();
     
     let grpc_server_addr = format!("{}:{}", grpc_host, grpc_port);
     
     let grpc_server = GrpcServer::builder()
+        .http2_keepalive_interval(Some(Duration::from_secs(100)))
+        .http2_keepalive_timeout(Some(Duration::from_secs(10)))
+        .concurrency_limit_per_connection(10000)
         .add_service(UmsControlServer::new(ums_greeter))
         .serve(grpc_server_addr.parse().unwrap());
 
@@ -193,7 +208,13 @@ async fn main() -> std::io::Result<()> {
         .name("gRPC Server".into())
         .spawn(move || {
             log::info!("🚀 gRPC Server started at {}", grpc_server_addr);
-            let _ = tokio::runtime::Runtime::new().unwrap().block_on(grpc_server);
+            let runtime = Builder::new_multi_thread()
+                // .worker_threads(available_workers)
+                .enable_all()
+                .build()
+                .unwrap();
+            runtime.block_on(grpc_server).unwrap();
+            // let _ = tokio::runtime::Runtime::new().unwrap().block_on(grpc_server);
             log::info!("gRPC Server stopped!");
         }).unwrap();
     
