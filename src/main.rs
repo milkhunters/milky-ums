@@ -186,8 +186,7 @@ async fn main() -> std::io::Result<()> {
     
     let http_server = HttpServer::new(app_builder)
         .listen(listener)?
-        .keep_alive(KeepAlive::Timeout(Duration::from_secs(100)))
-        .// TODO: Поэкспериментировать с gateway
+        .keep_alive(KeepAlive::Timeout(Duration::from_secs(100))) // TODO: Поэкспериментировать с gateway
         .workers(available_workers);
     
     let grpc_server_addr = format!("{}:{}", grpc_host, grpc_port);

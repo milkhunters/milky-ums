@@ -185,7 +185,6 @@ impl InteractorFactory for IoC {
     fn extract_payload(&self, id_provider: Box<dyn IdProvider>) -> EPSession {
         EPSession {
             session_gateway: &self.session_gateway,
-            user_gateway: &self.user_gateway,
             session_service: &self.session_service,
             session_hasher: &self.session_hasher,
             id_provider,

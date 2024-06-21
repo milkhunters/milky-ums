@@ -6,7 +6,6 @@ use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionGateway;
-use crate::application::common::user_gateway::UserReader;
 use crate::domain::models::permission::PermissionTextId;
 use crate::domain::models::service::ServiceTextId;
 use crate::domain::models::session::{SessionId, SessionToken};
@@ -21,37 +20,29 @@ pub struct EPSessionDTO {
 
 #[derive(Debug, Serialize)]
 pub struct EPSessionResultDTO{
-    session_id: SessionId,
-    user_id: UserId,
-    user_state: UserState,
-    permissions: HashMap<ServiceTextId, Vec<PermissionTextId>>
+    pub session_id: SessionId,
+    pub user_id: UserId,
+    pub user_state: UserState,
+    pub permissions: HashMap<ServiceTextId, Vec<PermissionTextId>>
 }
 
 pub struct EPSession<'a> {
     pub session_gateway: &'a dyn SessionGateway,
-    pub user_gateway: &'a dyn UserReader,
     pub session_service: &'a SessionService,
     pub session_hasher: &'a dyn Hasher,
     pub id_provider: Box<dyn IdProvider>,
     pub validator_service: &'a ValidatorService,
 }
 
-impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
-    async fn execute(&self, data: EPSessionDTO) -> Result<Option<EPSessionResultDTO>, ApplicationError> {
-        let session_token_hash = match data.session_token.clone() {
-            Some(session_token) => {
-                match self.validator_service.validate_session_token(&session_token) {
-                    Ok(_) => self.session_hasher.hash(session_token.as_str()).await,
-                    Err(error) => return Err(
-                        ApplicationError::InvalidData(
-                            ErrorContent::Message(error.to_string())
-                        )
-                    )
-                }
-            },
-            None => return Err(ApplicationError::Unauthorized(
-                ErrorContent::Message("Токен не установлен".to_string())
-            ))
+impl Interactor<SessionToken, EPSessionResultDTO> for EPSession<'_> {
+    async fn execute(&self, data: SessionToken) -> Result<EPSessionResultDTO, ApplicationError> {
+        let session_token_hash = match self.validator_service.validate_session_token(&data) {
+            Ok(_) => self.session_hasher.hash(data.as_str()).await,
+            Err(error) => return Err(
+                ApplicationError::InvalidData(
+                    ErrorContent::Message(error.to_string())
+                )
+            )
         };
         
         let mut need_update = false;
@@ -83,7 +74,7 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
             &session,
             self.id_provider.user_agent().to_string()
         ) {
-            log::warn!("Сессия {} не прошла проверку по отпечатку", session.id);
+            log::warn!("Сессия {} не прошла проверку по отпечатку {} != {}", session.id, session.user_agent, self.id_provider.user_agent().to_string());
             return Err(ApplicationError::Unauthorized(
                 ErrorContent::Message("Отпечаток сессии не совпадает с клиентским".to_string())
             ))
@@ -103,11 +94,11 @@ impl Interactor<EPSessionDTO, Option<EPSessionResultDTO>> for EPSession<'_> {
             ).await;
         }
         
-        Ok(Some(EPSessionResultDTO{
+        Ok(EPSessionResultDTO{
             session_id: session.id,
             user_id: session.user_id,
             user_state,
             permissions
-        }))
+        })
     }
 }
