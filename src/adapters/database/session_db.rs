@@ -174,7 +174,7 @@ impl SessionWriter for SessionGateway {
             created_at: Set(data.created_at),
             updated_at: Set(data.updated_at.clone())
         };
-        
+
         match sessions::Entity::find_by_id(data.id).one(&*self.db).await.unwrap() {
             Some(_) => {
                 sessions::Entity::update(session_model).exec(&*self.db).await.unwrap();
