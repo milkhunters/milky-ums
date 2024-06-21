@@ -14,7 +14,7 @@ use crate::application::user::get_self::GetUserSelf;
 use crate::application::user::update::UpdateUser;
 use crate::application::user::update_self::UpdateUserSelf;
 
-pub trait InteractorFactory {
+pub trait InteractorFactory: Send + Sync {
     fn get_user_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetUserById;
     fn get_users_by_ids(&self, id_provider: Box<dyn IdProvider>) -> GetUsersByIds;
     fn get_user_range(&self, id_provider: Box<dyn IdProvider>) -> GetUserRange;

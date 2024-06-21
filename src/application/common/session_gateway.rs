@@ -37,4 +37,4 @@ pub trait SessionRemover {
 }
 
 
-pub trait SessionGateway: SessionReader + SessionWriter + SessionRemover {}
+pub trait SessionGateway: SessionReader + SessionWriter + SessionRemover + Send + Sync {}
