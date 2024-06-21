@@ -1,4 +1,5 @@
 use actix_web::{get, HttpRequest, HttpResponse, post, put, Responder, Result, web};
+use log::info;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -11,7 +12,7 @@ use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
 use crate::application::user::update::UpdateUserDTO;
 use crate::application::user::update_self::UpdateSelfDTO;
-use crate::presentation::id_provider::get_id_provider;
+use crate::presentation::id_provider::make_id_provider_from_request;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
 
@@ -48,7 +49,11 @@ async fn users_by_query(
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
     
-    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
 
     if let Some(id) = &data.id {
         let data = ioc.get_user_by_id(id_provider).execute(
@@ -78,7 +83,11 @@ async fn user_self(
     app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
     let data = ioc.get_user_self(id_provider).execute(()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
@@ -90,7 +99,11 @@ async fn create_user(
     app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
     let data = ioc.create_user(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
@@ -102,7 +115,11 @@ async fn update_user(
     app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
     let data = ioc.update_user(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
@@ -114,7 +131,11 @@ async fn update_user_self(
     app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
 ) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = get_id_provider(&app_config_provider.service_name, &req);
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
     let data = ioc.update_user_self(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }
