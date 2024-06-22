@@ -22,7 +22,7 @@ impl UserService {
             email,
             first_name,
             last_name,
-            state: UserState::Active,
+            state: UserState::Inactive,
             hashed_password,
             created_at: Utc::now(),
             updated_at: None,

@@ -35,8 +35,7 @@ pub struct GetSessionsByUserId<'a> {
 
 impl Interactor<GetSessionsByUserIdDTO, SessionsByUserIdResultDTO> for GetSessionsByUserId<'_> {
     async fn execute(&self, data: GetSessionsByUserIdDTO) -> Result<SessionsByUserIdResultDTO, ApplicationError> {
-        
-        
+
         match self.access_service.ensure_can_get_sessions(
             self.id_provider.is_auth(),
             self.id_provider.user_id(),

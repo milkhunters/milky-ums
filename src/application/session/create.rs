@@ -108,6 +108,15 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionTokenHash)> fo
             )
         };
         
+        if user.state == UserState::Inactive {
+            return Err(
+                ApplicationError::InvalidData(
+                    ErrorContent::Message("Сначала подтвердите свой email".to_string())
+                )
+            )
+        }
+        
+        
         let session_token = self.session_service.create_session_token();
         let session_token_hash = self.session_hasher.hash(&session_token).await;
 
