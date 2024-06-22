@@ -1,9 +1,11 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
 package ums.control;
 
 service UMSControl {
   rpc ExtractPayload (EPRequest) returns (EPResponse);
+  rpc SyncService (SSRequest) returns (google.protobuf.Empty);
 }
 
 message EPRequest {
@@ -20,5 +22,11 @@ message EPResponse {
 }
 
 message PermissionsList {
-  repeated string permission = 1;
+  repeated string permission_text_ids = 1;
 }
+
+message SSRequest {
+  string text_id = 1;
+  repeated string permission_text_ids = 2;
+}
+

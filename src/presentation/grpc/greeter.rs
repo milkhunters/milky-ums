@@ -1,13 +1,14 @@
-use std::sync::{Arc, Mutex};
-use log::info;
+use std::sync::Arc;
+
 use tonic::{Request, Response, Status};
 
-use proto::{EpResponse, EpRequest};
-
+use proto::{EpRequest, EpResponse};
 use proto::ums_control_server::UmsControl;
 use crate::application::common::interactor::Interactor;
+
+use crate::application::service::sync::ServiceSyncDTO;
 use crate::domain::models::service::ServiceTextId;
-use crate::presentation::grpc::greeter::proto::PermissionsList;
+use crate::presentation::grpc::greeter::proto::{PermissionsList, SsRequest};
 use crate::presentation::id_provider::make_id_provider;
 use crate::presentation::interactor_factory::InteractorFactory;
 
@@ -17,14 +18,14 @@ pub mod proto {
 
 pub struct UMSGreeter {
     ioc: Arc<dyn InteractorFactory>,
-    service_name: ServiceTextId,
+    service_text_id: ServiceTextId,
 }
 
 impl UMSGreeter {
-    pub fn new(ioc: Arc<dyn InteractorFactory>, service_name: ServiceTextId) -> Self {
+    pub fn new(ioc: Arc<dyn InteractorFactory>, service_text_id: ServiceTextId) -> Self {
         Self {
             ioc,
-            service_name,
+            service_text_id,
         }
     }
 }
@@ -41,7 +42,7 @@ impl UmsControl for UMSGreeter {
         let session_token = payload.session_token.clone();
         
         let id_provider = make_id_provider(
-            &self.service_name,
+            &self.service_text_id,
             None,
             Some(user_agent),
             &user_ip
@@ -57,10 +58,31 @@ impl UmsControl for UMSGreeter {
                     user_id: String::from(data.user_id),
                     user_state: data.user_state.to_string(),
                     permissions: data.permissions.iter().map(|(k, v)| {
-                        (String::from(k), PermissionsList { permission: v.clone() })
+                        (String::from(k), PermissionsList { permission_text_ids: v.clone() })
                     }).collect()
                 }))
             },
+            Err(error) => Err(Status::unauthenticated(error.to_string()))
+        }
+    }
+
+    async fn sync_service(&self, request: Request<SsRequest>) -> Result<Response<()>, Status> {
+        let payload = request.get_ref();
+        
+        let service_text_id = payload.text_id.clone();
+        let permission_text_ids = payload.permission_text_ids.clone();
+
+        let executor = self.ioc.sync_service();
+        
+        let resp = executor.execute(
+            ServiceSyncDTO {
+                service_text_id,
+                permission_text_ids
+            }
+        ).await;
+
+        match resp {
+            Ok(_) => Ok(Response::new(())),
             Err(error) => Err(Status::unauthenticated(error.to_string()))
         }
     }
