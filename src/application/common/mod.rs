@@ -8,3 +8,4 @@ pub mod init_state_gateway;
 pub mod id_provider;
 pub mod exceptions;
 pub mod hasher;
+pub mod email_confirm;
