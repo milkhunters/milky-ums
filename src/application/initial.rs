@@ -5,13 +5,16 @@ use rand::seq::SliceRandom;
 use strum::IntoEnumIterator;
 use crate::application::common::hasher::Hasher;
 use crate::application::common::init_state_gateway::InitStateGateway;
+use crate::application::common::interactor::Interactor;
 use crate::application::common::permission_gateway::PermissionGateway;
 use crate::application::common::role_gateway::RoleGateway;
 
 use crate::application::common::service_gateway::ServiceGateway;
 use crate::application::common::user_gateway::UserGateway;
-use crate::domain::models::permission::{Permission, PermissionId, PermissionTextId};
-use crate::domain::models::service::{Service, ServiceTextId};
+use crate::application::service::sync::{ServiceSync, ServiceSyncDTO};
+
+use crate::domain::models::permission::{PermissionId, PermissionTextId};
+use crate::domain::models::service::{ServiceTextId};
 use crate::domain::models::ums_permission::UMSPermission;
 use crate::domain::services::role::RoleService;
 use crate::domain::services::user::UserService;
@@ -19,46 +22,22 @@ use crate::domain::services::user::UserService;
 pub async fn service_permissions(
     service_gateway: &dyn ServiceGateway,
     permission_gateway: &dyn PermissionGateway,
-    service_name: &ServiceTextId,
+    service_text_id: ServiceTextId,
 ) {
-    let service = match service_gateway.get_services_by_text_id(
-        &service_name
-    ).await {
-        Some(service) => service,
-        None => {
-            let service = Service::new(
-                service_name.clone(),
-                service_name.clone(),
-                None,
-            );
-            service_gateway.save_service(&service).await;
-            service
-        }
-    };
-
-    let permissions_from_app = UMSPermission::iter().map(|permission| {
+    let permission_text_ids = UMSPermission::iter().map(|permission| {
         permission.to_string()
     }).collect::<Vec<PermissionTextId>>();
     
-    let permissions_from_repo = permission_gateway.get_permissions_by_service_id(
-        &service.id
-    ).await.iter().map(|permission| {
-        permission.text_id.clone()
-    }).collect::<Vec<PermissionTextId>>();
-    
-    let permissions_to_add = permissions_from_app.iter().filter(|permission| {
-        !permissions_from_repo.contains(permission)
-    }).map(|permission| {
-        Permission::new(
-            permission.clone(),
-            service.id,
-            permission.clone(),
-            None,
-        )
-    }).collect::<Vec<Permission>>();
-    
-    permission_gateway.save_permissions(&permissions_to_add).await;
+    let executor = ServiceSync { service_gateway, permission_gateway };
 
+    executor.execute(
+        ServiceSyncDTO {
+            service_text_id,
+            permission_text_ids
+        }
+    ).await.map_err(|e| {
+        log::error!("Service permissions sync error: {}", e);
+    }).ok();
 }
 
 pub async fn control_account(
