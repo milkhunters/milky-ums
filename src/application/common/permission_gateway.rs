@@ -34,4 +34,4 @@ pub trait PermissionLinker {
 }
 
 
-pub trait PermissionGateway: PermissionReader + PermissionWriter + PermissionLinker {}
+pub trait PermissionGateway: PermissionReader + PermissionWriter + PermissionLinker + Send + Sync {}

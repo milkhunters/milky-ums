@@ -19,4 +19,4 @@ pub trait ServiceRemover {
 }
 
 
-pub trait ServiceGateway: ServiceReader + ServiceWriter + ServiceRemover {}
+pub trait ServiceGateway: ServiceReader + ServiceWriter + ServiceRemover + Send + Sync {}
