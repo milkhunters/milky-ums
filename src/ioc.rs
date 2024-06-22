@@ -1,12 +1,15 @@
 use deadpool_redis::Pool;
 use sea_orm::DbConn;
 use crate::adapters::argon2_password_hasher::Argon2PasswordHasher;
+use crate::adapters::database::permission_db::PermissionGateway;
 use crate::adapters::sha256_session_hasher::Sha256SessionHasher;
 
 use crate::adapters::database::session_db::SessionGateway;
 use crate::adapters::database::user_db::UserGateway;
 use crate::adapters::database::role_db::RoleGateway;
+use crate::adapters::database::service_db::ServiceGateway;
 use crate::application::common::id_provider::IdProvider;
+use crate::application::service::sync::ServiceSync;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
@@ -31,6 +34,8 @@ pub struct IoC {
     user_gateway: UserGateway,
     session_gateway: SessionGateway,
     role_gateway: RoleGateway,
+    service_gateway: ServiceGateway,
+    permission_gateway: PermissionGateway,
     user_service: UserService,
     session_service: SessionService,
     password_hasher: Argon2PasswordHasher,
@@ -52,6 +57,8 @@ impl IoC {
                 db_pool.clone(),
             ),
             role_gateway: RoleGateway::new(db_pool.clone()),
+            service_gateway: ServiceGateway::new(db_pool.clone()),
+            permission_gateway: PermissionGateway::new(db_pool.clone()),
             user_service: UserService{},
             session_service: SessionService{},
             password_hasher: Argon2PasswordHasher::new(),
@@ -98,6 +105,7 @@ impl InteractorFactory for IoC {
     fn create_user(&self, id_provider: Box<dyn IdProvider>) -> CreateUser {
         CreateUser {
             user_gateway: &self.user_gateway,
+            role_gateway: &self.role_gateway,
             user_service: &self.user_service,
             password_hasher: &self.password_hasher,
             validator: &self.validator,
@@ -189,6 +197,13 @@ impl InteractorFactory for IoC {
             session_hasher: &self.session_hasher,
             id_provider,
             validator_service: &self.validator,
+        }
+    }
+
+    fn sync_service(&self) -> ServiceSync {
+        ServiceSync {
+            service_gateway: &self.service_gateway,
+            permission_gateway: &self.permission_gateway,
         }
     }
     

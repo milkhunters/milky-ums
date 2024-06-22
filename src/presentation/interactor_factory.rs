@@ -1,4 +1,5 @@
 use crate::application::common::id_provider::IdProvider;
+use crate::application::service::sync::ServiceSync;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
@@ -29,4 +30,5 @@ pub trait InteractorFactory: Send + Sync {
     fn get_sessions_by_user_id(&self, id_provider: Box<dyn IdProvider>) -> GetSessionsByUserId;
     fn get_sessions_self(&self, id_provider: Box<dyn IdProvider>) -> GetSessionSelf;
     fn extract_payload(&self, id_provider: Box<dyn IdProvider>) -> EPSession;
+    fn sync_service(&self) -> ServiceSync;
 }
