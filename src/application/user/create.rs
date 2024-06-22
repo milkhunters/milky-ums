@@ -7,6 +7,7 @@ use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserGateway;
+use crate::application::common::role_gateway::RoleGateway;
 use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -34,6 +35,7 @@ pub struct CreateUserResultDTO{
 
 pub struct CreateUser<'a> {
     pub user_gateway: &'a dyn UserGateway,
+    pub role_gateway: &'a dyn RoleGateway,
     pub user_service: &'a UserService,
     pub password_hasher: &'a dyn Hasher,
     pub validator: &'a ValidatorService,
@@ -87,6 +89,17 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
                 )
             )
         }
+        
+        let default_role_id = match self.role_gateway.get_default_role().await {
+            Some(role) => role.id,
+            None => {
+                return Err(ApplicationError::Forbidden(
+                    ErrorContent::Message(
+                        "Сервис на стадии инициализации. Роль по умолчанию не установлена!".to_string()
+                    )
+                ))
+            }
+        };
 
         // Todo: to gather
         let user_by_username = self.user_gateway.get_user_by_username_not_sensitive(&data.username).await;
@@ -130,6 +143,7 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
         );
 
         self.user_gateway.save_user(&user).await;
+        self.role_gateway.link_role_to_user(&default_role_id, &user.id).await;
 
         Ok(CreateUserResultDTO {
             id: user.id,
