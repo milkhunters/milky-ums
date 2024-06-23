@@ -9,6 +9,12 @@ pub struct SessionService {
 
 impl SessionService {
     
+    pub fn new(session_expire: u32) -> SessionService {
+        SessionService {
+            session_expire,
+        }
+    }
+    
     pub fn is_session_expired(&self, session: &Session) -> bool {
         let session_age = chrono::Utc::now() - session.updated_at.unwrap_or(session.created_at);
         session_age > chrono::Duration::seconds(self.session_expire as i64)
