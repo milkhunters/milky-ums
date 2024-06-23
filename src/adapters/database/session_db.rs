@@ -28,17 +28,20 @@ use crate::domain::models::user::{UserId, UserState};
 
 pub struct SessionGateway {
     cache_redis_pool: Box<Pool>,
+    cache_expire: u32,
     db: Box<DbConn>,
 }
 
 impl SessionGateway {
     pub fn new(
         redis_pool: Box<Pool>,
-        db: Box<DbConn>
+        cache_expire: u32,
+        db: Box<DbConn>,
     ) -> Self {
         SessionGateway {
             cache_redis_pool: redis_pool,
-            db
+            cache_expire,
+            db,
         }
     }
 }
@@ -202,6 +205,11 @@ impl SessionWriter for SessionGateway {
         cmd("SET")
             .arg(data.token_hash.as_str())
             .arg(serde_json.as_str())
+            .query_async::<_, ()>(&mut conn)
+            .await.unwrap();
+        cmd("EXPIRE")
+            .arg(data.token_hash.as_str())
+            .arg(self.cache_expire)
             .query_async::<_, ()>(&mut conn)
             .await.unwrap();
     }
