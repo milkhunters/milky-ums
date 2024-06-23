@@ -3,13 +3,15 @@ use uuid::Uuid;
 
 use crate::domain::models::session::{Session, SessionToken, SessionTokenHash};
 
-pub struct SessionService { }
+pub struct SessionService {
+    session_expire: u32,
+}
 
 impl SessionService {
     
     pub fn is_session_expired(&self, session: &Session) -> bool {
         let session_age = chrono::Utc::now() - session.updated_at.unwrap_or(session.created_at);
-        session_age > chrono::Duration::minutes(5)
+        session_age > chrono::Duration::seconds(self.session_expire as i64)
     }
     
     pub fn create_session_token(&self) -> SessionToken {
