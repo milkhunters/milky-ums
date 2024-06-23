@@ -9,6 +9,7 @@ use actix_web::http::KeepAlive;
 use actix_web::middleware::Logger;
 use sea_orm::{ConnectOptions, Database, DbConn};
 use deadpool_redis::{Config, Runtime};
+use lapin::{Connection as RabbitConnection, ConnectionProperties as RMQConnProps};
 use tokio::runtime::Builder;
 
 use crate::domain::models::service::ServiceTextId;
@@ -35,6 +36,43 @@ struct AppConfigProvider {
     version: &'static str,
     is_intermediate: bool,
 }
+
+fn create_email_confirm(
+    redis_pool: deadpool_redis::Pool,
+    config: config::Email,
+    service_name: ServiceTextId,
+) -> adapters::email_confirm::EmailConfirmAdapter {
+    let email_confirm_factory = thread::spawn(move || {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let rmq_conn = RabbitConnection::connect(
+                &format!("amqp://{username}:{password}@{host}:{port}/{vhost}",
+                    username = config.rabbitmq.username,
+                    password = config.rabbitmq.password,
+                    host = config.rabbitmq.host,
+                    port = config.rabbitmq.port,
+                    vhost = config.rabbitmq.vhost,
+                ),
+                RMQConnProps::default(),
+            ).await.map_err(|error| {
+                log::error!("Failed to connect to RabbitMQ: {}", error);
+                std::process::exit(1);
+            }).unwrap();
+
+            adapters::email_confirm::EmailConfirmAdapter::new(
+                Box::new(redis_pool),
+                Box::new(rmq_conn),
+                config.rabbitmq.exchange,
+                config.sender_id,
+                service_name,
+                300 // 5 min
+            )
+        })
+    }).join().unwrap();
+
+    email_confirm_factory
+}
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -116,7 +154,7 @@ async fn main() -> std::io::Result<()> {
     application::initial::service_permissions(
         &adapters::database::service_db::ServiceGateway::new(db.clone()),
         &adapters::database::permission_db::PermissionGateway::new(db.clone()),
-        &service_name,
+        service_name.clone(),
     ).await;
     
     application::initial::control_account(
@@ -132,7 +170,12 @@ async fn main() -> std::io::Result<()> {
     let ioc_grpc: Arc<dyn InteractorFactory> = Arc::new(IoC::new(
         db.clone(),
         session_redis_pool.clone(),
-        confirm_manager_redis_pool.clone(),
+        create_email_confirm(
+            confirm_manager_redis_pool.clone(),
+            config.email.clone(),
+            service_name.clone(),
+        ),
+        config.base.session_exp
     ));
 
     let ums_greeter = UMSGreeter::new(ioc_grpc, service_name.clone());
@@ -144,7 +187,12 @@ async fn main() -> std::io::Result<()> {
         let ioc_arc: Arc<dyn InteractorFactory> = Arc::new(IoC::new(
             db.clone(),
             session_redis_pool.clone(),
-            confirm_manager_redis_pool.clone(),
+            create_email_confirm(
+                confirm_manager_redis_pool.clone(),
+                config.email.clone(),
+                service_name.clone(),
+            ),
+            config.base.session_exp
         ));
         
         let ioc_data: web::Data<dyn InteractorFactory> = web::Data::from(ioc_arc);

@@ -14,6 +14,7 @@ pub struct Contact {
 pub struct Base {
     pub title: String,
     pub description: String,
+    pub session_exp: u32,
     pub contact: Contact,
 }
 
