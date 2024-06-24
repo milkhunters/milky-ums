@@ -10,6 +10,7 @@ use crate::application::user::get_range::GetUserRange;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionsByUserId;
 use crate::application::session::get_self::GetSessionSelf;
+use crate::application::user::change_password::ChangePassword;
 use crate::application::user::confirm::ConfirmUser;
 use crate::application::user::create::CreateUser;
 use crate::application::user::get_self::GetUserSelf;
@@ -35,4 +36,5 @@ pub trait InteractorFactory: Send + Sync {
     fn sync_service(&self) -> ServiceSync;
     fn send_confirm_code(&self, id_provider: Box<dyn IdProvider>) -> SendConfirmCode;
     fn confirm_user(&self, id_provider: Box<dyn IdProvider>) -> ConfirmUser;
+    fn change_password(&self, id_provider: Box<dyn IdProvider>) -> ChangePassword;
 }

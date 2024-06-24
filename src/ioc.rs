@@ -19,6 +19,7 @@ use crate::application::session::extract_payload::EPSession;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionsByUserId;
 use crate::application::session::get_self::GetSessionSelf;
+use crate::application::user::change_password::ChangePassword;
 use crate::application::user::confirm::ConfirmUser;
 use crate::application::user::create::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
@@ -244,6 +245,18 @@ impl InteractorFactory for IoC {
             user_service: &self.user_service,
             validator: &self.validator,
             access_service: &self.access_service,
+        }
+    }
+    
+    fn change_password(&self, id_provider: Box<dyn IdProvider>) -> ChangePassword {
+        ChangePassword {
+            email_sender: &self.email_sender,
+            user_gateway: &self.user_gateway,
+            user_service: &self.user_service,
+            validator: &self.validator,
+            password_hasher: &self.password_hasher,
+            access_service: &self.access_service,
+            id_provider,
         }
     }
 }

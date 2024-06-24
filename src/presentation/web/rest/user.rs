@@ -1,10 +1,12 @@
-use actix_web::{get, HttpRequest, HttpResponse, post, put, Result, web};
+use actix_web::{get, HttpRequest, HttpResponse, patch, post, put, Result, web};
+use actix_web::http::StatusCode;
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::AppConfigProvider;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
+use crate::application::user::change_password::ChangePasswordDTO;
 use crate::application::user::confirm::ConfirmUserDTO;
 use crate::application::user::create::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
@@ -25,6 +27,7 @@ pub fn router(cfg: &mut web::ServiceConfig) {
             .service(create_user)
             .service(update_user)
             .service(update_user_self)
+            .service(change_password_self)
             .service(
                 web::scope("/confirm")
                     .service(confirm_email)
@@ -139,6 +142,22 @@ async fn update_user_self(
     );
     let data = ioc.update_user_self(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
+}
+
+#[patch("self/password")]
+async fn change_password_self(
+    data: web::Json<ChangePasswordDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    ioc.change_password(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
 }
 
 #[derive(Debug, Deserialize)]
