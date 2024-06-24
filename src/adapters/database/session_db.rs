@@ -224,8 +224,32 @@ impl SessionRemover for SessionGateway {
             .exec(&*self.db)
             .await
             .unwrap();
+        cmd("DEL")
+            .arg(session_id.to_string())
+            .query_async::<_, ()>(&mut self.cache_redis_pool.get().await.unwrap())
+            .await
+            .ok();
     }
     
+    async fn remove_user_sessions(&self, user_id: &UserId) {
+        let session_models = sessions::Entity::find()
+            .filter(Expr::col(sessions::Column::UserId).eq(user_id.to_string()))
+            .all(&*self.db)
+            .await
+            .unwrap();
+        
+        sessions::Entity::delete_many()
+            .filter(Expr::col(sessions::Column::UserId).eq(user_id.to_string()))
+            .exec(&*self.db)
+            .await
+            .unwrap();
+        
+        cmd("DEL")
+            .arg(session_models.iter().map(|s| s.token_hash.to_string()).collect::<Vec<String>>())
+            .query_async::<_, ()>(&mut self.cache_redis_pool.get().await.unwrap())
+            .await
+            .ok();
+    }
 }
 
 impl SessionGatewayTrait for SessionGateway {}

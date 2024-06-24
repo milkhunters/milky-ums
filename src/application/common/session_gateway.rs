@@ -34,6 +34,7 @@ pub trait SessionWriter {
 #[async_trait]
 pub trait SessionRemover {
     async fn remove_session(&self, session_id: &SessionId);
+    async fn remove_user_sessions(&self, user_id: &UserId);
 }
 
 
