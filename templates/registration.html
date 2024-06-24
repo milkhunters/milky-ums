@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    <p>Добро пожаловать, {{ username }}!</p>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Регистрация{% endblock title %}
+
+{% block content %}
+<p>Добро пожаловать, {{ username }}!</p>
+{% endblock content %}
