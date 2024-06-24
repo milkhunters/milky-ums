@@ -124,7 +124,9 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionTokenHash)> fo
             session_token_hash,
             user.id,
             self.id_provider.ip().to_string(),
-            self.id_provider.user_agent().to_string()
+            self.id_provider.client().to_string(),
+            self.id_provider.os().to_string(),
+            self.id_provider.device().to_string(),
         );
         
         self.session_gateway.save_session(&session).await;

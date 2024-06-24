@@ -37,7 +37,21 @@ impl MigrationTrait for Migration {
                             .on_delete(ForeignKeyAction::Cascade)
                     )
                     .col(ColumnDef::new(Sessions::Ip).string_len(15).not_null())
-                    .col(ColumnDef::new(Sessions::UserAgent).string_len(255).not_null())
+                    .col(
+                        ColumnDef::new(Sessions::Client)
+                            .string_len(128)
+                            .not_null()
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::Os)
+                            .string_len(64)
+                            .not_null()
+                    )
+                    .col(
+                        ColumnDef::new(Sessions::Device)
+                            .string_len(32)
+                            .not_null()
+                    )
                     .col(
                         ColumnDef::new(Sessions::CreatedAt)
                             .timestamp_with_time_zone()
@@ -69,7 +83,9 @@ enum Sessions {
     TokenHash,
     UserId,
     Ip,
-    UserAgent,
+    Client,
+    Os,
+    Device,
     CreatedAt,
     UpdatedAt,
 }

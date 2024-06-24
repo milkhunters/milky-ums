@@ -8,7 +8,7 @@ pub struct SessionService {
 }
 
 impl SessionService {
-    
+
     pub fn new(session_expire: u32) -> SessionService {
         SessionService {
             session_expire,
@@ -29,14 +29,18 @@ impl SessionService {
         token_hash: SessionTokenHash,
         user_id: Uuid,
         ip: String,
-        user_agent: String,
+        client: String,
+        os: String,
+        device: String,
     ) -> Session {
         Session {
             id: Uuid::new_v4(),
             token_hash,
             user_id,
             ip,
-            user_agent,
+            client,
+            os,
+            device,
             created_at: chrono::Utc::now(),
             updated_at: None,
         }
@@ -45,20 +49,20 @@ impl SessionService {
     pub fn verify_session(
         &self,
         session: &Session,
-        user_agent: String,
+        client: &str,
+        os: &str,
+        device: &str,
     ) -> bool {
-        session.user_agent == user_agent
+        session.client == client && session.os == os && session.device == device
     }
 
     pub fn update_session(
         &self,
         session: Session,
         new_ip: String,
-        new_user_agent: String,
     ) -> Session {
         Session {
             ip: new_ip,
-            user_agent: new_user_agent,
             updated_at: Some(chrono::Utc::now()),
             ..session
         }

@@ -173,7 +173,9 @@ impl SessionWriter for SessionGateway {
             token_hash: Set(data.token_hash.clone()),
             user_id: Set(data.user_id),
             ip: Set(data.ip.clone()),
-            user_agent: Set(data.user_agent.clone()),
+            client: Set(data.client.clone()),
+            os: Set(data.os.clone()),
+            device: Set(data.device.clone()),
             created_at: Set(data.created_at),
             updated_at: Set(data.updated_at.clone())
         };
@@ -234,7 +236,9 @@ fn map_session_model_to_domain(model: sessions::Model) -> Session {
         token_hash: model.token_hash,
         user_id: model.user_id,
         ip: model.ip,
-        user_agent: model.user_agent,
+        client: model.client,
+        os: model.os,
+        device: model.device,
         created_at: model.created_at,
         updated_at: model.updated_at,
     }

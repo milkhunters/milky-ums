@@ -15,7 +15,9 @@ pub struct Session {
     pub user_id: UserId,
     
     pub ip: String,
-    pub user_agent: String,
+    pub client: String,
+    pub os: String,
+    pub device: String,
     
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,

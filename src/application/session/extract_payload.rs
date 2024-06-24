@@ -61,7 +61,7 @@ impl Interactor<SessionToken, EPSessionResultDTO> for EPSession<'_> {
                     data
                 },
                 None => return Err(ApplicationError::Unauthorized(
-                    ErrorContent::Message("Токен не найден".to_string())
+                    ErrorContent::Message("Токен не существует".to_string())
                 ))
             }
         };
@@ -72,9 +72,11 @@ impl Interactor<SessionToken, EPSessionResultDTO> for EPSession<'_> {
 
         if !self.session_service.verify_session(
             &session,
-            self.id_provider.user_agent().to_string()
+            self.id_provider.client(),
+            self.id_provider.os(),
+            self.id_provider.device()
         ) {
-            log::warn!("Сессия {} не прошла проверку по отпечатку {} != {}", session.id, session.user_agent, self.id_provider.user_agent().to_string());
+            log::warn!("Сессия {} не прошла проверку по отпечатку! IP: {}", session.id, self.id_provider.ip());
             return Err(ApplicationError::Unauthorized(
                 ErrorContent::Message("Отпечаток сессии не совпадает с клиентским".to_string())
             ))
@@ -84,7 +86,6 @@ impl Interactor<SessionToken, EPSessionResultDTO> for EPSession<'_> {
             session = self.session_service.update_session(
                 session,
                 self.id_provider.ip().to_string(),
-                self.id_provider.user_agent().to_string()
             );
             self.session_gateway.save_session(&session).await;
             self.session_gateway.save_session_to_cache(

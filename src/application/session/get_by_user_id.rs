@@ -19,7 +19,9 @@ pub struct GetSessionsByUserIdDTO {
 pub struct SessionItemResult{
     id: SessionId,
     ip: String,
-    user_agent: String,
+    client: String,
+    os: String,
+    device: String,
     created_at: DateTime<Utc>,
     updated_at: Option<DateTime<Utc>>,
 }
@@ -64,7 +66,9 @@ impl Interactor<GetSessionsByUserIdDTO, SessionsByUserIdResultDTO> for GetSessio
             sessions.iter().map(|session| SessionItemResult {
                 id: session.id.clone(),
                 ip: session.ip.clone(),
-                user_agent: session.user_agent.clone(),
+                client: session.client.clone(),
+                os: session.os.clone(),
+                device: session.device.clone(),
                 created_at: session.created_at.clone(),
                 updated_at: session.updated_at.clone()
             }).collect()

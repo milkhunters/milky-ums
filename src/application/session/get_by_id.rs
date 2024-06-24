@@ -19,7 +19,9 @@ pub struct GetSessionByIdDTO {
 pub struct SessionByIdResultDTO{
     id: SessionId,
     ip: String,
-    user_agent: String,
+    client: String,
+    os: String,
+    device: String,
     created_at: DateTime<Utc>,
     updated_at: Option<DateTime<Utc>>,
 }
@@ -68,7 +70,9 @@ impl Interactor<GetSessionByIdDTO, SessionByIdResultDTO> for GetSessionById<'_> 
         Ok(SessionByIdResultDTO {
             id: session.id,
             ip: session.ip,
-            user_agent: session.user_agent,
+            client: session.client,
+            os: session.os,
+            device: session.device,
             created_at: session.created_at,
             updated_at: session.updated_at,
         })
