@@ -131,7 +131,7 @@ impl Interactor<UpdateUserDTO, UpdateUserResultDTO> for UpdateUser<'_> {
             data.state,
             data.first_name,
             data.last_name
-        )?;
+        );
 
         self.user_gateway.save_user(&new_user).await;
 
