@@ -1,6 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use crate::application::common::email_sender::EmailSender;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
@@ -36,6 +38,7 @@ pub struct CreateUserResultDTO{
 pub struct CreateUser<'a> {
     pub user_gateway: &'a dyn UserGateway,
     pub role_gateway: &'a dyn RoleGateway,
+    pub email_sender: &'a dyn EmailSender,
     pub user_service: &'a UserService,
     pub password_hasher: &'a dyn Hasher,
     pub validator: &'a ValidatorService,
@@ -137,6 +140,7 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
         let user = self.user_service.create_user(
             data.username,
             data.email,
+            UserState::Inactive,
             hashed_password,
             data.first_name,
             data.last_name,
@@ -144,6 +148,22 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
 
         self.user_gateway.save_user(&user).await;
         self.role_gateway.link_role_to_user(&default_role_id, &user.id).await;
+        
+        let context: BTreeMap<String, Value> = {
+            let mut context = BTreeMap::new();
+            context.insert("username".to_string(), Value::String(user.username.to_string()));
+            context
+        };
+        
+        self.email_sender.send_template(
+            &user.email,
+            "Регистрация на сайте",
+            "registration.html",
+            Some(context),
+            13,
+            3600
+            
+        ).await;
 
         Ok(CreateUserResultDTO {
             id: user.id,

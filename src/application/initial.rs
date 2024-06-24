@@ -16,6 +16,7 @@ use crate::application::service::sync::{ServiceSync, ServiceSyncDTO};
 use crate::domain::models::permission::{PermissionId, PermissionTextId};
 use crate::domain::models::service::{ServiceTextId};
 use crate::domain::models::ums_permission::UMSPermission;
+use crate::domain::models::user::UserState;
 use crate::domain::services::role::RoleService;
 use crate::domain::services::user::UserService;
 
@@ -136,6 +137,7 @@ pub async fn control_account(
             let user = user_service.create_user(
                 "control".to_string(),
                 "control@milkhunters.ru".to_string(),
+                UserState::Active,
                 password_hash,
                 None,
                 None
