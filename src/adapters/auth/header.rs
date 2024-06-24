@@ -101,6 +101,7 @@ impl IdHeaderProvider {
                     "CreateSession".parse().unwrap(),
                     "ConfirmUser".parse().unwrap(),
                     "ResetUserPassword".parse().unwrap(),
+                    "SendConfirmCode".parse().unwrap(),
                 ],
                 client,
                 os,
