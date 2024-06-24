@@ -30,7 +30,7 @@ pub struct SendConfirmCode<'a> {
 impl Interactor<SendConfirmCodeDTO, ()> for SendConfirmCode<'_> {
     async fn execute(&self, data: SendConfirmCodeDTO) -> Result<(), ApplicationError> {
         
-        match self.access_service.ensure_can_confirm_user(
+        match self.access_service.ensure_can_send_confirm_code(
             &self.id_provider.is_auth(),
             &self.id_provider.permissions()
         ) {
@@ -89,8 +89,8 @@ impl Interactor<SendConfirmCodeDTO, ()> for SendConfirmCode<'_> {
         
         self.email_sender.send_template(
             &user.email,
-            "Подтверждение почты",
-            "email_confirm_code.html",
+            "Подтверждение операции смены данных",
+            "confirm_code.html",
             Some(context),
             13,
             900, // 15 minutes
