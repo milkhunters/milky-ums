@@ -1,6 +1,8 @@
 use std::sync::Arc;
+use actix_web::ResponseError;
 
-use tonic::{Request, Response, Status};
+use tonic::{IntoRequest, Request, Response, Status};
+use tonic::codegen::http::HeaderMap;
 
 use proto::{EpRequest, EpResponse};
 use proto::ums_control_server::UmsControl;
@@ -62,7 +64,17 @@ impl UmsControl for UMSGreeter {
                     }).collect()
                 }))
             },
-            Err(error) => Err(Status::unauthenticated(error.to_string()))
+            Err(error) => {
+                let mut header = HeaderMap::new();
+                header.insert("Content-Type", "application/json".parse().unwrap());
+
+                let mut status = Status::unauthenticated(
+                    serde_json::to_string(&error.as_json()).unwrap()
+                );
+                status.add_header(&mut header).unwrap();
+
+                Err(status)
+            }
         }
     }
 
@@ -83,7 +95,7 @@ impl UmsControl for UMSGreeter {
 
         match resp {
             Ok(_) => Ok(Response::new(())),
-            Err(error) => Err(Status::unauthenticated(error.to_string()))
+            Err(error) => Err(Status::internal(error.to_string()))
         }
     }
 }

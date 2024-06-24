@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use actix_web::{error, HttpResponse, Result};
 use actix_web::http::header::ContentType;
 use actix_web::http::StatusCode;
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 
@@ -22,15 +22,9 @@ impl ApplicationError {
             ApplicationError::Unauthorized(ref content) => (StatusCode::UNAUTHORIZED, content.clone()),
         }
     }
-}
-
-impl error::ResponseError for ApplicationError {
-    fn status_code(&self) -> StatusCode {
-        self.error_rest_content().0
-    }
-
-    fn error_response(&self) -> HttpResponse {
-        let response = match self.error_rest_content().1 {
+    
+    pub fn as_json(&self) -> Value {
+        match self.error_rest_content().1 {
             ErrorContent::Message(msg) => json!({
                 "error": msg
             }),
@@ -42,11 +36,19 @@ impl error::ResponseError for ApplicationError {
                     })
                 }).collect::<Vec<_>>()
             }),
-        };
+        }
+    }
+}
 
+impl error::ResponseError for ApplicationError {
+    fn status_code(&self) -> StatusCode {
+        self.error_rest_content().0
+    }
+
+    fn error_response(&self) -> HttpResponse {
         HttpResponse::build(self.status_code())
             .insert_header(ContentType::json())
-            .body(serde_json::to_string(&response).unwrap())
+            .body(serde_json::to_string(&self.as_json()).unwrap())
     }
 }
 
