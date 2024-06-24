@@ -10,6 +10,7 @@ use actix_web::middleware::Logger;
 use sea_orm::{ConnectOptions, Database, DbConn};
 use deadpool_redis::{Config, Runtime};
 use lapin::{Connection as RabbitConnection, ConnectionProperties as RMQConnProps};
+use tera::Tera;
 use tokio::runtime::Builder;
 
 use crate::domain::models::service::ServiceTextId;
@@ -37,11 +38,11 @@ struct AppConfigProvider {
     is_intermediate: bool,
 }
 
-fn create_email_confirm(
-    redis_pool: deadpool_redis::Pool,
+fn make_email_sender(
     config: config::Email,
     service_name: ServiceTextId,
-) -> adapters::email_confirm::EmailConfirmAdapter {
+    tera: Tera
+) -> adapters::rmq_email_sender::RMQEmailSender {
     let email_confirm_factory = thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
@@ -59,17 +60,15 @@ fn create_email_confirm(
                 std::process::exit(1);
             }).unwrap();
 
-            adapters::email_confirm::EmailConfirmAdapter::new(
-                Box::new(redis_pool),
+            adapters::rmq_email_sender::RMQEmailSender::new(
                 Box::new(rmq_conn),
                 config.rabbitmq.exchange,
                 config.sender_id,
                 service_name,
-                300 // 5 min
+                tera,
             )
         })
     }).join().unwrap();
-
     email_confirm_factory
 }
 
@@ -107,6 +106,14 @@ async fn main() -> std::io::Result<()> {
             log::error!("Failed to load config: {}", error);
             std::process::exit(1);
         },
+    };
+
+    let tera = match Tera::new("templates/**/*.html") {
+        Ok(t) => t,
+        Err(e) => {
+            log::error!("Tera parsing error(s): {}", e);
+            std::process::exit(1);
+        }
     };
 
     let db: Box<DbConn> = match {
@@ -149,7 +156,7 @@ async fn main() -> std::io::Result<()> {
     };
     
     let session_redis_pool = redis_factory(0).create_pool(Some(Runtime::Tokio1)).unwrap();
-    let confirm_manager_redis_pool = redis_factory(1).create_pool(Some(Runtime::Tokio1)).unwrap();
+    let confirm_code_redis_pool = redis_factory(1).create_pool(Some(Runtime::Tokio1)).unwrap();
     
     application::initial::service_permissions(
         &adapters::database::service_db::ServiceGateway::new(db.clone()),
@@ -170,12 +177,14 @@ async fn main() -> std::io::Result<()> {
     let ioc_grpc: Arc<dyn InteractorFactory> = Arc::new(IoC::new(
         db.clone(),
         session_redis_pool.clone(),
-        create_email_confirm(
-            confirm_manager_redis_pool.clone(),
+        config.base.session_exp,
+        make_email_sender(
             config.email.clone(),
             service_name.clone(),
+            tera.clone()
         ),
-        config.base.session_exp
+        confirm_code_redis_pool.clone(),
+        config.base.confirm_code_ttl
     ));
 
     let ums_greeter = UMSGreeter::new(ioc_grpc, service_name.clone());
@@ -187,12 +196,14 @@ async fn main() -> std::io::Result<()> {
         let ioc_arc: Arc<dyn InteractorFactory> = Arc::new(IoC::new(
             db.clone(),
             session_redis_pool.clone(),
-            create_email_confirm(
-                confirm_manager_redis_pool.clone(),
+            config.base.session_exp,
+            make_email_sender(
                 config.email.clone(),
                 service_name.clone(),
+                tera.clone()
             ),
-            config.base.session_exp
+            confirm_code_redis_pool.clone(),
+            config.base.confirm_code_ttl
         ));
         
         let ioc_data: web::Data<dyn InteractorFactory> = web::Data::from(ioc_arc);
