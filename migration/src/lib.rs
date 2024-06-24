@@ -10,6 +10,7 @@ mod m20240530_141709_create_m2m_role_user;
 mod m20240601_100718_create_session;
 mod m20240607_103644_create_default_role_id_cell;
 mod m20240607_103716_create_init_state_cell;
+mod m20240623_171621_create_access_log;
 
 pub struct Migrator;
 
@@ -27,6 +28,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240601_100718_create_session::Migration),
             Box::new(m20240607_103644_create_default_role_id_cell::Migration),
             Box::new(m20240607_103716_create_init_state_cell::Migration),
+            Box::new(m20240623_171621_create_access_log::Migration),
         ]
     }
 }
