@@ -11,3 +11,4 @@ pub mod sessions;
 pub mod users;
 pub mod default_role;
 pub mod init_state;
+pub mod access_logs;
