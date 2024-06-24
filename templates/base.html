@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta content="width=device-width, initial-scale=1" name="viewport">
+        <title>{% block title %}{% endblock title %} - MilkHunters</title>
+    </head>
+    <body style="
+        font-size: 1.53rem;
+        line-height: 1.618;
+        max-width: 38em;
+        margin: auto;
+        color: #4a4a4a;
+        background-color: #f9f9f9;
+        padding: 13px;
+    ">
+        <div style="padding: 10px">
+            {% block content %}{% endblock content %}
+        </div>
+    </body>
+</html>

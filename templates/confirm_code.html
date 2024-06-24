@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Подтверждение{% endblock title %}
+
+{% block content %}
+<p>
+    Код подтверждения: <b>{{ code }}</b>
+</p>
+<p style="
+    font-size: 0.8em;
+    color: rgb(0 0 0 / 42%);
+">
+    Никому не сообщайте этот код! Если вы не запрашивали его, то просто проигнорируйте это письмо.
+</p>
+{% endblock content %}
