@@ -147,13 +147,39 @@ impl AccessService {
         
         Err(DomainError::AccessDenied)
     }
-    
+
+    pub fn ensure_can_reset_password(
+        &self,
+        is_auth: &bool,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        
+        if *is_auth || !permissions.contains(&UMSPermission::ResetUserPassword.to_string())
+        {
+            return Err(DomainError::AccessDenied)
+        }
+
+        Ok(())
+    }
+
+
     pub fn ensure_can_confirm_user(
         &self,
         is_auth: &bool,
         permissions: &Vec<PermissionTextId>
     ) -> Result<(), DomainError> {
         if !permissions.contains(&UMSPermission::ConfirmUser.to_string()) || *is_auth {
+            return Err(DomainError::AccessDenied)
+        }
+        Ok(())
+    }
+
+    pub fn ensure_can_send_confirm_code(
+        &self,
+        is_auth: &bool,
+        permissions: &Vec<PermissionTextId>
+    ) -> Result<(), DomainError> {
+        if !permissions.contains(&UMSPermission::SendConfirmCode.to_string()) || *is_auth {
             return Err(DomainError::AccessDenied)
         }
         Ok(())
