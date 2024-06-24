@@ -1,5 +1,4 @@
 use actix_web::{get, HttpRequest, HttpResponse, patch, post, put, Result, web};
-use actix_web::http::StatusCode;
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -162,7 +161,7 @@ async fn change_password_self(
         &req
     );
     ioc.change_password(id_provider).execute(data.into_inner()).await?;
-    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
+    Ok(HttpResponse::NoContent().finish())
 }
 
 #[derive(Debug, Deserialize)]
@@ -200,7 +199,7 @@ async fn confirm_email(
         }
     }
 
-    return Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
+    return Ok(HttpResponse::NoContent().finish())
 }
 
 #[derive(Debug, Deserialize)]
@@ -240,5 +239,5 @@ async fn reset_password(
         }
     }
     
-    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
+    Ok(HttpResponse::NoContent().finish())
 }

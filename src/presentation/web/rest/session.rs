@@ -66,7 +66,7 @@ async fn delete_session(
     ioc.delete_session(id_provider).execute(
         id.into_inner()
     ).await?;
-    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
+    Ok(HttpResponse::NoContent().finish())
 }
 
 #[delete("self")]
@@ -81,7 +81,7 @@ async fn delete_self_session(
         &req
     );
     ioc.delete_self_session(id_provider).execute(()).await?;
-    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
+    Ok(HttpResponse::NoContent().finish())
 }
 
 #[get("{id}")]
