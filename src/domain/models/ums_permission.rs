@@ -9,6 +9,9 @@ pub enum UMSPermission {
     UpdateUserSelf,
     DeleteUser,
     ConfirmUser,
+    ResetUserPassword,
+
+    SendConfirmCode,
 
     GetSessionSelf,
     GetSession,
