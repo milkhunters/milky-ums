@@ -6,7 +6,9 @@ pub trait IdProvider: Send + Sync {
     fn user_id(&self) -> Option<&UserId>;
     fn user_state(&self) -> Option<&UserState>;
     fn permissions(&self) -> &Vec<String>;
-    fn user_agent(&self) -> &str;
+    fn client(&self) -> &str;
+    fn os(&self) -> &str;
+    fn device(&self) -> &str;
     fn ip(&self) -> &str;
     fn is_auth(&self) -> &bool;
 }

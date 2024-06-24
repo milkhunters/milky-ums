@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use log::warn;
 use serde::{Deserialize, Serialize};
+use woothee::parser::Parser;
 
 use crate::application::common::id_provider::IdProvider;
 use crate::domain::models::permission::PermissionTextId;
@@ -21,7 +22,9 @@ pub struct IdHeaderProvider {
     session_id: Option<SessionId>,
     user_state: Option<UserState>,
     permissions: Vec<PermissionTextId>,
-    user_agent: String,
+    client: String,
+    os: String,
+    device: String,
     ip: String,
     is_auth: bool
 }
@@ -34,6 +37,39 @@ impl IdHeaderProvider {
         user_agent: String,
         ip: &str
     ) -> Self {
+
+        let (client, os, device) = match Parser::new().parse(
+            user_agent.as_str()
+        ) {
+            Some(parser) => {
+                let client = format!(
+                    "{} {}",
+                    parser.vendor,
+                    parser.name,
+                ).trim().chars().take(128).collect::<String>();
+                let os = format!(
+                    "{} {}",
+                    parser.os,
+                    parser.os_version
+                ).trim().chars().take(64).collect::<String>();
+                let category = parser.category.chars().take(64).collect::<String>();
+
+                (
+                    if client.is_empty() { "Unknown".to_string() } else { client },
+                    if os.is_empty() { "Unknown".to_string() } else { os },
+                    if category.is_empty() { "Unknown".to_string() } else { category }
+                )
+            },
+            None => {
+                let client = user_agent.trim().chars().take(128).collect::<String>();
+                (
+                    if client.is_empty() { "Unknown".to_string() } else { client },
+                    "Unknown".to_string(),
+                    "Unknown".to_string()
+                )
+            }
+        };
+
         match payload {
             Some(payload) => Self {
                 user_id: Some(payload.user_id),
@@ -50,7 +86,9 @@ impl IdHeaderProvider {
                         vec![]
                     }
                 },
-                user_agent,
+                client,
+                os,
+                device,
                 ip: ip.to_string(),
                 is_auth: true
             },
@@ -60,9 +98,12 @@ impl IdHeaderProvider {
                 user_state: None,
                 permissions: vec![
                     "CreateUser".parse().unwrap(), 
-                    "CreateSession".parse().unwrap()
+                    "CreateSession".parse().unwrap(),
+                    "ConfirmUser".parse().unwrap(),
                 ],
-                user_agent,
+                client,
+                os,
+                device,
                 ip: ip.to_string(),
                 is_auth: false
             }
@@ -96,8 +137,16 @@ impl IdProvider for IdHeaderProvider {
         &self.permissions
     }
 
-    fn user_agent(&self) -> &str {
-        &self.user_agent
+    fn client(&self) -> &str {
+        &self.client
+    }
+
+    fn os(&self) -> &str {
+        &self.os
+    }
+
+    fn device(&self) -> &str {
+        &self.device
     }
 
     fn ip(&self) -> &str {
