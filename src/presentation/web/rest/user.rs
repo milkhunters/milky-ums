@@ -12,6 +12,7 @@ use crate::application::user::create::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
+use crate::application::user::reset_password::ResetPasswordDTO;
 use crate::application::user::send_confirm_code::SendConfirmCodeDTO;
 use crate::application::user::update::UpdateUserDTO;
 use crate::application::user::update_self::UpdateSelfDTO;
@@ -31,6 +32,10 @@ pub fn router(cfg: &mut web::ServiceConfig) {
             .service(
                 web::scope("/confirm")
                     .service(confirm_email)
+            )
+            .service(
+                web::scope("/reset")
+                    .service(reset_password)
             )
     );
 }
@@ -179,21 +184,61 @@ async fn confirm_email(
         &req
     );
     
-    let data = match query.code {
+    match query.code {
+        None => {
+            let data = SendConfirmCodeDTO {
+                email: email.into_inner(),
+            };
+            ioc.send_confirm_code(id_provider).execute(data).await?;
+        },
         Some(code) => {
             let data = ConfirmUserDTO {
                 email: email.into_inner(),
                 code
             };
-            ioc.confirm_user(id_provider).execute(data).await?
+            ioc.confirm_user(id_provider).execute(data).await?;
         }
+    }
+
+    return Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
+}
+
+#[derive(Debug, Deserialize)]
+struct ResetPasswordQuery {
+    new_password: String,
+    code: Option<u32>
+}
+
+#[post("/password/{email}")]
+async fn reset_password(
+    email: web::Path<String>,
+    query: web::Query<ResetPasswordQuery>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+
+    match query.code {
         None => {
             let data = SendConfirmCodeDTO {
                 email: email.into_inner(),
             };
-            ioc.send_confirm_code(id_provider).execute(data).await?
+            ioc.send_confirm_code(id_provider).execute(data).await?;
+        },
+        Some(code) => {
+            let data = ResetPasswordDTO {
+                email: email.into_inner(),
+                new_password: query.new_password.clone(),
+                code
+            };
+            ioc.reset_password(id_provider).execute(data).await?;
         }
-    };
+    }
     
-    Ok(HttpResponse::Ok().json(data))
+    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
 }
