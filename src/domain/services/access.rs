@@ -1,5 +1,6 @@
 use uuid::Uuid;
 use crate::domain::exceptions::DomainError;
+use crate::domain::models::permission::PermissionTextId;
 use crate::domain::models::session::SessionId;
 use crate::domain::models::ums_permission::UMSPermission;
 use crate::domain::models::user::UserState;
@@ -145,6 +146,17 @@ impl AccessService {
         }
         
         Err(DomainError::AccessDenied)
+    }
+    
+    pub fn ensure_can_confirm_user(
+        &self,
+        is_auth: &bool,
+        permissions: &Vec<PermissionTextId>
+    ) -> Result<(), DomainError> {
+        if !permissions.contains(&UMSPermission::ConfirmUser.to_string()) || *is_auth {
+            return Err(DomainError::AccessDenied)
+        }
+        Ok(())
     }
 
     pub fn ensure_can_delete_session(
