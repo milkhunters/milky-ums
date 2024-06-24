@@ -125,12 +125,13 @@ impl Interactor<UpdateUserDTO, UpdateUserResultDTO> for UpdateUser<'_> {
         };
         
         let new_user = self.user_service.update_user(
-            user,
+            user.clone(),
             data.email,
             data.username,
             data.state,
             data.first_name,
-            data.last_name
+            data.last_name,
+            user.hashed_password
         );
 
         self.user_gateway.save_user(&new_user).await;

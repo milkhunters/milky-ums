@@ -91,6 +91,7 @@ impl Interactor<ConfirmUserDTO, ()> for ConfirmUser<'_> {
             UserState::Active,
             user.first_name,
             user.last_name,
+            user.hashed_password
         );
         
         self.user_gateway.save_user(&new_user).await;

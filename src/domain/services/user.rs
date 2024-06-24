@@ -38,6 +38,7 @@ impl UserService {
         new_state: UserState,
         new_first_name: Option<String>,
         new_last_name: Option<String>,
+        new_hashed_password: String,
     ) -> User {
         User {
             username: new_username,
@@ -46,6 +47,7 @@ impl UserService {
             first_name: new_first_name,
             last_name: new_last_name,
             updated_at: Some(Utc::now()),
+            hashed_password: new_hashed_password,
             ..user
         }
     }
