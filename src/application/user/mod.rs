@@ -8,3 +8,4 @@ pub mod update_self;
 pub mod send_confirm_code;
 pub mod confirm;
 pub mod change_password;
+pub mod reset_password;

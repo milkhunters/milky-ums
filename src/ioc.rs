@@ -26,6 +26,7 @@ use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
 use crate::application::user::get_self::GetUserSelf;
+use crate::application::user::reset_password::ResetPassword;
 use crate::application::user::send_confirm_code::SendConfirmCode;
 use crate::application::user::update::UpdateUser;
 use crate::application::user::update_self::UpdateUserSelf;
@@ -256,6 +257,20 @@ impl InteractorFactory for IoC {
             validator: &self.validator,
             password_hasher: &self.password_hasher,
             access_service: &self.access_service,
+            id_provider,
+        }
+    }
+
+    fn reset_password(&self, id_provider: Box<dyn IdProvider>) -> ResetPassword {
+        ResetPassword {
+            email_sender: &self.email_sender,
+            confirm_code: &self.confirm_code,
+            user_gateway: &self.user_gateway,
+            user_service: &self.user_service,
+            validator: &self.validator,
+            password_hasher: &self.password_hasher,
+            access_service: &self.access_service,
+            session_remover: &self.session_gateway,
             id_provider,
         }
     }

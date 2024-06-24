@@ -14,6 +14,7 @@ use crate::application::user::change_password::ChangePassword;
 use crate::application::user::confirm::ConfirmUser;
 use crate::application::user::create::CreateUser;
 use crate::application::user::get_self::GetUserSelf;
+use crate::application::user::reset_password::ResetPassword;
 use crate::application::user::send_confirm_code::SendConfirmCode;
 use crate::application::user::update::UpdateUser;
 use crate::application::user::update_self::UpdateUserSelf;
@@ -37,4 +38,5 @@ pub trait InteractorFactory: Send + Sync {
     fn send_confirm_code(&self, id_provider: Box<dyn IdProvider>) -> SendConfirmCode;
     fn confirm_user(&self, id_provider: Box<dyn IdProvider>) -> ConfirmUser;
     fn change_password(&self, id_provider: Box<dyn IdProvider>) -> ChangePassword;
+    fn reset_password(&self, id_provider: Box<dyn IdProvider>) -> ResetPassword;
 }
