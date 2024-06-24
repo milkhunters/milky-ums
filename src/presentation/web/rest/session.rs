@@ -1,5 +1,6 @@
 use actix_web::{delete, get, HttpRequest, HttpResponse, post, Result, web};
 use actix_web::cookie::Cookie;
+use actix_web::http::StatusCode;
 
 use crate::AppConfigProvider;
 use crate::application::common::exceptions::ApplicationError;
@@ -65,7 +66,7 @@ async fn delete_session(
     ioc.delete_session(id_provider).execute(
         id.into_inner()
     ).await?;
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
 }
 
 #[delete("self")]
@@ -80,7 +81,7 @@ async fn delete_self_session(
         &req
     );
     ioc.delete_self_session(id_provider).execute(()).await?;
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::Ok().status(StatusCode::NO_CONTENT).finish())
 }
 
 #[get("{id}")]
