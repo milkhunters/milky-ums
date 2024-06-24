@@ -1,5 +1,4 @@
 use actix_web::HttpRequest;
-use log::info;
 
 use crate::adapters::auth::header::{HeaderPayload, IdHeaderProvider};
 use crate::application::common::id_provider::IdProvider;
@@ -26,10 +25,6 @@ pub fn make_id_provider_from_request(
     req: &HttpRequest
 ) -> Box<dyn IdProvider> {
     let headers = req.headers();
-    
-    // headers.iter().for_each(|(h, v)| {
-    //     info!("{}: {}", h, v.to_str().unwrap());
-    // });
     
     let payload_raw = headers.get("payload").map(|value| {
         value.to_str().unwrap().to_string()
