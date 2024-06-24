@@ -15,6 +15,7 @@ pub struct Base {
     pub title: String,
     pub description: String,
     pub session_exp: u32,
+    pub confirm_code_ttl: u32,
     pub contact: Contact,
 }
 
