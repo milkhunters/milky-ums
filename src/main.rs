@@ -212,6 +212,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::scope("/api")
                 .configure(presentation::web::rest::user::router)
                 .configure(presentation::web::rest::session::router)
+                .configure(presentation::web::rest::access_log::router)
             )
             .app_data(web::Data::new(AppConfigProvider {
                 branch,

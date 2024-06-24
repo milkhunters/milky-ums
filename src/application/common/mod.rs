@@ -10,3 +10,4 @@ pub mod exceptions;
 pub mod hasher;
 pub mod confirm_code;
 pub mod email_sender;
+pub mod access_log_gateway;

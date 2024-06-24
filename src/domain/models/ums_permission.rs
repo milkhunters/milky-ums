@@ -19,6 +19,8 @@ pub enum UMSPermission {
     UpdateSession,
     DeleteSession,
     DeleteSessionSelf,
+    GetAccessLogSelf,
+    GetAccessLog,
     
     GetRole,
     CreateRole,

@@ -322,6 +322,44 @@ impl AccessService {
         
         Err(DomainError::AccessDenied)
     }
+
+    pub fn ensure_can_get_access_log_self(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+
+        if permissions.contains(&UMSPermission::GetAccessLogSelf.to_string()) &&
+            user_state.unwrap() == &UserState::Active 
+        {
+            return Ok(())
+        }
+
+        Err(DomainError::AccessDenied)
+    }
+
+    pub fn ensure_can_get_access_log(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+
+        if permissions.contains(&UMSPermission::GetAccessLog.to_string()) &&
+            user_state.unwrap() == &UserState::Active
+        {
+            return Ok(())
+        }
+
+        Err(DomainError::AccessDenied)
+    }
     
     pub fn ensure_can_create_role(
         &self,

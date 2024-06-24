@@ -2,6 +2,7 @@ use deadpool_redis::Pool;
 use sea_orm::DbConn;
 
 use crate::adapters::argon2_password_hasher::Argon2PasswordHasher;
+use crate::adapters::database::access_log_db::AccessLogGateway;
 use crate::adapters::database::permission_db::PermissionGateway;
 use crate::adapters::database::role_db::RoleGateway;
 use crate::adapters::database::service_db::ServiceGateway;
@@ -16,6 +17,8 @@ use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
 use crate::application::session::extract_payload::EPSession;
+use crate::application::session::get_access_log::GetAccessLog;
+use crate::application::session::get_access_log_self::GetAccessLogSelf;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionsByUserId;
 use crate::application::session::get_self::GetSessionSelf;
@@ -39,6 +42,7 @@ use crate::presentation::interactor_factory::InteractorFactory;
 pub struct IoC {
     user_gateway: UserGateway,
     session_gateway: SessionGateway,
+    access_log_gateway: AccessLogGateway,
     role_gateway: RoleGateway,
     service_gateway: ServiceGateway,
     permission_gateway: PermissionGateway,
@@ -69,6 +73,7 @@ impl IoC {
                 session_exp,
                 db_pool.clone(),
             ),
+            access_log_gateway: AccessLogGateway::new(db_pool.clone()),
             role_gateway: RoleGateway::new(db_pool.clone()),
             service_gateway: ServiceGateway::new(db_pool.clone()),
             permission_gateway: PermissionGateway::new(db_pool.clone()),
@@ -272,6 +277,22 @@ impl InteractorFactory for IoC {
             access_service: &self.access_service,
             session_remover: &self.session_gateway,
             id_provider,
+        }
+    }
+    
+    fn get_access_log_self(&self, id_provider: Box<dyn IdProvider>) -> GetAccessLogSelf {
+        GetAccessLogSelf {
+            access_log_reader: &self.access_log_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+    
+    fn get_access_log(&self, id_provider: Box<dyn IdProvider>) -> GetAccessLog {
+        GetAccessLog {
+            access_log_reader: &self.access_log_gateway,
+            id_provider,
+            access_service: &self.access_service,
         }
     }
 }

@@ -4,6 +4,8 @@ use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
 use crate::application::session::extract_payload::EPSession;
+use crate::application::session::get_access_log::GetAccessLog;
+use crate::application::session::get_access_log_self::GetAccessLogSelf;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
@@ -39,4 +41,6 @@ pub trait InteractorFactory: Send + Sync {
     fn confirm_user(&self, id_provider: Box<dyn IdProvider>) -> ConfirmUser;
     fn change_password(&self, id_provider: Box<dyn IdProvider>) -> ChangePassword;
     fn reset_password(&self, id_provider: Box<dyn IdProvider>) -> ResetPassword;
+    fn get_access_log_self(&self, id_provider: Box<dyn IdProvider>) -> GetAccessLogSelf;
+    fn get_access_log(&self, id_provider: Box<dyn IdProvider>) -> GetAccessLog;
 }
