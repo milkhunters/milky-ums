@@ -1,13 +1,15 @@
 use deadpool_redis::Pool;
 use sea_orm::DbConn;
+
 use crate::adapters::argon2_password_hasher::Argon2PasswordHasher;
 use crate::adapters::database::permission_db::PermissionGateway;
-use crate::adapters::sha256_session_hasher::Sha256SessionHasher;
-
-use crate::adapters::database::session_db::SessionGateway;
-use crate::adapters::database::user_db::UserGateway;
 use crate::adapters::database::role_db::RoleGateway;
 use crate::adapters::database::service_db::ServiceGateway;
+use crate::adapters::database::session_db::SessionGateway;
+use crate::adapters::database::user_db::UserGateway;
+use crate::adapters::redis_confirm_code::RedisConfirmCode;
+use crate::adapters::rmq_email_sender::RMQEmailSender;
+use crate::adapters::sha256_session_hasher::Sha256SessionHasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::service::sync::ServiceSync;
 use crate::application::session::create::CreateSession;
@@ -17,11 +19,13 @@ use crate::application::session::extract_payload::EPSession;
 use crate::application::session::get_by_id::GetSessionById;
 use crate::application::session::get_by_user_id::GetSessionsByUserId;
 use crate::application::session::get_self::GetSessionSelf;
+use crate::application::user::confirm::ConfirmUser;
 use crate::application::user::create::CreateUser;
 use crate::application::user::get_by_id::GetUserById;
 use crate::application::user::get_by_ids::GetUsersByIds;
 use crate::application::user::get_range::GetUserRange;
 use crate::application::user::get_self::GetUserSelf;
+use crate::application::user::send_confirm_code::SendConfirmCode;
 use crate::application::user::update::UpdateUser;
 use crate::application::user::update_self::UpdateUserSelf;
 use crate::domain::services::access::AccessService;
@@ -42,29 +46,41 @@ pub struct IoC {
     session_hasher: Sha256SessionHasher,
     validator: ValidatorService,
     access_service: AccessService,
+    confirm_code: RedisConfirmCode,
+    email_sender: RMQEmailSender
 }
 
 impl IoC {
     pub fn new(
         db_pool: Box<DbConn>,
         session_redis_pool: Pool,
-        confirm_manager_redis_pool: Pool,
+        session_exp: u32,
+        email_sender: RMQEmailSender,
+        confirm_redis_pool: Pool,
+        confirm_code_ttl: u32,
+        
     ) -> IoC {
         IoC {
             user_gateway: UserGateway::new(db_pool.clone()),
             session_gateway: SessionGateway::new(
                 Box::new(session_redis_pool),
+                session_exp,
                 db_pool.clone(),
             ),
             role_gateway: RoleGateway::new(db_pool.clone()),
             service_gateway: ServiceGateway::new(db_pool.clone()),
             permission_gateway: PermissionGateway::new(db_pool.clone()),
             user_service: UserService{},
-            session_service: SessionService{},
+            session_service: SessionService::new(session_exp),
             password_hasher: Argon2PasswordHasher::new(),
             session_hasher: Sha256SessionHasher {},
             validator: ValidatorService::new(),
             access_service: AccessService{},
+            confirm_code: RedisConfirmCode::new(
+                Box::new(confirm_redis_pool),
+                confirm_code_ttl,
+            ),
+            email_sender
         }
     }
 }
@@ -106,6 +122,7 @@ impl InteractorFactory for IoC {
         CreateUser {
             user_gateway: &self.user_gateway,
             role_gateway: &self.role_gateway,
+            email_sender: &self.email_sender,
             user_service: &self.user_service,
             password_hasher: &self.password_hasher,
             validator: &self.validator,
@@ -206,5 +223,27 @@ impl InteractorFactory for IoC {
             permission_gateway: &self.permission_gateway,
         }
     }
-    
+
+    fn send_confirm_code(&self, id_provider: Box<dyn IdProvider>) -> SendConfirmCode {
+        SendConfirmCode {
+            id_provider,
+            email_sender: &self.email_sender,
+            confirm_code: &self.confirm_code,
+            user_reader: &self.user_gateway,
+            access_service: &self.access_service,
+            validator: &self.validator,
+        }
+    }
+
+    fn confirm_user(&self, id_provider: Box<dyn IdProvider>) -> ConfirmUser {
+        ConfirmUser {
+            id_provider,
+            user_gateway: &self.user_gateway,
+            confirm_code: &self.confirm_code,
+            email_sender: &self.email_sender,
+            user_service: &self.user_service,
+            validator: &self.validator,
+            access_service: &self.access_service,
+        }
+    }
 }

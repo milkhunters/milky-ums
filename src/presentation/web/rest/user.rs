@@ -1,15 +1,16 @@
-use actix_web::{get, HttpRequest, HttpResponse, post, put, Responder, Result, web};
-use log::info;
+use actix_web::{get, HttpRequest, HttpResponse, post, put, Result, web};
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::AppConfigProvider;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
+use crate::application::user::confirm::ConfirmUserDTO;
 use crate::application::user::create::CreateUserDTO;
 use crate::application::user::get_by_id::GetUserByIdDTO;
 use crate::application::user::get_by_ids::GetUsersByIdsDTO;
 use crate::application::user::get_range::GetUserRangeDTO;
+use crate::application::user::send_confirm_code::SendConfirmCodeDTO;
 use crate::application::user::update::UpdateUserDTO;
 use crate::application::user::update_self::UpdateSelfDTO;
 use crate::presentation::id_provider::make_id_provider_from_request;
@@ -25,7 +26,7 @@ pub fn router(cfg: &mut web::ServiceConfig) {
             .service(update_user)
             .service(update_user_self)
             .service(
-                web::scope("/confirmation")
+                web::scope("/confirm")
                     .service(confirm_email)
             )
     );
@@ -140,10 +141,40 @@ async fn update_user_self(
     Ok(HttpResponse::Ok().json(data))
 }
 
+#[derive(Debug, Deserialize)]
+struct ConfirmQuery {
+    code: Option<u32>
+}
+
 #[post("/{email}")]
 async fn confirm_email(
     email: web::Path<String>,
-    code: web::Query<Option<i32>>,
-) -> impl Responder {
-    HttpResponse::Ok().body(format!("confirm_email: {} with code: {:?}", email, code))
+    query: web::Query<ConfirmQuery>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    
+    let data = match query.code {
+        Some(code) => {
+            let data = ConfirmUserDTO {
+                email: email.into_inner(),
+                code
+            };
+            ioc.confirm_user(id_provider).execute(data).await?
+        }
+        None => {
+            let data = SendConfirmCodeDTO {
+                email: email.into_inner(),
+            };
+            ioc.send_confirm_code(id_provider).execute(data).await?
+        }
+    };
+    
+    Ok(HttpResponse::Ok().json(data))
 }

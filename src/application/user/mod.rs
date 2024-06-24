@@ -5,3 +5,5 @@ pub mod get_self;
 pub mod create;
 pub mod update;
 pub mod update_self;
+pub mod send_confirm_code;
+pub mod confirm;
