@@ -12,7 +12,7 @@ pub trait AccessLogReader {
 
 #[async_trait]
 pub trait AccessLogWriter {
-    async fn save_permission(&self, data: &AccessLog);
+    async fn save_rec(&self, data: &AccessLog);
 }
 
 pub trait AccessLogGateway: AccessLogReader + AccessLogWriter { }

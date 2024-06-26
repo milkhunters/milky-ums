@@ -53,7 +53,7 @@ impl AccessLogReader for AccessLogGateway {
 
 #[async_trait]
 impl AccessLogWriter for AccessLogGateway {
-    async fn save_permission(&self, data: &AccessLogDomain) {
+    async fn save_rec(&self, data: &AccessLogDomain) {
         let model = map_rec_domain_to_model(data.clone());
         
         match access_logs::Entity::find_by_id(data.id).one(self.db.as_ref()).await.unwrap() {
