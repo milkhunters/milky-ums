@@ -9,6 +9,7 @@ use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
+use crate::config::Extra;
 use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::validator::ValidatorService;
@@ -21,6 +22,7 @@ pub struct SendConfirmCodeDTO {
 pub struct SendConfirmCode<'a> {
     pub email_sender: &'a dyn EmailSender,
     pub confirm_code: &'a dyn ConfirmCode,
+    pub extra: &'a Extra,
     pub user_reader: &'a dyn UserReader,
     pub validator: &'a ValidatorService,
     pub access_service: &'a AccessService,
@@ -84,6 +86,9 @@ impl Interactor<SendConfirmCodeDTO, ()> for SendConfirmCode<'_> {
         let context: BTreeMap<String, Value> = {
             let mut context = BTreeMap::new();
             context.insert("code".to_string(), Value::String(code.to_string()));
+            context.insert("username".to_string(), Value::String(user.username));
+            context.insert("company".to_string(), Value::String(self.extra.company.clone()));
+            context.insert("company_url".to_string(), Value::String(self.extra.company_url.clone()));
             context
         };
         
