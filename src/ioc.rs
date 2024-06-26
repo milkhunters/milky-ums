@@ -252,7 +252,6 @@ impl InteractorFactory for IoC {
             id_provider,
             user_gateway: &self.user_gateway,
             confirm_code: &self.confirm_code,
-            email_sender: &self.email_sender,
             user_service: &self.user_service,
             validator: &self.validator,
             access_service: &self.access_service,

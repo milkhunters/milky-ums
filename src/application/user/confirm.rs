@@ -1,10 +1,8 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use serde::Deserialize;
-use serde_json::Value;
 
 use crate::application::common::confirm_code::ConfirmCode;
-use crate::application::common::email_sender::EmailSender;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
@@ -22,7 +20,6 @@ pub struct ConfirmUserDTO {
 
 pub struct ConfirmUser<'a> {
     pub confirm_code: &'a dyn ConfirmCode,
-    pub email_sender: &'a dyn EmailSender,
     pub user_gateway: &'a dyn UserGateway,
     pub user_service: &'a UserService,
     pub validator: &'a ValidatorService,
@@ -95,21 +92,6 @@ impl Interactor<ConfirmUserDTO, ()> for ConfirmUser<'_> {
         );
         
         self.user_gateway.save_user(&new_user).await;
-        
-        let context: BTreeMap<String, Value> = {
-            let mut context = BTreeMap::new();
-            context.insert("username".to_string(), Value::String(user.username.clone()));
-            context
-        };
-        
-        self.email_sender.send_template(
-            &user.email,
-            "Подтверждение почты",
-            "email_confirm_success.html",
-            Some(context),
-            13,
-            3600
-        ).await;
         
         Ok(())
     }
