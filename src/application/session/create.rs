@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::application::common::access_log_gateway::AccessLogWriter;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
@@ -14,6 +15,7 @@ use crate::domain::exceptions::DomainError;
 use crate::domain::models::session::SessionTokenHash;
 use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
+use crate::domain::services::access_log::AccessLogService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -37,6 +39,8 @@ pub struct CreateSessionResultDTO{
 pub struct CreateSession<'a> {
     pub session_gateway: &'a dyn SessionGateway,
     pub user_gateway: &'a dyn UserReader,
+    pub access_log_writer: &'a dyn AccessLogWriter,
+    pub access_log_service: &'a AccessLogService,
     pub user_service: &'a UserService,
     pub session_service: &'a SessionService,
     pub session_hasher: &'a dyn Hasher,
@@ -96,24 +100,39 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionTokenHash)> fo
             )
         };
 
+        let mut access_log = self.access_log_service.create_log(
+            user.id,
+            false,
+            self.id_provider.ip().to_string(),
+            self.id_provider.client().to_string(),
+            self.id_provider.os().to_string(),
+            self.id_provider.device().to_string(),
+        );
+
         match self.password_hasher.verify(
             &data.password,
             &user.hashed_password
         ).await {
             true => true,
-            false => return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Message("Неверная пара имя пользователя и пароль".to_string())
+            false => {
+                self.access_log_writer.save_rec(&access_log).await;
+                return Err(
+                    ApplicationError::InvalidData(
+                        ErrorContent::Message("Неверная пара имя пользователя и пароль".to_string())
+                    )
                 )
-            )
+            }
         };
         
         if user.state == UserState::Inactive {
-            return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Message("Сначала подтвердите свой email".to_string())
+            return {
+                self.access_log_writer.save_rec(&access_log).await;
+                Err(
+                    ApplicationError::InvalidData(
+                        ErrorContent::Message("Сначала подтвердите свой email".to_string())
+                    )
                 )
-            )
+            }
         }
         
         
@@ -130,6 +149,9 @@ impl Interactor<CreateSessionDTO, (CreateSessionResultDTO, SessionTokenHash)> fo
         );
         
         self.session_gateway.save_session(&session).await;
+        
+        access_log.is_success = true;
+        self.access_log_writer.save_rec(&access_log).await;
 
         Ok((
             CreateSessionResultDTO {

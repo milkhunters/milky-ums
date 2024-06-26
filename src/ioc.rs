@@ -34,6 +34,7 @@ use crate::application::user::send_confirm_code::SendConfirmCode;
 use crate::application::user::update::UpdateUser;
 use crate::application::user::update_self::UpdateUserSelf;
 use crate::domain::services::access::AccessService;
+use crate::domain::services::access_log::AccessLogService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -43,6 +44,7 @@ pub struct IoC {
     user_gateway: UserGateway,
     session_gateway: SessionGateway,
     access_log_gateway: AccessLogGateway,
+    access_log_service: AccessLogService,
     role_gateway: RoleGateway,
     service_gateway: ServiceGateway,
     permission_gateway: PermissionGateway,
@@ -74,6 +76,7 @@ impl IoC {
                 db_pool.clone(),
             ),
             access_log_gateway: AccessLogGateway::new(db_pool.clone()),
+            access_log_service: AccessLogService {},
             role_gateway: RoleGateway::new(db_pool.clone()),
             service_gateway: ServiceGateway::new(db_pool.clone()),
             permission_gateway: PermissionGateway::new(db_pool.clone()),
@@ -164,6 +167,8 @@ impl InteractorFactory for IoC {
             id_provider,
             session_gateway: &self.session_gateway,
             user_gateway: &self.user_gateway,
+            access_log_writer: &self.access_log_gateway,
+            access_log_service: &self.access_log_service,
             user_service: &self.user_service,
             session_service: &self.session_service,
             password_hasher: &self.password_hasher,
