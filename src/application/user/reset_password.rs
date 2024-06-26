@@ -11,6 +11,7 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::session_gateway::SessionRemover;
 use crate::application::common::user_gateway::UserGateway;
+use crate::config::Extra;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -32,6 +33,7 @@ pub struct ResetPassword<'a> {
     pub access_service: &'a AccessService,
     pub session_remover: &'a dyn SessionRemover,
     pub id_provider: Box<dyn IdProvider>,
+    pub extra: &'a Extra,
 }
 
 impl Interactor<ResetPasswordDTO, ()> for ResetPassword<'_> {
@@ -109,13 +111,15 @@ impl Interactor<ResetPasswordDTO, ()> for ResetPassword<'_> {
                 now.format("%d/%m/%Y %H:%M %Z").to_string()
             }));
             context.insert("email".to_string(), Value::String(user.email.clone()));
-            
+            context.insert("company".to_string(), Value::String(self.extra.company.clone()));
+            context.insert("company_url".to_string(), Value::String(self.extra.company_url.clone()));
+            context.insert("reset_password_url".to_string(), Value::String(self.extra.reset_password_url.clone()));
             context
         };
         
         self.email_sender.send_template(
             &user.email,
-            "Изменение пароля",
+            "Сброс пароля",
             "successfully_reset_password.html",
             Some(context),
             13,

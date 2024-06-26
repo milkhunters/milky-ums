@@ -310,11 +310,14 @@
                     <!-- START MAIN CONTENT AREA -->
                     <tr>
                         <td class="wrapper">
-                            <p>Здравствуйте, <b>{{ username }}</b>!</p>
+                            <p>Здравствуйте,&nbsp;<b>{{ username }}</b>!</p>
                             <br>
                             <p>Ваш код подтверждения: <b>{{ code }}</b></p>
                             <br>
-                            <p>Никому не сообщайте этот код! Если вы не запрашивали его, то просто проигнорируйте это письмо.</p>
+                            <p>
+                                Никому не сообщайте этот код! Если Вы не запрашивали его,
+                                то просто проигнорируйте это письмо.
+                            </p>
                         </td>
                     </tr>
 
@@ -332,7 +335,7 @@
                         </tr>
                         <tr>
                             <td class="content-block powered-by">
-                                С любовью, <a href="{{ team_url }}">MilkHunters team</a>
+                                С любовью,&nbsp;<a href="{{ company_url }}">{{ company }}</a>
                             </td>
                         </tr>
                     </table>

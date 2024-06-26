@@ -184,7 +184,8 @@ async fn main() -> std::io::Result<()> {
             tera.clone()
         ),
         confirm_code_redis_pool.clone(),
-        config.base.confirm_code_ttl
+        config.base.confirm_code_ttl,
+        config.base.extra.clone()
     ));
 
     let ums_greeter = UMSGreeter::new(ioc_grpc, service_name.clone());
@@ -203,7 +204,8 @@ async fn main() -> std::io::Result<()> {
                 tera.clone()
             ),
             confirm_code_redis_pool.clone(),
-            config.base.confirm_code_ttl
+            config.base.confirm_code_ttl,
+            config.base.extra.clone()
         ));
         
         let ioc_data: web::Data<dyn InteractorFactory> = web::Data::from(ioc_arc);

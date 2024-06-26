@@ -33,6 +33,7 @@ use crate::application::user::reset_password::ResetPassword;
 use crate::application::user::send_confirm_code::SendConfirmCode;
 use crate::application::user::update::UpdateUser;
 use crate::application::user::update_self::UpdateUserSelf;
+use crate::config::Extra;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::access_log::AccessLogService;
 use crate::domain::services::session::SessionService;
@@ -55,7 +56,8 @@ pub struct IoC {
     validator: ValidatorService,
     access_service: AccessService,
     confirm_code: RedisConfirmCode,
-    email_sender: RMQEmailSender
+    email_sender: RMQEmailSender,
+    extra: Extra,
 }
 
 impl IoC {
@@ -66,7 +68,7 @@ impl IoC {
         email_sender: RMQEmailSender,
         confirm_redis_pool: Pool,
         confirm_code_ttl: u32,
-        
+        extra: Extra
     ) -> IoC {
         IoC {
             user_gateway: UserGateway::new(db_pool.clone()),
@@ -90,7 +92,8 @@ impl IoC {
                 Box::new(confirm_redis_pool),
                 confirm_code_ttl,
             ),
-            email_sender
+            email_sender,
+            extra
         }
     }
 }
@@ -138,6 +141,7 @@ impl InteractorFactory for IoC {
             validator: &self.validator,
             access_service: &self.access_service,
             id_provider,
+            extra: &self.extra,
         }
     }
     
@@ -267,6 +271,7 @@ impl InteractorFactory for IoC {
             password_hasher: &self.password_hasher,
             access_service: &self.access_service,
             id_provider,
+            extra: &self.extra,
         }
     }
 
@@ -281,6 +286,7 @@ impl InteractorFactory for IoC {
             access_service: &self.access_service,
             session_remover: &self.session_gateway,
             id_provider,
+            extra: &self.extra,
         }
     }
     

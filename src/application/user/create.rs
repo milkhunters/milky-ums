@@ -10,6 +10,7 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserGateway;
 use crate::application::common::role_gateway::RoleGateway;
+use crate::config::Extra;
 use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -44,6 +45,7 @@ pub struct CreateUser<'a> {
     pub validator: &'a ValidatorService,
     pub access_service: &'a AccessService,
     pub id_provider: Box<dyn IdProvider>,
+    pub extra: &'a Extra,
 }
 
 impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
@@ -152,6 +154,8 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
         let context: BTreeMap<String, Value> = {
             let mut context = BTreeMap::new();
             context.insert("username".to_string(), Value::String(user.username.to_string()));
+            context.insert("company".to_string(), Value::String(self.extra.company.to_string()));
+            context.insert("company_url".to_string(), Value::String(self.extra.company_url.to_string()));
             context
         };
         

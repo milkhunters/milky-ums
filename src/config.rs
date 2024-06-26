@@ -3,10 +3,11 @@ use consulrs::kv;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct Contact {
-    pub name: String,
-    pub url: String,
-    pub email: String,
+pub struct Extra {
+    pub company: String,
+    pub company_url: String,
+    pub support_email: String,
+    pub reset_password_url: String,
 }
 
 
@@ -16,7 +17,7 @@ pub struct Base {
     pub description: String,
     pub session_exp: u32,
     pub confirm_code_ttl: u32,
-    pub contact: Contact,
+    pub extra: Extra,
 }
 
 #[derive(Debug, Clone, Deserialize)]

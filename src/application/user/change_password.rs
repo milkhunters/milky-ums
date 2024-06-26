@@ -9,6 +9,7 @@ use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserGateway;
+use crate::config::Extra;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -27,6 +28,7 @@ pub struct ChangePassword<'a> {
     pub password_hasher: &'a dyn Hasher,
     pub access_service: &'a AccessService,
     pub id_provider: Box<dyn IdProvider>,
+    pub extra: &'a Extra,
 }
 
 impl Interactor<ChangePasswordDTO, ()> for ChangePassword<'_> {
@@ -105,7 +107,9 @@ impl Interactor<ChangePasswordDTO, ()> for ChangePassword<'_> {
                 now.format("%d/%m/%Y %H:%M %Z").to_string()
             }));
             context.insert("email".to_string(), Value::String(user.email.clone()));
-            
+            context.insert("company".to_string(), Value::String(self.extra.company.clone()));
+            context.insert("company_url".to_string(), Value::String(self.extra.company_url.clone()));
+            context.insert("reset_password_url".to_string(), Value::String(self.extra.reset_password_url.clone()));
             context
         };
         
