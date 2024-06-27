@@ -120,6 +120,7 @@ impl InteractorFactory for IoC {
             user_reader: &self.user_gateway,
             id_provider,
             access_service: &self.access_service,
+            validator: &self.validator,
         }
     }
     
@@ -298,6 +299,7 @@ impl InteractorFactory for IoC {
             access_log_reader: &self.access_log_gateway,
             id_provider,
             access_service: &self.access_service,
+            validator: &self.validator,
         }
     }
     
@@ -306,6 +308,7 @@ impl InteractorFactory for IoC {
             access_log_reader: &self.access_log_gateway,
             id_provider,
             access_service: &self.access_service,
+            validator: &self.validator,
         }
     }
 }

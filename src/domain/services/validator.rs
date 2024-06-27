@@ -207,5 +207,21 @@ impl ValidatorService {
         }
         Ok(())
     }
+
+    pub fn validate_page(&self, page: &u64) -> Result<(), String> {
+        if *page == 0 {
+            return Err("Номер страницы должен быть больше 0".to_string());
+        }
+        Ok(())
+    }
+    
+    pub fn validate_per_page(&self, per_page: &u64) -> Result<(), String> {
+        if *per_page == 0 {
+            return Err("Количество элементов на странице должно быть больше 0".to_string());
+        } else if *per_page > 100 {
+            return Err("Количество элементов на странице должно быть не больше 100".to_string());
+        }
+        Ok(())
+    }
     
 }

@@ -11,6 +11,7 @@ use crate::domain::exceptions::DomainError;
 use crate::domain::models::access_log::AccessLogId;
 use crate::domain::models::user::UserId;
 use crate::domain::services::access::AccessService;
+use crate::domain::services::validator::ValidatorService;
 
 #[derive(Debug, Deserialize)]
 pub struct GetAccessLogDTO {
@@ -38,7 +39,8 @@ pub type AccessLogResultDTO = Vec<AccessLogItemResult>;
 pub struct GetAccessLog<'a> {
     pub access_log_reader: &'a dyn AccessLogReader,
     pub id_provider: Box<dyn IdProvider>,
-    pub access_service: &'a AccessService
+    pub access_service: &'a AccessService,
+    pub validator: &'a ValidatorService,
 }
 
 impl Interactor<GetAccessLogDTO, AccessLogResultDTO> for GetAccessLog<'_> {
@@ -65,15 +67,13 @@ impl Interactor<GetAccessLogDTO, AccessLogResultDTO> for GetAccessLog<'_> {
         }
 
         let mut validator_err_map: HashMap<String, String> = HashMap::new();
-        if data.page == 0 {
-            validator_err_map.insert("page".to_string(), "Номер страницы должен быть больше 0".to_string());
-        }
+        self.validator.validate_page(&data.page).unwrap_or_else(|e| {
+            validator_err_map.insert("page".to_string(), e.to_string());
+        });
 
-        if data.per_page == 0 {
-            validator_err_map.insert("per_page".to_string(), "Количество элементов на странице должно быть больше 0".to_string());
-        } else if data.per_page > 100 {
-            validator_err_map.insert("per_page".to_string(), "Количество элементов на странице должно быть не больше 100".to_string());
-        }
+        self.validator.validate_per_page(&data.per_page).unwrap_or_else(|e| {
+            validator_err_map.insert("per_page".to_string(), e.to_string());
+        });
 
         if !validator_err_map.is_empty() {
             return Err(
@@ -82,7 +82,6 @@ impl Interactor<GetAccessLogDTO, AccessLogResultDTO> for GetAccessLog<'_> {
                 )
             )
         }
-
         let records = self.access_log_reader.get_user_records(
             &data.user_id,
             &data.per_page,
