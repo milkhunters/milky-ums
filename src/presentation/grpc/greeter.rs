@@ -1,7 +1,6 @@
 use std::sync::Arc;
-use actix_web::ResponseError;
 
-use tonic::{IntoRequest, Request, Response, Status};
+use tonic::{Request, Response, Status};
 use tonic::codegen::http::HeaderMap;
 
 use proto::{EpRequest, EpResponse};
@@ -36,7 +35,6 @@ impl UMSGreeter {
 #[tonic::async_trait]
 impl UmsControl for UMSGreeter {
     async fn extract_payload(&self, request: Request<EpRequest>) -> Result<Response<EpResponse>, Status> {
-        // let start = std::time::Instant::now();
         let payload = request.get_ref();
         
         let user_agent = payload.user_agent.clone();
@@ -52,7 +50,7 @@ impl UmsControl for UMSGreeter {
 
         let resp = self.ioc.extract_payload(id_provider)
             .execute(session_token).await;
-        // info!("Elapsed exec time: {:?}", start.elapsed());
+        
         match resp {
             Ok(data) => {
                 Ok(Response::new(EpResponse {
@@ -68,7 +66,7 @@ impl UmsControl for UMSGreeter {
                 let mut header = HeaderMap::new();
                 header.insert("Content-Type", "application/json".parse().unwrap());
 
-                let mut status = Status::unauthenticated(
+                let status = Status::unauthenticated(
                     serde_json::to_string(&error.as_json()).unwrap()
                 );
                 status.add_header(&mut header).unwrap();
