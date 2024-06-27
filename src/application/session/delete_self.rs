@@ -13,7 +13,7 @@ pub struct DeleteSessionSelf<'a> {
 }
 
 impl Interactor<(), ()> for DeleteSessionSelf<'_> {
-    async fn execute(&self, data: ()) -> Result<(), ApplicationError> {
+    async fn execute(&self, _data: ()) -> Result<(), ApplicationError> {
         
         match self.access_service.ensure_can_delete_session_self(
             self.id_provider.is_auth(),

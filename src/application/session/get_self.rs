@@ -28,7 +28,7 @@ pub struct GetSessionSelf<'a> {
 }
 
 impl Interactor<(), SessionSelfResultDTO> for GetSessionSelf<'_> {
-    async fn execute(&self, data: ()) -> Result<SessionSelfResultDTO, ApplicationError> {
+    async fn execute(&self, _data: ()) -> Result<SessionSelfResultDTO, ApplicationError> {
         
         match self.access_service.ensure_can_get_session_self(
             self.id_provider.is_auth(),

@@ -224,7 +224,7 @@ impl AccessService {
         }
         
         if
-            user_state.unwrap() == &UserState::Active &&
+            user_state.unwrap() != &UserState::Inactive &&
             permissions.contains(&UMSPermission::DeleteSessionSelf.to_string())
         {
             return Ok(())

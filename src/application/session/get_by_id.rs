@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
@@ -8,12 +8,6 @@ use crate::application::common::session_gateway::SessionReader;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::session::SessionId;
 use crate::domain::services::access::AccessService;
-
-
-#[derive(Debug, Deserialize)]
-pub struct GetSessionByIdDTO {
-    id: SessionId,
-}
 
 #[derive(Debug, Serialize)]
 pub struct SessionByIdResultDTO{
@@ -33,13 +27,13 @@ pub struct GetSessionById<'a> {
     pub access_service: &'a AccessService,
 }
 
-impl Interactor<GetSessionByIdDTO, SessionByIdResultDTO> for GetSessionById<'_> {
-    async fn execute(&self, data: GetSessionByIdDTO) -> Result<SessionByIdResultDTO, ApplicationError> {
+impl Interactor<SessionId, SessionByIdResultDTO> for GetSessionById<'_> {
+    async fn execute(&self, data: SessionId) -> Result<SessionByIdResultDTO, ApplicationError> {
         
         match self.access_service.ensure_can_get_session(
             self.id_provider.is_auth(),
             self.id_provider.session_id(),
-            &data.id,
+            &data,
             self.id_provider.user_state(),
             self.id_provider.permissions()
         ) {
@@ -58,7 +52,7 @@ impl Interactor<GetSessionByIdDTO, SessionByIdResultDTO> for GetSessionById<'_> 
             }
         };
         
-        let session = match self.session_reader.get_session(&data.id).await {
+        let session = match self.session_reader.get_session(&data).await {
             Some(session) => session,
             None => return Err(
                 ApplicationError::NotFound(
