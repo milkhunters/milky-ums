@@ -46,7 +46,7 @@ impl Interactor<SendConfirmCodeDTO, ()> for SendConfirmCode<'_> {
 
         let mut validator_err_map: HashMap<String, String> = HashMap::new();
         self.validator.validate_email(&data.email).unwrap_or_else(|e| {
-            validator_err_map.insert("username".to_string(), e.to_string());
+            validator_err_map.insert("email".to_string(), e.to_string());
         });
 
         if !validator_err_map.is_empty() {
@@ -62,20 +62,6 @@ impl Interactor<SendConfirmCodeDTO, ()> for SendConfirmCode<'_> {
                 ErrorContent::Message("Пользователь не найден".to_string())
             )
         )?;
-        
-        match user.state {
-            UserState::Active => return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Message("Пользователь уже активирован".to_string())
-                )
-            ),
-            UserState::Inactive => (),
-            _ => return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Message("Невозможно активировать пользователя".to_string())
-                )
-            )
-        }
         
         let code = self.confirm_code.generate(&user.email).await.map_err(
             |error| ApplicationError::InvalidData(

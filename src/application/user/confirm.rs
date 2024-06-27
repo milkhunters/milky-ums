@@ -48,7 +48,7 @@ impl Interactor<ConfirmUserDTO, ()> for ConfirmUser<'_> {
 
         let mut validator_err_map: HashMap<String, String> = HashMap::new();
         self.validator.validate_email(&data.email).unwrap_or_else(|e| {
-            validator_err_map.insert("username".to_string(), e.to_string());
+            validator_err_map.insert("email".to_string(), e.to_string());
         });
 
         if !validator_err_map.is_empty() {
