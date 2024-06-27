@@ -1,14 +1,14 @@
 use actix_web::{delete, get, HttpRequest, HttpResponse, post, Result, web};
 use actix_web::cookie::Cookie;
-use actix_web::http::StatusCode;
+use serde::Deserialize;
 
 use crate::AppConfigProvider;
-use crate::application::common::exceptions::ApplicationError;
+use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
 use crate::application::session::create::CreateSessionDTO;
 use crate::application::session::delete::DeleteSessionDTO;
-use crate::application::session::get_by_id::GetSessionByIdDTO;
-use crate::application::session::get_by_user_id::GetSessionsByUserIdDTO;
+use crate::domain::models::session::SessionId;
+use crate::domain::models::user::UserId;
 use crate::presentation::id_provider::make_id_provider_from_request;
 use crate::presentation::interactor_factory::InteractorFactory;
 
@@ -16,9 +16,8 @@ pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/sessions")
             .service(sessions_self)
-            .service(sessions_by_user_id)
             .service(create_session)
-            .service(sessions_by_id)
+            .service(sessions_by)
             .service(delete_session)
             .service(delete_self_session)
     );
@@ -84,27 +83,16 @@ async fn delete_self_session(
     Ok(HttpResponse::NoContent().finish())
 }
 
-#[get("{id}")]
-async fn sessions_by_id(
-    id: web::Path<GetSessionByIdDTO>,
-    ioc: web::Data<dyn InteractorFactory>,
-    app_config_provider: web::Data<AppConfigProvider>,
-    req: HttpRequest
-) -> Result<HttpResponse, ApplicationError> {
-    let id_provider = make_id_provider_from_request(
-        &app_config_provider.service_name,
-        app_config_provider.is_intermediate,
-        &req
-    );
-    let data = ioc.get_session_by_id(id_provider).execute(
-        id.into_inner()
-    ).await?;
-    Ok(HttpResponse::Ok().json(data))
+#[derive(Debug, Deserialize)]
+struct SessionsQueryParams {
+    user_id: Option<UserId>,
+    id: Option<SessionId>
 }
 
+
 #[get("")]
-async fn sessions_by_user_id(
-    id: web::Query<GetSessionsByUserIdDTO>,
+async fn sessions_by(
+    data: web::Query<SessionsQueryParams>,
     app_config_provider: web::Data<AppConfigProvider>,
     ioc: web::Data<dyn InteractorFactory>,
     req: HttpRequest
@@ -114,10 +102,28 @@ async fn sessions_by_user_id(
         app_config_provider.is_intermediate,
         &req
     );
-    let data = ioc.get_sessions_by_user_id(id_provider).execute(
-        id.into_inner()
-    ).await?;
-    Ok(HttpResponse::Ok().json(data))
+    
+    if let Some(id) = data.id {
+        let data = ioc.get_session_by_id(id_provider).execute(
+            id
+        ).await?;
+        return Ok(HttpResponse::Ok().json(data));
+    }
+    
+    if let Some(user_id) = data.user_id {
+        let data = ioc.get_sessions_by_user_id(id_provider).execute(
+            user_id
+        ).await?;
+        return Ok(HttpResponse::Ok().json(data));
+    }
+    
+    Err(
+        ApplicationError::InvalidData(
+            ErrorContent::Message(
+                "Необходимо указать user_id или id сессии".to_string()
+            )
+        )
+    )
 }
 
 #[get("self")]

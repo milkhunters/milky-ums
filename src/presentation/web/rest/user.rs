@@ -204,7 +204,7 @@ async fn confirm_email(
 
 #[derive(Debug, Deserialize)]
 struct ResetPasswordQuery {
-    new_password: String,
+    new_password: Option<String>,
     code: Option<u32>
 }
 
@@ -229,13 +229,20 @@ async fn reset_password(
             };
             ioc.send_confirm_code(id_provider).execute(data).await?;
         },
-        Some(code) => {
-            let data = ResetPasswordDTO {
-                email: email.into_inner(),
-                new_password: query.new_password.clone(),
-                code
-            };
-            ioc.reset_password(id_provider).execute(data).await?;
+        Some(code) => match &query.new_password {
+            None => {
+                return Err(ApplicationError::InvalidData(
+                    ErrorContent::Message("Требуется указать новый пароль".to_string())
+                ))
+            },
+            Some(new_password) => {
+                let data = ResetPasswordDTO {
+                    email: email.into_inner(),
+                    code,
+                    new_password: new_password.clone()
+                };
+                ioc.reset_password(id_provider).execute(data).await?;
+            }
         }
     }
     
