@@ -12,6 +12,11 @@ use crate::adapters::redis_confirm_code::RedisConfirmCode;
 use crate::adapters::rmq_email_sender::RMQEmailSender;
 use crate::adapters::sha256_session_hasher::Sha256SessionHasher;
 use crate::application::common::id_provider::IdProvider;
+use crate::application::role::create::CreateRole;
+use crate::application::role::get_by_id::GetRoleById;
+use crate::application::role::get_by_ids::GetRolesByIds;
+use crate::application::role::get_range::GetRoleRange;
+use crate::application::role::update::UpdateRole;
 use crate::application::service::sync::ServiceSync;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
@@ -36,6 +41,7 @@ use crate::application::user::update_self::UpdateUserSelf;
 use crate::config::Extra;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::access_log::AccessLogService;
+use crate::domain::services::role::RoleService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
@@ -57,6 +63,7 @@ pub struct IoC {
     access_service: AccessService,
     confirm_code: RedisConfirmCode,
     email_sender: RMQEmailSender,
+    role_service: RoleService,
     extra: Extra,
 }
 
@@ -93,6 +100,7 @@ impl IoC {
                 confirm_code_ttl,
             ),
             email_sender,
+            role_service: RoleService{},
             extra
         }
     }
@@ -309,6 +317,52 @@ impl InteractorFactory for IoC {
             id_provider,
             access_service: &self.access_service,
             validator: &self.validator,
+        }
+    }
+
+    fn create_role(&self, id_provider: Box<dyn IdProvider>) -> CreateRole {
+        CreateRole {
+            role_gateway: &self.role_gateway,
+            permission_gateway: &self.permission_gateway,
+            access_service: &self.access_service,
+            id_provider,
+            validator: &self.validator,
+            role_service: &self.role_service,
+        }
+    }
+
+    fn get_role_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetRoleById {
+        GetRoleById {
+            role_reader: &self.role_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn get_roles_by_ids(&self, id_provider: Box<dyn IdProvider>) -> GetRolesByIds {
+        GetRolesByIds {
+            id_provider,
+            role_gateway: &self.role_gateway,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn get_role_range(&self, id_provider: Box<dyn IdProvider>) -> GetRoleRange {
+        GetRoleRange {
+            role_gateway: &self.role_gateway,
+            id_provider,
+            access_service: &self.access_service,
+            validator: &self.validator,
+        }
+    }
+
+    fn update_role(&self, id_provider: Box<dyn IdProvider>) -> UpdateRole {
+        UpdateRole {
+            role_gateway: &self.role_gateway,
+            access_service: &self.access_service,
+            id_provider,
+            validator: &self.validator,
+            role_service: &self.role_service,
         }
     }
 }

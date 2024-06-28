@@ -1,4 +1,9 @@
 use crate::application::common::id_provider::IdProvider;
+use crate::application::role::create::CreateRole;
+use crate::application::role::get_by_id::GetRoleById;
+use crate::application::role::get_by_ids::GetRolesByIds;
+use crate::application::role::get_range::GetRoleRange;
+use crate::application::role::update::UpdateRole;
 use crate::application::service::sync::ServiceSync;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
@@ -43,4 +48,9 @@ pub trait InteractorFactory: Send + Sync {
     fn reset_password(&self, id_provider: Box<dyn IdProvider>) -> ResetPassword;
     fn get_access_log_self(&self, id_provider: Box<dyn IdProvider>) -> GetAccessLogSelf;
     fn get_access_log(&self, id_provider: Box<dyn IdProvider>) -> GetAccessLog;
+    fn create_role(&self, id_provider: Box<dyn IdProvider>) -> CreateRole;
+    fn get_role_by_id(&self, id_provider: Box<dyn IdProvider>) -> GetRoleById;
+    fn get_roles_by_ids(&self, id_provider: Box<dyn IdProvider>) -> GetRolesByIds;
+    fn get_role_range(&self, id_provider: Box<dyn IdProvider>) -> GetRoleRange;
+    fn update_role(&self, id_provider: Box<dyn IdProvider>) -> UpdateRole;
 }

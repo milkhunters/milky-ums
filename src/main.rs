@@ -215,6 +215,7 @@ async fn main() -> std::io::Result<()> {
                 .configure(presentation::web::rest::user::router)
                 .configure(presentation::web::rest::session::router)
                 .configure(presentation::web::rest::access_log::router)
+                .configure(presentation::web::rest::role::router)
             )
             .app_data(web::Data::new(AppConfigProvider {
                 branch,
