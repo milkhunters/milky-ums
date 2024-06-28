@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -7,13 +8,14 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::role_gateway::RoleGateway;
 use crate::domain::exceptions::DomainError;
+use crate::domain::models::role::RoleId;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::role::RoleService;
-
+use crate::domain::services::validator::ValidatorService;
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateRoleDTO {
-    pub id: Uuid,
+    pub id: RoleId,
     pub title: String,
     pub description: Option<String>,
 }
@@ -33,6 +35,7 @@ pub struct UpdateRole<'a> {
     pub role_service: &'a RoleService,
     pub id_provider: &'a dyn IdProvider,
     pub access_service: &'a AccessService,
+    pub validator: &'a ValidatorService,
 }
 
 impl Interactor<UpdateRoleDTO, RoleResultDTO> for UpdateRole<'_> {
@@ -57,6 +60,27 @@ impl Interactor<UpdateRoleDTO, RoleResultDTO> for UpdateRole<'_> {
                 )
             }
         };
+
+        let mut validator_err_map: HashMap<String, String> = HashMap::new();
+        self.validator.validate_role_title(&data.title).unwrap_or_else(|e| {
+            validator_err_map.insert("title".to_string(), e.to_string());
+        });
+
+        if data.description.is_some() {
+            self.validator.validate_role_description(&data.description.clone().unwrap()).unwrap_or_else(
+                |e| {
+                    validator_err_map.insert("description".to_string(), e.to_string());
+                }
+            );
+        }
+
+        if !validator_err_map.is_empty() {
+            return Err(
+                ApplicationError::InvalidData(
+                    ErrorContent::Map(validator_err_map)
+                )
+            )
+        }
         
         let old_role = match self.role_gateway.get_role(&data.id).await {
             Some(role) => role,
@@ -67,6 +91,15 @@ impl Interactor<UpdateRoleDTO, RoleResultDTO> for UpdateRole<'_> {
             )
         };
 
+        self.role_gateway.get_role_by_title_not_sensitive(&data.title).await.ok_or_else(
+            || ApplicationError::InvalidData(
+                ErrorContent::Map(
+                    [("title".to_string(), "Роль с таким названием уже существует".to_string())]
+                    .iter().cloned().collect()
+                )
+            )
+        )?;
+        
         let new_role = match self.role_service.update_role(
             old_role,
             data.title,
