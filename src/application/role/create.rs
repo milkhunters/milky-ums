@@ -10,6 +10,7 @@ use crate::application::common::role_gateway::RoleGateway;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::permission::{PermissionId, PermissionTextId};
 use crate::domain::models::role::RoleId;
+use crate::domain::models::service::ServiceId;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::role::RoleService;
 use crate::domain::services::validator::ValidatorService;
@@ -25,6 +26,7 @@ pub struct CreateRoleDTO {
 pub struct PermissionItem {
     pub id: PermissionId,
     pub text_id: PermissionTextId,
+    pub service_id: ServiceId,
     pub title: String,
     pub description: Option<String>
 }
@@ -144,6 +146,7 @@ impl Interactor<CreateRoleDTO, CreateRoleResultDTO> for CreateRole<'_> {
                 PermissionItem {
                     id: permission.id,
                     text_id: permission.text_id.clone(),
+                    service_id: permission.service_id.clone(),
                     title: permission.title.clone(),
                     description: permission.description.clone()
                 }
