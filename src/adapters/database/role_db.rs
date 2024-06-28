@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use cached::{Cached, TimedCache};
-use sea_orm::{DbConn, EntityTrait, QueryFilter};
+use sea_orm::{DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::sea_query::extension::postgres::PgExpr;
@@ -75,8 +75,10 @@ impl RoleReader for RoleGateway {
         )
     }
 
-    async fn get_roles(&self) -> Vec<RoleDomain> {
+    async fn get_roles(&self, limit: &u64, offset: &u64) -> Vec<RoleDomain> {
         let roles: Vec<roles::Model> = roles::Entity::find()
+            .offset(*offset)
+            .limit(*limit)
             .all(&*self.db)
             .await
             .unwrap();

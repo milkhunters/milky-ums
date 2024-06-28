@@ -8,7 +8,11 @@ use crate::domain::models::user::UserId;
 pub trait RoleReader {
     async fn get_role(&self, role_id: &RoleId) -> Option<RoleDomain>;
     async fn get_roles_by_ids(&self, role_ids: &Vec<RoleId>) -> Option<Vec<RoleDomain>>;
-    async fn get_roles(&self) -> Vec<RoleDomain>;
+    async fn get_roles(
+        &self, 
+        limit: &u64, 
+        offset: &u64
+    ) -> Vec<RoleDomain>;
     async fn get_roles_by_user_with_perms(
         &self, 
         user_id: &UserId,
