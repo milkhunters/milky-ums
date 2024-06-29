@@ -15,7 +15,7 @@ pub struct DeleteRoleDTO {
 
 pub struct DeleteRole<'a> {
     pub role_gateway: &'a dyn RoleGateway,
-    pub id_provider: &'a dyn IdProvider,
+    pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
 }
 
