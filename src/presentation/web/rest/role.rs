@@ -1,10 +1,11 @@
-use actix_web::{get, HttpRequest, HttpResponse, Result, post, web, put};
+use actix_web::{get, HttpRequest, HttpResponse, Result, post, web, put, delete};
 use serde::Deserialize;
 
 use crate::AppConfigProvider;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
 use crate::application::role::create::CreateRoleDTO;
+use crate::application::role::delete::DeleteRoleDTO;
 use crate::application::role::get_by_id::GetRoleByIdDTO;
 use crate::application::role::get_by_ids::GetRolesByIdsDTO;
 use crate::application::role::get_range::RoleRangeDTO;
@@ -21,6 +22,7 @@ pub fn router(cfg: &mut web::ServiceConfig) {
             .service(create_role)
             .service(get_roles)
             .service(update_role)
+            .service(delete_role)
     );
 }
 
@@ -100,4 +102,20 @@ async fn update_role(
     );
     let data = ioc.update_role(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
+}
+
+#[delete("")]
+async fn delete_role(
+    data: web::Json<DeleteRoleDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    ioc.delete_role(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::NoContent().finish())
 }

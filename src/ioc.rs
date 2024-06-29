@@ -13,6 +13,7 @@ use crate::adapters::rmq_email_sender::RMQEmailSender;
 use crate::adapters::sha256_session_hasher::Sha256SessionHasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::role::create::CreateRole;
+use crate::application::role::delete::DeleteRole;
 use crate::application::role::get_by_id::GetRoleById;
 use crate::application::role::get_by_ids::GetRolesByIds;
 use crate::application::role::get_range::GetRoleRange;
@@ -363,6 +364,14 @@ impl InteractorFactory for IoC {
             id_provider,
             validator: &self.validator,
             role_service: &self.role_service,
+        }
+    }
+    
+    fn delete_role(&self, id_provider: Box<dyn IdProvider>) -> DeleteRole {
+        DeleteRole {
+            role_gateway: &self.role_gateway,
+            id_provider,
+            access_service: &self.access_service,
         }
     }
 }
