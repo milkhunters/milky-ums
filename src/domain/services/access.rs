@@ -444,6 +444,18 @@ impl AccessService {
         
         Err(DomainError::AccessDenied)
     }
+
+    pub fn ensure_can_get_permissions(
+        &self,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+
+        if permissions.contains(&UMSPermission::GetPermission.to_string()) {
+            return Ok(())
+        }
+
+        Err(DomainError::AccessDenied)
+    }
     
     
 }

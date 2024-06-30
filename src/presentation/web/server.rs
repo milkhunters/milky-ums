@@ -77,6 +77,8 @@ impl Server for HttpServer {
                         .configure(presentation::web::rest::session::router)
                         .configure(presentation::web::rest::access_log::router)
                         .configure(presentation::web::rest::role::router)
+                        .configure(presentation::web::rest::stats::router)
+                        .configure(presentation::web::rest::permission::router)
                     )
                     .app_data(web::Data::new(
                         app_config_provider.clone()

@@ -35,7 +35,6 @@ pub enum UMSPermission {
     GetUserRole,
     GetSelfRole,
     
-    CreatePermission,
     GetPermission,
     UpdatePermission,
     DeletePermission,

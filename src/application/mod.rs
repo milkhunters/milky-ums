@@ -4,3 +4,4 @@ pub mod session;
 pub mod role;
 pub mod initial;
 pub mod service;
+pub mod permission;

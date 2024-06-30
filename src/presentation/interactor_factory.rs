@@ -1,4 +1,5 @@
 use crate::application::common::id_provider::IdProvider;
+use crate::application::permission::get_range::GetPermissionRange;
 use crate::application::role::create::CreateRole;
 use crate::application::role::delete::DeleteRole;
 use crate::application::role::get_by_id::GetRoleById;
@@ -55,4 +56,5 @@ pub trait InteractorFactory: Send + Sync {
     fn get_role_range(&self, id_provider: Box<dyn IdProvider>) -> GetRoleRange;
     fn update_role(&self, id_provider: Box<dyn IdProvider>) -> UpdateRole;
     fn delete_role(&self, id_provider: Box<dyn IdProvider>) -> DeleteRole;
+    fn get_permission_range(&self, id_provider: Box<dyn IdProvider>) -> GetPermissionRange;
 }
