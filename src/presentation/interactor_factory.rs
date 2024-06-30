@@ -2,6 +2,7 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::permission::get_by_role::GetRolePermissions;
 use crate::application::permission::get_by_user::GetUserPermissions;
 use crate::application::permission::get_range::GetPermissionRange;
+use crate::application::permission::update::UpdatePermission;
 use crate::application::role::create::CreateRole;
 use crate::application::role::delete::DeleteRole;
 use crate::application::role::get_by_id::GetRoleById;

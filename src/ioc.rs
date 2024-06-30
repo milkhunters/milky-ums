@@ -15,6 +15,7 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::permission::get_by_role::GetRolePermissions;
 use crate::application::permission::get_by_user::GetUserPermissions;
 use crate::application::permission::get_range::GetPermissionRange;
+use crate::application::permission::update::UpdatePermission;
 use crate::application::role::create::CreateRole;
 use crate::application::role::delete::DeleteRole;
 use crate::application::role::get_by_id::GetRoleById;
@@ -45,6 +46,7 @@ use crate::application::user::update_self::UpdateUserSelf;
 use crate::config::Extra;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::access_log::AccessLogService;
+use crate::domain::services::permission::PermissionService;
 use crate::domain::services::role::RoleService;
 use crate::domain::services::session::SessionService;
 use crate::domain::services::user::UserService;
@@ -69,6 +71,7 @@ pub struct IoC {
     email_sender: RMQEmailSender,
     role_service: RoleService,
     extra: Extra,
+    permission_service: PermissionService,
 }
 
 impl IoC {
@@ -105,7 +108,8 @@ impl IoC {
             ),
             email_sender,
             role_service: RoleService{},
-            extra
+            extra,
+            permission_service: PermissionService {},
         }
     }
 }
@@ -248,6 +252,7 @@ impl InteractorFactory for IoC {
         ServiceSync {
             service_gateway: &self.service_gateway,
             permission_gateway: &self.permission_gateway,
+            permission_service: &self.permission_service,
         }
     }
 
@@ -375,7 +380,7 @@ impl InteractorFactory for IoC {
             access_service: &self.access_service,
         }
     }
-    
+
     fn get_permission_range(&self, id_provider: Box<dyn IdProvider>) -> GetPermissionRange {
         GetPermissionRange {
             permission_reader: &self.permission_gateway,
@@ -384,7 +389,7 @@ impl InteractorFactory for IoC {
             validator: &self.validator,
         }
     }
-    
+
     fn get_role_permissions(&self, id_provider: Box<dyn IdProvider>) -> GetRolePermissions {
         GetRolePermissions {
             permission_reader: &self.permission_gateway,
@@ -400,6 +405,16 @@ impl InteractorFactory for IoC {
             user_reader: &self.user_gateway,
             id_provider,
             access_service: &self.access_service,
+        }
+    }
+
+    fn update_permission(&self, id_provider: Box<dyn IdProvider>) -> UpdatePermission {
+        UpdatePermission {
+            permission_gateway: &self.permission_gateway,
+            permission_service: &self.permission_service,
+            id_provider,
+            access_service: &self.access_service,
+            validator: &self.validator,
         }
     }
 }

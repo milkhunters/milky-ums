@@ -5,7 +5,7 @@ use crate::AppConfigProvider;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
 use crate::application::permission::get_range::GetPermissionRangeDTO;
-use crate::application::role::update::UpdateRoleDTO;
+use crate::application::permission::update::UpdatePermissionDTO;
 use crate::domain::models::role::RoleId;
 use crate::domain::models::user::UserId;
 use crate::presentation::id_provider::make_id_provider_from_request;
@@ -15,6 +15,7 @@ pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/permissions")
             .service(get_permissions)
+            .service(update_permission)
     );
 }
 
@@ -62,7 +63,7 @@ async fn get_permissions(
 
 #[put("")]
 async fn update_permission(
-    data: web::Json<UpdateRoleDTO>,
+    data: web::Json<UpdatePermissionDTO>,
     ioc: web::Data<dyn InteractorFactory>,
     app_config_provider: web::Data<AppConfigProvider>,
     req: HttpRequest
@@ -72,6 +73,6 @@ async fn update_permission(
         app_config_provider.is_intermediate,
         &req
     );
-    let data = ioc.update_role(id_provider).execute(data.into_inner()).await?;
+    let data = ioc.update_permission(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
 }

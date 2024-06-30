@@ -19,6 +19,10 @@ pub struct ValidatorService {
     role_description_max_length: usize,
     role_description_min_length: usize,
     session_token_length: usize,
+    permission_title_min_length: usize,
+    permission_title_max_length: usize,
+    permission_description_min_length: usize,
+    permission_description_max_length: usize,
 }
 
 impl ValidatorService {
@@ -58,6 +62,14 @@ impl ValidatorService {
         let role_description_max_length = 255;
         let role_description_min_length = 4;
         
+        // Permission
+        
+        let permission_title_max_length = 64;
+        let permission_title_min_length = 4;
+        
+        let permission_description_max_length = 255;
+        let permission_description_min_length = 4;
+        
         // Session 
         
         let session_token_length = 128;
@@ -81,6 +93,10 @@ impl ValidatorService {
             role_description_max_length,
             role_description_min_length,
             session_token_length,
+            permission_title_max_length,
+            permission_title_min_length,
+            permission_description_max_length,
+            permission_description_min_length,
         }
     }
 
@@ -220,6 +236,28 @@ impl ValidatorService {
             return Err("Количество элементов на странице должно быть больше 0".to_string());
         } else if *per_page > 100 {
             return Err("Количество элементов на странице должно быть не больше 100".to_string());
+        }
+        Ok(())
+    }
+
+    pub fn validate_permission_title(&self, title: &str) -> Result<(), String> {
+        if title.len() < self.permission_title_min_length || title.len() > self.permission_title_max_length {
+            return Err(format!(
+                "Название разрешения должно содержать от {} до {} символов",
+                self.permission_title_min_length,
+                self.permission_title_max_length
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_permission_description(&self, description: &str) -> Result<(), String> {
+        if description.len() < self.permission_description_min_length || description.len() > self.permission_description_max_length {
+            return Err(format!(
+                "Описание разрешения должно содержать от {} до {} символов",
+                self.permission_description_min_length,
+                self.permission_description_max_length
+            ));
         }
         Ok(())
     }
