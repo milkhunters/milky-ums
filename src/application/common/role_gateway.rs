@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 
-use crate::domain::models::permission::Permission;
 use crate::domain::models::role::{Role as RoleDomain, RoleId};
 use crate::domain::models::user::UserId;
 
@@ -30,6 +29,7 @@ pub trait RoleWriter {
 pub trait RoleLinker {
     async fn link_role_to_user(&self, role_id: &RoleId, user_id: &UserId);
     async fn unlink_role_from_user(&self, role_id: &RoleId, user_id: &UserId);
+    async fn is_role_linked_to_user(&self, role_id: &RoleId, user_id: &UserId) -> bool;
 }
 
 #[async_trait]

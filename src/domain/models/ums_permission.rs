@@ -31,7 +31,6 @@ pub enum UMSPermission {
     GetDefaultRole,
     
     LinkUserRole,
-    UnlinkUserRole,
     GetUserRole,
     GetSelfRole,
     

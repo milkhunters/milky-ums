@@ -11,6 +11,8 @@ use crate::application::role::get_by_id::GetRoleById;
 use crate::application::role::get_by_ids::GetRolesByIds;
 use crate::application::role::get_by_user::GetUserRoles;
 use crate::application::role::get_range::GetRoleRange;
+use crate::application::role::link::LinkRoleUser;
+use crate::application::role::unlink::UnlinkRoleUser;
 use crate::application::role::update::UpdateRole;
 use crate::application::service::get_by_id::GetService;
 use crate::application::service::get_range::GetServiceRange;
@@ -64,6 +66,8 @@ pub trait InteractorFactory: Send + Sync {
     fn get_roles_by_ids(&self, id_provider: Box<dyn IdProvider>) -> GetRolesByIds;
     fn get_role_by_user(&self, id_provider: Box<dyn IdProvider>) -> GetUserRoles;
     fn get_role_range(&self, id_provider: Box<dyn IdProvider>) -> GetRoleRange;
+    fn link_role_user(&self, id_provider: Box<dyn IdProvider>) -> LinkRoleUser;
+    fn unlink_role_user(&self, id_provider: Box<dyn IdProvider>) -> UnlinkRoleUser;
     fn update_role(&self, id_provider: Box<dyn IdProvider>) -> UpdateRole;
     fn delete_role(&self, id_provider: Box<dyn IdProvider>) -> DeleteRole;
     fn get_permission_range(&self, id_provider: Box<dyn IdProvider>) -> GetPermissionRange;

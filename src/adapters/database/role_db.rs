@@ -179,6 +179,18 @@ impl RoleLinker for RoleGateway {
             .await
             .unwrap();
     }
+
+    async fn is_role_linked_to_user(&self, role_id: &RoleId, user_id: &UserId) -> bool {
+        role_user::Entity::find()
+            .filter(
+                Expr::col(role_user::Column::RoleId).eq(role_id.clone())
+                    .and(Expr::col(role_user::Column::UserId).eq(user_id.clone()))
+            )
+            .one(&*self.db)
+            .await
+            .unwrap()
+            .is_some()
+    }
 }
 
 #[async_trait]

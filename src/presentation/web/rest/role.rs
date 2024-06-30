@@ -1,4 +1,4 @@
-use actix_web::{get, HttpRequest, HttpResponse, Result, post, web, put, delete};
+use actix_web::{delete, get, HttpRequest, HttpResponse, post, put, Result, web};
 use serde::Deserialize;
 
 use crate::AppConfigProvider;
@@ -10,13 +10,14 @@ use crate::application::role::get_by_id::GetRoleByIdDTO;
 use crate::application::role::get_by_ids::GetRolesByIdsDTO;
 use crate::application::role::get_by_user::GetUserRolesDTO;
 use crate::application::role::get_range::RoleRangeDTO;
+use crate::application::role::link::LinkRoleUserDTO;
+use crate::application::role::unlink::UnlinkRoleUserDTO;
 use crate::application::role::update::UpdateRoleDTO;
 use crate::domain::models::role::RoleId;
 use crate::domain::models::user::UserId;
 use crate::presentation::id_provider::make_id_provider_from_request;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
-
 
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -125,5 +126,37 @@ async fn delete_role(
         &req
     );
     ioc.delete_role(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::NoContent().finish())
+}
+
+#[post("link")]
+async fn link_role_user(
+    data: web::Json<LinkRoleUserDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    ioc.link_role_user(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::NoContent().finish())
+}
+
+#[post("unlink")]
+async fn unlink_role_user(
+    data: web::Json<UnlinkRoleUserDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    ioc.unlink_role_user(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::NoContent().finish())
 }

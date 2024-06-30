@@ -24,6 +24,8 @@ use crate::application::role::get_by_id::GetRoleById;
 use crate::application::role::get_by_ids::GetRolesByIds;
 use crate::application::role::get_by_user::GetUserRoles;
 use crate::application::role::get_range::GetRoleRange;
+use crate::application::role::link::LinkRoleUser;
+use crate::application::role::unlink::UnlinkRoleUser;
 use crate::application::role::update::UpdateRole;
 use crate::application::service::get_by_id::GetService;
 use crate::application::service::get_range::GetServiceRange;
@@ -382,6 +384,24 @@ impl InteractorFactory for IoC {
         }
     }
 
+    fn link_role_user(&self, id_provider: Box<dyn IdProvider>) -> LinkRoleUser {
+        LinkRoleUser {
+            role_gateway: &self.role_gateway,
+            user_reader: &self.user_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn unlink_role_user(&self, id_provider: Box<dyn IdProvider>) -> UnlinkRoleUser {
+        UnlinkRoleUser {
+            role_gateway: &self.role_gateway,
+            user_reader: &self.user_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
     fn update_role(&self, id_provider: Box<dyn IdProvider>) -> UpdateRole {
         UpdateRole {
             role_gateway: &self.role_gateway,
@@ -443,7 +463,6 @@ impl InteractorFactory for IoC {
             permission_gateway: &self.permission_gateway,
             id_provider,
             access_service: &self.access_service,
-            validator: &self.validator,
         }
     }
 
@@ -453,7 +472,6 @@ impl InteractorFactory for IoC {
             permission_gateway: &self.permission_gateway,
             id_provider,
             access_service: &self.access_service,
-            validator: &self.validator,
         }
     }
 
@@ -483,5 +501,5 @@ impl InteractorFactory for IoC {
             validator: &self.validator,
         }
     }
-    
+
 }
