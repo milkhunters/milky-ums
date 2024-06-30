@@ -2,10 +2,9 @@ use crate::application::common::exceptions::ApplicationError;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::permission_gateway::PermissionGateway;
 use crate::application::common::service_gateway::ServiceGateway;
-
 use crate::domain::models::permission::{Permission, PermissionTextId};
 use crate::domain::models::service::{Service, ServiceTextId};
-
+use crate::domain::services::permission::PermissionService;
 
 pub struct ServiceSyncDTO {
     pub service_text_id: ServiceTextId,
@@ -16,6 +15,7 @@ pub struct ServiceSyncDTO {
 pub struct ServiceSync<'a> {
     pub service_gateway: &'a dyn ServiceGateway,
     pub permission_gateway: &'a dyn PermissionGateway,
+    pub permission_service: &'a PermissionService
 }
 
 impl Interactor<ServiceSyncDTO, ()> for ServiceSync<'_> {
@@ -45,7 +45,7 @@ impl Interactor<ServiceSyncDTO, ()> for ServiceSync<'_> {
                 !permission_text_ids_from_repo.contains(permission_text_id)
             }
         ).map(|permission| {
-            Permission::new(
+            self.permission_service.create_permission(
                 permission.clone(),
                 service.id,
                 permission.clone(),

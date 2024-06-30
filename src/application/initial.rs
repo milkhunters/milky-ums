@@ -17,19 +17,25 @@ use crate::domain::models::permission::{PermissionId, PermissionTextId};
 use crate::domain::models::service::{ServiceTextId};
 use crate::domain::models::ums_permission::UMSPermission;
 use crate::domain::models::user::UserState;
+use crate::domain::services::permission::PermissionService;
 use crate::domain::services::role::RoleService;
 use crate::domain::services::user::UserService;
 
 pub async fn service_permissions(
     service_gateway: &dyn ServiceGateway,
     permission_gateway: &dyn PermissionGateway,
+    permission_service: &PermissionService,
     service_text_id: ServiceTextId,
 ) {
     let permission_text_ids = UMSPermission::iter().map(|permission| {
         permission.to_string()
     }).collect::<Vec<PermissionTextId>>();
     
-    let executor = ServiceSync { service_gateway, permission_gateway };
+    let executor = ServiceSync { 
+        service_gateway, 
+        permission_gateway,
+        permission_service
+    };
 
     executor.execute(
         ServiceSyncDTO {
@@ -74,7 +80,6 @@ pub async fn control_account(
                 UMSPermission::SetDefaultRole,
                 UMSPermission::GetDefaultRole,
                 
-                UMSPermission::CreatePermission,
                 UMSPermission::GetPermission,
                 UMSPermission::UpdatePermission,
                 UMSPermission::DeletePermission,

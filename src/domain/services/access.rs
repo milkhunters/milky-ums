@@ -456,6 +456,23 @@ impl AccessService {
 
         Err(DomainError::AccessDenied)
     }
+
+    pub fn ensure_can_update_permission(
+        &self,
+        is_auth: &bool,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+        
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+
+        if permissions.contains(&UMSPermission::UpdatePermission.to_string()) {
+            return Ok(())
+        }
+
+        Err(DomainError::AccessDenied)
+    }
     
     
 }

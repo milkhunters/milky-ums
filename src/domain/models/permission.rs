@@ -19,22 +19,3 @@ pub struct Permission {
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
-
-impl Permission {
-    pub fn new(
-        text_id: PermissionTextId,
-        service_id: ServiceId,
-        title: String,
-        description: Option<String>,
-    ) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            text_id,
-            service_id,
-            title,
-            description,
-            created_at: Utc::now(),
-            updated_at: None,
-        }
-    }
-}

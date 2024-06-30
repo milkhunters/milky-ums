@@ -34,7 +34,7 @@ fn main() -> std::io::Result<()> {
         .filter_module("tracing", log::LevelFilter::Error)
         .filter_module("rustify", log::LevelFilter::Error)
         .init();
-    
+
     let http_workers = match std::env::var("HTTP_WORKERS") {
         Ok(workers) => workers.parse::<usize>().ok(),
         Err(_) => None,
@@ -120,6 +120,7 @@ fn main() -> std::io::Result<()> {
     rt.block_on(application::initial::service_permissions(
         &adapters::database::service_db::ServiceGateway::new(db.clone()),
         &adapters::database::permission_db::PermissionGateway::new(db.clone()),
+        &domain::services::permission::PermissionService{},
         service_name.clone(),
     ));
 
@@ -213,7 +214,7 @@ fn main() -> std::io::Result<()> {
         .set_workers(
             grpc_workers.unwrap_or_else(|| {
                 match thread::available_parallelism() {
-                    Ok(parallelism) => { 
+                    Ok(parallelism) => {
                         let available_workers = usize::from(parallelism);
                         if available_workers > 1 {
                             available_workers / 2
