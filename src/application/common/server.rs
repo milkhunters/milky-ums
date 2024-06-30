@@ -27,9 +27,3 @@ pub trait Server {
     fn set_tls(self, key: &str, cert: &str) -> Self where Self: Sized;
     fn run(self) -> io::Result<()> where Self: Sized;
 }
-
-pub struct BaseServer {
-    tcp_listener: Option<TcpListener>,
-    workers: usize,
-    tls: Option<(String, String)>,
-}

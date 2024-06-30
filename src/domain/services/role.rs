@@ -1,8 +1,6 @@
 use uuid::Uuid;
 
-use crate::application::common::exceptions::ApplicationError;
 use crate::domain::exceptions::DomainError;
-use crate::domain::models::permission::{Permission, PermissionId};
 use crate::domain::models::role::Role;
 
 pub struct RoleService { }

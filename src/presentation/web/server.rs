@@ -1,11 +1,10 @@
 use std::sync::{Arc, Mutex};
-use std::{io, thread};
+use std::io;
 use std::net::TcpListener;
 use std::time::Duration;
 use actix_web::{App, web, HttpServer as ActixHttpServer};
 use actix_web::http::KeepAlive;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use crate::application::common::interactor::Interactor;
 use crate::application::common::server::{ConnectionConfig, Server};
 use crate::presentation;
 use crate::domain::models::service::ServiceTextId;

@@ -1,4 +1,4 @@
-use std::{io, thread};
+use std::io;
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;

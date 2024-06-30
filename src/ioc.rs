@@ -183,13 +183,11 @@ impl InteractorFactory for IoC {
             user_gateway: &self.user_gateway,
             access_log_writer: &self.access_log_gateway,
             access_log_service: &self.access_log_service,
-            user_service: &self.user_service,
             session_service: &self.session_service,
             password_hasher: &self.password_hasher,
             session_hasher: &self.session_hasher,
             validator: &self.validator,
             access_service: &self.access_service,
-            role_reader: &self.role_gateway,
         }
     }
 

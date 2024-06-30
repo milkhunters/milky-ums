@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::fmt::Display;
-
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

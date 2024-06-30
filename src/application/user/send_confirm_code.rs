@@ -10,7 +10,6 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
 use crate::config::Extra;
-use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::validator::ValidatorService;
 

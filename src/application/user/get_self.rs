@@ -26,7 +26,7 @@ pub struct GetUserSelf<'a> {
 }
 
 impl Interactor<(), UserSelfResultDTO> for GetUserSelf<'_> {
-    async fn execute(&self, data: ()) -> Result<UserSelfResultDTO, ApplicationError> {
+    async fn execute(&self, _data: ()) -> Result<UserSelfResultDTO, ApplicationError> {
         
         match self.access_service.ensure_can_get_user_self(
             self.id_provider.is_auth(),

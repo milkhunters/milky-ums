@@ -2,13 +2,12 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::application::common::access_log_gateway::AccessLogWriter;
 
+use crate::application::common::access_log_gateway::AccessLogWriter;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::role_gateway::RoleReader;
 use crate::application::common::session_gateway::SessionGateway;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::exceptions::DomainError;
@@ -17,7 +16,6 @@ use crate::domain::models::user::UserState;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::access_log::AccessLogService;
 use crate::domain::services::session::SessionService;
-use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
 
 #[derive(Debug, Deserialize)]
@@ -41,10 +39,8 @@ pub struct CreateSession<'a> {
     pub user_gateway: &'a dyn UserReader,
     pub access_log_writer: &'a dyn AccessLogWriter,
     pub access_log_service: &'a AccessLogService,
-    pub user_service: &'a UserService,
     pub session_service: &'a SessionService,
     pub session_hasher: &'a dyn Hasher,
-    pub role_reader: &'a dyn RoleReader,
     pub id_provider: Box<dyn IdProvider>,
     pub password_hasher: &'a dyn Hasher,
     pub validator: &'a ValidatorService,
