@@ -85,7 +85,6 @@ pub async fn control_account(
                 UMSPermission::DeletePermission,
                 
                 UMSPermission::LinkRolePermission,
-                UMSPermission::UnlinkRolePermission,
                 
                 UMSPermission::GetService,
                 

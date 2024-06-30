@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
@@ -13,7 +11,6 @@ use crate::domain::models::permission::{PermissionId, PermissionTextId};
 use crate::domain::models::service::ServiceId;
 use crate::domain::models::user::UserId;
 use crate::domain::services::access::AccessService;
-use crate::domain::services::validator::ValidatorService;
 
 #[derive(Debug, Serialize)]
 pub struct PermissionItemResult{

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::permission_gateway::{PermissionGateway, PermissionReader};
+use crate::application::common::permission_gateway::PermissionGateway;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::permission::{PermissionId, PermissionTextId};
 use crate::domain::models::service::ServiceId;
