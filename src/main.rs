@@ -201,7 +201,7 @@ fn main() -> std::io::Result<()> {
         .spawn(move || {
             grpc_server.run().unwrap();
         }).unwrap();
-    rt.shutdown_background();
+
     http_server.run().unwrap();
     Ok(())
 }
