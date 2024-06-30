@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::ActiveValue::Set;
 
 use crate::adapters::database::models::services;
@@ -42,6 +42,18 @@ impl ServiceReader for ServiceGateway {
             .await
             .unwrap()
             .map(map_service_model_to_domain)
+    }
+    
+    async fn get_services(&self, limit: &u64, offset: &u64) -> Vec<Service> {
+        services::Entity::find()
+            .limit(*limit)
+            .offset(*offset)
+            .all(&*self.db)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(map_service_model_to_domain)
+            .collect()
     }
 }
 

@@ -23,6 +23,10 @@ pub struct ValidatorService {
     permission_title_max_length: usize,
     permission_description_min_length: usize,
     permission_description_max_length: usize,
+    service_title_min_length: usize,
+    service_title_max_length: usize,
+    service_description_min_length: usize,
+    service_description_max_length: usize,
 }
 
 impl ValidatorService {
@@ -70,6 +74,14 @@ impl ValidatorService {
         let permission_description_max_length = 255;
         let permission_description_min_length = 4;
         
+        // Service
+        
+        let service_title_max_length = 64;
+        let service_title_min_length = 4;
+        
+        let service_description_max_length = 255;
+        let service_description_min_length = 4;
+        
         // Session 
         
         let session_token_length = 128;
@@ -97,6 +109,10 @@ impl ValidatorService {
             permission_title_min_length,
             permission_description_max_length,
             permission_description_min_length,
+            service_title_max_length,
+            service_title_min_length,
+            service_description_max_length,
+            service_description_min_length,
         }
     }
 
@@ -257,6 +273,28 @@ impl ValidatorService {
                 "Описание разрешения должно содержать от {} до {} символов",
                 self.permission_description_min_length,
                 self.permission_description_max_length
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_service_title(&self, title: &str) -> Result<(), String> {
+        if title.len() < self.service_title_min_length || title.len() > self.service_title_max_length {
+            return Err(format!(
+                "Название сервиса должно содержать от {} до {} символов",
+                self.service_title_min_length,
+                self.service_title_max_length
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_service_description(&self, description: &str) -> Result<(), String> {
+        if description.len() < self.service_description_min_length || description.len() > self.service_description_max_length {
+            return Err(format!(
+                "Описание сервиса должно содержать от {} до {} символов",
+                self.service_description_min_length,
+                self.service_description_max_length
             ));
         }
         Ok(())

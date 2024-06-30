@@ -24,7 +24,10 @@ use crate::application::role::get_by_id::GetRoleById;
 use crate::application::role::get_by_ids::GetRolesByIds;
 use crate::application::role::get_range::GetRoleRange;
 use crate::application::role::update::UpdateRole;
+use crate::application::service::get_by_id::GetService;
+use crate::application::service::get_range::GetServiceRange;
 use crate::application::service::sync::ServiceSync;
+use crate::application::service::update::UpdateService;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
@@ -48,6 +51,7 @@ use crate::application::user::update_self::UpdateUserSelf;
 use crate::config::Extra;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::access_log::AccessLogService;
+use crate::domain::services::external::ExternalService;
 use crate::domain::services::permission::PermissionService;
 use crate::domain::services::role::RoleService;
 use crate::domain::services::session::SessionService;
@@ -74,6 +78,7 @@ pub struct IoC {
     role_service: RoleService,
     extra: Extra,
     permission_service: PermissionService,
+    external_service: ExternalService
 }
 
 impl IoC {
@@ -112,6 +117,7 @@ impl IoC {
             role_service: RoleService{},
             extra,
             permission_service: PermissionService {},
+            external_service: ExternalService {},
         }
     }
 }
@@ -436,6 +442,33 @@ impl InteractorFactory for IoC {
             role_reader: &self.role_gateway,
             permission_gateway: &self.permission_gateway,
             role_service: &self.role_service,
+            id_provider,
+            access_service: &self.access_service,
+            validator: &self.validator,
+        }
+    }
+
+    fn get_service(&self, id_provider: Box<dyn IdProvider>) -> GetService {
+        GetService {
+            service_reader: &self.service_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn get_service_range(&self, id_provider: Box<dyn IdProvider>) -> GetServiceRange {
+        GetServiceRange {
+            service_reader: &self.service_gateway,
+            id_provider,
+            access_service: &self.access_service,
+            validator: &self.validator,
+        }
+    }
+
+    fn update_service(&self, id_provider: Box<dyn IdProvider>) -> UpdateService {
+        UpdateService {
+            service_gateway: &self.service_gateway,
+            external_service: &self.external_service,
             id_provider,
             access_service: &self.access_service,
             validator: &self.validator,

@@ -4,6 +4,7 @@ use std::net::TcpListener;
 use std::time::Duration;
 use actix_web::{App, web, HttpServer as ActixHttpServer};
 use actix_web::http::KeepAlive;
+use actix_web::middleware::Logger;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use crate::application::common::server::{ConnectionConfig, Server};
 use crate::presentation;
@@ -79,13 +80,14 @@ impl Server for HttpServer {
                         .configure(presentation::web::rest::role::router)
                         .configure(presentation::web::rest::stats::router)
                         .configure(presentation::web::rest::permission::router)
+                        .configure(presentation::web::rest::service::router)
                     )
                     .app_data(web::Data::new(
                         app_config_provider.clone()
                     ))
                     .app_data(ioc_data)
                     .default_service(web::route().to(presentation::web::exception::not_found))
-                // .wrap(Logger::new("[%s] [%{r}a] %U"))
+                .wrap(Logger::default())
             };
 
             let available_workers = {

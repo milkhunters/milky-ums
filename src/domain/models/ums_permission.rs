@@ -43,6 +43,4 @@ pub enum UMSPermission {
     
     GetService,
     UpdateService,
-    DeleteService,
-    
 }

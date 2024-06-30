@@ -11,7 +11,10 @@ use crate::application::role::get_by_id::GetRoleById;
 use crate::application::role::get_by_ids::GetRolesByIds;
 use crate::application::role::get_range::GetRoleRange;
 use crate::application::role::update::UpdateRole;
+use crate::application::service::get_by_id::GetService;
+use crate::application::service::get_range::GetServiceRange;
 use crate::application::service::sync::ServiceSync;
+use crate::application::service::update::UpdateService;
 use crate::application::session::create::CreateSession;
 use crate::application::session::delete::DeleteSession;
 use crate::application::session::delete_self::DeleteSessionSelf;
@@ -67,4 +70,7 @@ pub trait InteractorFactory: Send + Sync {
     fn update_permission(&self, id_provider: Box<dyn IdProvider>) -> UpdatePermission;
     fn link_role_permission(&self, id_provider: Box<dyn IdProvider>) -> LinkRolePermission;
     fn unlink_role_permission(&self, id_provider: Box<dyn IdProvider>) -> UnlinkRolePermission;
+    fn get_service(&self, id_provider: Box<dyn IdProvider>) -> GetService;
+    fn get_service_range(&self, id_provider: Box<dyn IdProvider>) -> GetServiceRange;
+    fn update_service(&self, id_provider: Box<dyn IdProvider>) -> UpdateService;
 }
