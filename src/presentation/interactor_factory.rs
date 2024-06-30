@@ -2,6 +2,8 @@ use crate::application::common::id_provider::IdProvider;
 use crate::application::permission::get_by_role::GetRolePermissions;
 use crate::application::permission::get_by_user::GetUserPermissions;
 use crate::application::permission::get_range::GetPermissionRange;
+use crate::application::permission::link::LinkRolePermission;
+use crate::application::permission::unlink::UnlinkRolePermission;
 use crate::application::permission::update::UpdatePermission;
 use crate::application::role::create::CreateRole;
 use crate::application::role::delete::DeleteRole;
@@ -63,4 +65,6 @@ pub trait InteractorFactory: Send + Sync {
     fn get_role_permissions(&self, id_provider: Box<dyn IdProvider>) -> GetRolePermissions;
     fn get_user_permissions(&self, id_provider: Box<dyn IdProvider>) -> GetUserPermissions;
     fn update_permission(&self, id_provider: Box<dyn IdProvider>) -> UpdatePermission;
+    fn link_role_permission(&self, id_provider: Box<dyn IdProvider>) -> LinkRolePermission;
+    fn unlink_role_permission(&self, id_provider: Box<dyn IdProvider>) -> UnlinkRolePermission;
 }

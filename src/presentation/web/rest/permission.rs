@@ -1,10 +1,12 @@
-use actix_web::{get, HttpRequest, HttpResponse, put, Result, web};
+use actix_web::{get, HttpRequest, HttpResponse, post, put, Result, web};
 use serde::Deserialize;
 
 use crate::AppConfigProvider;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
 use crate::application::permission::get_range::GetPermissionRangeDTO;
+use crate::application::permission::link::LinkRolePermissionDTO;
+use crate::application::permission::unlink::UnlinkRolePermissionDTO;
 use crate::application::permission::update::UpdatePermissionDTO;
 use crate::domain::models::role::RoleId;
 use crate::domain::models::user::UserId;
@@ -75,4 +77,36 @@ async fn update_permission(
     );
     let data = ioc.update_permission(id_provider).execute(data.into_inner()).await?;
     Ok(HttpResponse::Ok().json(data))
+}
+
+#[post("link")]
+async fn link_role_permission(
+    data: web::Json<LinkRolePermissionDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    ioc.link_role_permission(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::NoContent().finish())
+}
+
+#[post("unlink")]
+async fn unlink_role_permission(
+    data: web::Json<UnlinkRolePermissionDTO>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    ioc.unlink_role_permission(id_provider).execute(data.into_inner()).await?;
+    Ok(HttpResponse::NoContent().finish())
 }

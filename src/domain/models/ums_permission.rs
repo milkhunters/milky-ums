@@ -40,7 +40,6 @@ pub enum UMSPermission {
     DeletePermission,
     
     LinkRolePermission,
-    UnlinkRolePermission,
     
     GetService,
     UpdateService,
