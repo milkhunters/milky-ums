@@ -8,9 +8,11 @@ use crate::application::role::create::CreateRoleDTO;
 use crate::application::role::delete::DeleteRoleDTO;
 use crate::application::role::get_by_id::GetRoleByIdDTO;
 use crate::application::role::get_by_ids::GetRolesByIdsDTO;
+use crate::application::role::get_by_user::GetUserRolesDTO;
 use crate::application::role::get_range::RoleRangeDTO;
 use crate::application::role::update::UpdateRoleDTO;
 use crate::domain::models::role::RoleId;
+use crate::domain::models::user::UserId;
 use crate::presentation::id_provider::make_id_provider_from_request;
 use crate::presentation::interactor_factory::InteractorFactory;
 use crate::presentation::web::deserializers::deserialize_uuid_list;
@@ -48,6 +50,7 @@ struct RolesQuery {
     id: Option<RoleId>,
     #[serde(deserialize_with = "deserialize_uuid_list", default)]
     ids: Option<Vec<RoleId>>,
+    user_id: Option<UserId>,
     page: Option<u64>,
     per_page: Option<u64>
 }
@@ -74,6 +77,11 @@ async fn get_roles(
     } else if let Some(ids) = &data.ids {
         let data = ioc.get_roles_by_ids(id_provider).execute(
             GetRolesByIdsDTO { ids: ids.clone(), }
+        ).await?;
+        return Ok(HttpResponse::Ok().json(data))
+    } else if let Some(user_id) = &data.user_id {
+        let data = ioc.get_role_by_user(id_provider).execute(
+            GetUserRolesDTO { user_id: user_id.clone() }
         ).await?;
         return Ok(HttpResponse::Ok().json(data))
     } else if let (Some(page), Some(per_page)) = (&data.page, &data.per_page) {

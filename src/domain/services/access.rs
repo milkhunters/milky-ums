@@ -424,6 +424,27 @@ impl AccessService {
         Err(DomainError::AccessDenied)
     }
     
+    pub fn ensure_can_get_user_roles(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+
+        if
+        user_state.unwrap() == &UserState::Active &&
+            permissions.contains(&UMSPermission::GetUserRole.to_string())
+        {
+            return Ok(())
+        }
+
+        Err(DomainError::AccessDenied)
+    }
+    
     pub fn ensure_can_update_role(
         &self,
         is_auth: &bool,
