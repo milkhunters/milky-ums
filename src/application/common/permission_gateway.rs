@@ -29,6 +29,7 @@ pub trait PermissionRemover {
 
 #[async_trait]
 pub trait PermissionLinker {
+    async fn is_permission_linked_to_role(&self, role_id: &RoleId, permission_id: &PermissionId) -> bool;
     async fn link_permission_to_role(&self, role_id: &RoleId, permission_id: &PermissionId);
     async fn link_permissions_to_role(&self, role_id: &RoleId, permission_ids: &Vec<PermissionId>);
     async fn unlink_permission_from_role(&self, role_id: &RoleId, permission_id: &PermissionId);

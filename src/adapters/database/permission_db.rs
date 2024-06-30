@@ -244,6 +244,18 @@ impl PermissionLinker for PermissionGateway {
             .await
             .unwrap();
     }
+
+    async fn is_permission_linked_to_role(&self, role_id: &RoleId, permission_id: &PermissionId) -> bool {
+        role_permissions::Entity::find()
+            .filter(
+                Expr::col(role_permissions::Column::RoleId).eq(*role_id)
+                    .and(Expr::col(role_permissions::Column::PermissionId).eq(*permission_id))
+            )
+            .one(&*self.db)
+            .await
+            .unwrap()
+            .is_some()
+    }
 }
 
 fn map_permission_model_to_domain(permission: permissions::Model) -> PermissionDomain {
