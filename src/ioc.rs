@@ -12,6 +12,8 @@ use crate::adapters::redis_confirm_code::RedisConfirmCode;
 use crate::adapters::rmq_email_sender::RMQEmailSender;
 use crate::adapters::sha256_session_hasher::Sha256SessionHasher;
 use crate::application::common::id_provider::IdProvider;
+use crate::application::permission::get_by_role::GetRolePermissions;
+use crate::application::permission::get_by_user::GetUserPermissions;
 use crate::application::permission::get_range::GetPermissionRange;
 use crate::application::role::create::CreateRole;
 use crate::application::role::delete::DeleteRole;
@@ -380,6 +382,24 @@ impl InteractorFactory for IoC {
             id_provider,
             access_service: &self.access_service,
             validator: &self.validator,
+        }
+    }
+    
+    fn get_role_permissions(&self, id_provider: Box<dyn IdProvider>) -> GetRolePermissions {
+        GetRolePermissions {
+            permission_reader: &self.permission_gateway,
+            role_reader: &self.role_gateway,
+            id_provider,
+            access_service: &self.access_service,
+        }
+    }
+
+    fn get_user_permissions(&self, id_provider: Box<dyn IdProvider>) -> GetUserPermissions {
+        GetUserPermissions {
+            permission_reader: &self.permission_gateway,
+            user_reader: &self.user_gateway,
+            id_provider,
+            access_service: &self.access_service,
         }
     }
 }

@@ -1,22 +1,15 @@
-use actix_web::{get, HttpRequest, HttpResponse, Result, post, web, put, delete};
+use actix_web::{get, HttpRequest, HttpResponse, put, Result, web};
 use serde::Deserialize;
 
 use crate::AppConfigProvider;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::interactor::Interactor;
-use crate::application::role::create::CreateRoleDTO;
-use crate::application::role::delete::DeleteRoleDTO;
-use crate::application::role::get_by_id::GetRoleByIdDTO;
-use crate::application::role::get_by_ids::GetRolesByIdsDTO;
-use crate::application::role::get_range::RoleRangeDTO;
+use crate::application::permission::get_range::GetPermissionRangeDTO;
 use crate::application::role::update::UpdateRoleDTO;
-use crate::domain::models::permission::PermissionId;
 use crate::domain::models::role::RoleId;
 use crate::domain::models::user::UserId;
 use crate::presentation::id_provider::make_id_provider_from_request;
 use crate::presentation::interactor_factory::InteractorFactory;
-use crate::presentation::web::deserializers::deserialize_uuid_list;
-
 
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -48,18 +41,16 @@ async fn get_permissions(
     );
 
     if let Some(role_id) = &data.role_id {
-        let data = ioc.get_role_by_id(id_provider).execute(
-            GetRolePermissionsDTO { role_id: role_id.clone() }
-        ).await?;
-        return Ok(HttpResponse::Ok().json(data))
+        return Ok(HttpResponse::Ok().json(
+            ioc.get_role_permissions(id_provider).execute(role_id.clone()).await?
+        ))
     } else if let Some(user_id) = &data.user_id {
-        let data = ioc.get_roles_by_ids(id_provider).execute(
-            GetUserPermissionsDTO { user_id: user_id.clone() }
-        ).await?;
-        return Ok(HttpResponse::Ok().json(data))
+        return Ok(HttpResponse::Ok().json(
+            ioc.get_user_permissions(id_provider).execute(user_id.clone()).await?
+        ))
     } else if let (Some(page), Some(per_page)) = (&data.page, &data.per_page) {
-        let data = ioc.get_role_range(id_provider).execute(
-            RoleRangeDTO {
+        let data = ioc.get_permission_range(id_provider).execute(
+            GetPermissionRangeDTO {
                 page: page.clone(),
                 per_page: per_page.clone()
             }

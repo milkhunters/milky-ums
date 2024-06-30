@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use crate::domain::models::permission::{Permission as PermissionDomain, PermissionId, PermissionTextId};
 use crate::domain::models::role::RoleId;
 use crate::domain::models::service::ServiceId;
+use crate::domain::models::user::UserId;
 
 #[async_trait]
 pub trait PermissionReader {
@@ -12,7 +13,7 @@ pub trait PermissionReader {
     async fn get_permissions_by_text_ids(&self, permission_text_ids: &Vec<PermissionTextId>) -> Option<Vec<PermissionDomain>>;
     async fn get_permissions_list(&self, limit: &u64, offset: &u64) -> Vec<PermissionDomain>;
     async fn get_role_permissions(&self, role_id: &RoleId) -> Vec<PermissionDomain>;
-
+    async fn get_user_permissions(&self, user_id: &UserId) -> Vec<PermissionDomain>;
 }
 
 #[async_trait]
