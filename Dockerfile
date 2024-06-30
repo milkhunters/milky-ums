@@ -1,15 +1,22 @@
-FROM python:3.12.2-alpine3.19
+# Build image
+FROM rust:1.79.0-alpine3.20 as build
 
-RUN mkdir /app
+WORKDIR /usr/service
 
-# Setup FastAPI application
-COPY . /app/code
-WORKDIR /app/code
+RUN apk add --no-cache build-base musl-dev protoc protobuf-dev libressl-dev
 
-RUN python -m venv venv
-RUN . venv/bin/activate
-RUN pip install -e .
+COPY . .
 
-ENV PYTHONPATH=/app/code/src
 
-CMD ["uvicorn", "src.ums.main:application", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+RUN cargo install --path .
+
+# Runtime image
+FROM alpine:3.20.0
+
+RUN apk add --no-cache openssl
+
+WORKDIR /usr/local/bin
+
+COPY --from=build /usr/local/cargo/bin/milky-ums .
+
+CMD ["milky-ums"]

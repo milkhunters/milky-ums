@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+package ums.control;
+
+service UMSControl {
+  rpc ExtractPayload (EPRequest) returns (EPResponse);
+  rpc SyncService (SSRequest) returns (google.protobuf.Empty);
+}
+
+message EPRequest {
+  string session_token = 1;
+  string user_agent = 2;
+  string user_ip = 3;
+}
+
+message EPResponse {
+  string session_id = 1;
+  string user_id = 2;
+  string user_state = 3;
+  map<string, PermissionsList> permissions = 4;
+}
+
+message PermissionsList {
+  repeated string permission_text_ids = 1;
+}
+
+message SSRequest {
+  string text_id = 1;
+  repeated string permission_text_ids = 2;
+}
+
