@@ -24,13 +24,23 @@ mod ioc;
 fn main() -> std::io::Result<()> {
     dotenv().ok();
 
+    if let Some(log_level) = &std::env::var("LOG_LEVEL").ok() {
+        std::env::set_var("RUST_LOG", log_level);
+    }
+
+
     env_logger::builder()
         .filter_module("consulrs", log::LevelFilter::Error)
         .filter_module("tracing", log::LevelFilter::Error)
         .filter_module("rustify", log::LevelFilter::Error)
         .init();
+    
+    let http_workers = match std::env::var("HTTP_WORKERS") {
+        Ok(workers) => workers.parse::<usize>().ok(),
+        Err(_) => None,
+    };
 
-    let workers = match std::env::var("WORKERS") {
+    let grpc_workers = match std::env::var("GRPC_WORKERS") {
         Ok(workers) => workers.parse::<usize>().ok(),
         Err(_) => None,
     };
@@ -169,11 +179,21 @@ fn main() -> std::io::Result<()> {
         app_config_provider,
         ioc_factory()
     )
-        .bind(format!("{}:{}", http_host, http_port)).unwrap()
+        .bind(format!("{}:{}", http_host, http_port)).map_err(|error| {
+            log::error!("Http Server: failed to bind to port {} in host {}: {}", http_host, http_port, error);
+            std::process::exit(1);
+        }).unwrap()
         .set_workers(
-            workers.unwrap_or_else(|| {
+            http_workers.unwrap_or_else(|| {
                 match thread::available_parallelism() {
-                    Ok(parallelism) => usize::from(parallelism),
+                    Ok(parallelism) => {
+                        let available_workers = usize::from(parallelism);
+                        if available_workers > 1 {
+                            available_workers / 2
+                        } else {
+                            available_workers
+                        }
+                    }
                     Err(_) => 1,
                 }
             })
@@ -186,11 +206,21 @@ fn main() -> std::io::Result<()> {
         service_name.clone(),
         ioc_factory()
     )
-        .bind(grpc_server_addr).unwrap()
+        .bind(grpc_server_addr.clone()).map_err(|error| {
+            log::error!("gRPC Server: failed to bind to address {}: {}", grpc_server_addr, error);
+            std::process::exit(1);
+        }).unwrap()
         .set_workers(
-            workers.unwrap_or_else(|| {
+            grpc_workers.unwrap_or_else(|| {
                 match thread::available_parallelism() {
-                    Ok(parallelism) => usize::from(parallelism),
+                    Ok(parallelism) => { 
+                        let available_workers = usize::from(parallelism);
+                        if available_workers > 1 {
+                            available_workers / 2
+                        } else {
+                            available_workers
+                        }
+                    },
                     Err(_) => 1,
                 }
             })

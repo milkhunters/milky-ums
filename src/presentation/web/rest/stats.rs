@@ -1,15 +1,26 @@
 use actix_web::{get, HttpResponse, Responder, web};
+use serde_json::json;
+use crate::presentation::web::server::AppConfigProvider;
 
 pub fn router(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/stats")
-            .service(health_check)
+            .service(stats)
     );
 }
 
 
-#[get("/health")]
-async fn health_check() -> impl Responder {
-    HttpResponse::Ok().body("I'm alive!")
+#[get("")]
+async fn stats(
+    app_config_provider: web::Data<AppConfigProvider>
+) -> impl Responder {
+    HttpResponse::Ok().json(json!(
+        {
+            "service": app_config_provider.service_name,
+            "build": app_config_provider.build,
+            "branch": app_config_provider.branch,
+            "version": app_config_provider.version,
+        }
+    ))
 }
 
