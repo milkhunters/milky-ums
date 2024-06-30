@@ -1,7 +1,7 @@
 use core::option::Option;
 
 use async_trait::async_trait;
-use sea_orm::{Condition, DbConn, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait};
+use sea_orm::{Condition, DbBackend, DbConn, EntityTrait, JoinType, QueryFilter, QuerySelect, RelationTrait, Statement};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Expr, IntoCondition};
 
@@ -17,6 +17,7 @@ use crate::domain::models::permission::{Permission as PermissionDomain, Permissi
 use crate::domain::models::permission::Permission;
 use crate::domain::models::role::RoleId;
 use crate::domain::models::service::ServiceId;
+use crate::domain::models::user::UserId;
 
 pub struct PermissionGateway{
     pub db: Box<DbConn>,
@@ -116,6 +117,33 @@ impl PermissionReader for PermissionGateway {
             )
             .all(&*self.db)
             .await.unwrap();
+        permissions.into_iter().map(map_permission_model_to_domain).collect()
+    }
+
+    async fn get_user_permissions(&self, user_id: &UserId) -> Vec<PermissionDomain> {
+        let raw_sql = r#"
+            SELECT
+                permissions.*
+            FROM
+                permissions
+            JOIN
+                role_permissions ON permissions.permission_id = role_permissions.permission_id
+            JOIN
+                role_user ON role_permissions.role_id = role_user.role_id
+            WHERE
+                role_user.user_id = $1;
+        "#;
+
+        let permissions: Vec<permissions::Model> = permissions::Entity::find().from_raw_sql(
+            Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                raw_sql,
+                vec![user_id.clone().into()]
+            )
+        )
+            .all(&*self.db)
+            .await.unwrap();
+
         permissions.into_iter().map(map_permission_model_to_domain).collect()
     }
 }
