@@ -23,10 +23,8 @@ pub struct UnlinkRolePermissionDTO {
 pub struct UnlinkRolePermission<'a> {
     pub role_reader: &'a dyn RoleReader,
     pub permission_gateway: &'a dyn PermissionGateway,
-    pub role_service: &'a RoleService,
     pub id_provider: Box<dyn IdProvider>,
     pub access_service: &'a AccessService,
-    pub validator: &'a ValidatorService,
 }
 
 impl Interactor<UnlinkRolePermissionDTO, ()> for UnlinkRolePermission<'_> {

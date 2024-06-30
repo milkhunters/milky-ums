@@ -7,17 +7,15 @@ use redis::cmd;
 use sea_orm::{DbBackend, DbConn, EntityTrait, FromQueryResult, JsonValue, QueryFilter, Statement};
 use sea_orm::ActiveValue::Set;
 use sea_orm::prelude::Expr;
-use serde::Deserialize;
 
 use crate::adapters::database::models::sessions;
 use crate::application::common::session_gateway::{
-    SessionGateway as SessionGatewayTrait, 
-    SessionReader, 
-    SessionRemover, 
+    SessionGateway as SessionGatewayTrait,
+    SessionReader,
+    SessionRemover,
     SessionWriter
 };
 use crate::domain::models::permission::PermissionTextId;
-use crate::domain::models::role::RoleId;
 use crate::domain::models::service::ServiceTextId;
 use crate::domain::models::session::{
     Session,
@@ -44,13 +42,6 @@ impl SessionGateway {
             db,
         }
     }
-}
-
-
-#[derive(Deserialize)]
-struct SessionRoleQueryModel {
-    role_id: RoleId,
-    permission_text_id: PermissionTextId
 }
 
 

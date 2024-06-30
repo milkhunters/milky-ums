@@ -16,20 +16,3 @@ pub struct Service {
     pub created_at: DateTime<Utc>,
     pub updated_at: Option<DateTime<Utc>>,
 }
-
-impl Service {
-    pub fn new(
-        text_id: ServiceTextId,
-        title: String,
-        description: Option<String>,
-    ) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            text_id,
-            title,
-            description,
-            created_at: Utc::now(),
-            updated_at: None,
-        }
-    }
-}

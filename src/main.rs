@@ -122,6 +122,7 @@ fn main() -> std::io::Result<()> {
         &adapters::database::permission_db::PermissionGateway::new(db.clone()),
         &domain::services::permission::PermissionService{},
         service_name.clone(),
+        &domain::services::external::ExternalService{},
     ));
 
     rt.block_on(application::initial::control_account(

@@ -28,15 +28,6 @@ impl AccessLogGateway {
 
 #[async_trait]
 impl AccessLogReader for AccessLogGateway {
-    async fn get_record(&self, access_log_id: &AccessLogId) -> Option<AccessLogDomain> {
-        match access_logs::Entity::find_by_id(access_log_id.clone())
-            .one(self.db.as_ref())
-            .await
-            .unwrap() {
-            Some(access_log) => Some(map_rec_model_to_domain(access_log)),
-            None => None
-        }
-    }
 
     async fn get_user_records(&self, user_id: &UserId, limit: &u64, offset: &u64) -> Vec<AccessLogDomain> {
         let records = access_logs::Entity::find()

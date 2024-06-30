@@ -13,11 +13,6 @@ use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::session::SessionService;
 use crate::domain::services::validator::ValidatorService;
 
-#[derive(Debug, Deserialize)]
-pub struct EPSessionDTO {
-    pub session_token: Option<SessionToken>,
-}
-
 #[derive(Debug, Serialize)]
 pub struct EPSessionResultDTO{
     pub session_id: SessionId,

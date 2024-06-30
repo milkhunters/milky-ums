@@ -4,6 +4,7 @@ use crate::application::common::permission_gateway::PermissionGateway;
 use crate::application::common::service_gateway::ServiceGateway;
 use crate::domain::models::permission::{Permission, PermissionTextId};
 use crate::domain::models::service::{Service, ServiceTextId};
+use crate::domain::services::external::ExternalService;
 use crate::domain::services::permission::PermissionService;
 
 pub struct ServiceSyncDTO {
@@ -15,7 +16,8 @@ pub struct ServiceSyncDTO {
 pub struct ServiceSync<'a> {
     pub service_gateway: &'a dyn ServiceGateway,
     pub permission_gateway: &'a dyn PermissionGateway,
-    pub permission_service: &'a PermissionService
+    pub permission_service: &'a PermissionService,
+    pub external_service: &'a ExternalService
 }
 
 impl Interactor<ServiceSyncDTO, ()> for ServiceSync<'_> {
@@ -25,7 +27,7 @@ impl Interactor<ServiceSyncDTO, ()> for ServiceSync<'_> {
         ).await {
             Some(service) => service,
             None => {
-                let service = Service::new(
+                let service = self.external_service.create_service(
                     data.service_text_id.clone(),
                     data.service_text_id.clone(),
                     None,

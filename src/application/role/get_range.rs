@@ -77,7 +77,7 @@ impl Interactor<RoleRangeDTO, RoleRangeResultDTO> for GetRoleRange<'_> {
         }
         
         
-        let roles = self.role_gateway.get_roles(
+        let roles = self.role_gateway.get_roles_range(
             &data.per_page,
             &(data.page * data.per_page)
         ).await;

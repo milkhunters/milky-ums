@@ -3,14 +3,13 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use cached::{Cached, TimedCache};
-use sea_orm::{DbConn, EntityTrait, QueryFilter, QuerySelect};
+use sea_orm::{DbBackend, DbConn, EntityTrait, QueryFilter, QuerySelect, Statement};
 use sea_orm::ActiveValue::Set;
 use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::sea_query::extension::postgres::PgExpr;
 
 use crate::adapters::database::models::{default_role, role_user, roles};
 use crate::application::common::role_gateway::{RoleGateway as RoleGatewayTrait, RoleLinker, RoleReader, RoleRemover, RoleWriter};
-use crate::domain::models::permission::Permission;
 use crate::domain::models::role::{Role as RoleDomain, RoleId};
 use crate::domain::models::user::UserId;
 
@@ -75,7 +74,7 @@ impl RoleReader for RoleGateway {
         )
     }
 
-    async fn get_roles(&self, limit: &u64, offset: &u64) -> Vec<RoleDomain> {
+    async fn get_roles_range(&self, limit: &u64, offset: &u64) -> Vec<RoleDomain> {
         let roles: Vec<roles::Model> = roles::Entity::find()
             .offset(*offset)
             .limit(*limit)
@@ -85,50 +84,31 @@ impl RoleReader for RoleGateway {
         roles.iter().map(|role| map_role_model_to_domain(role.clone())).collect()
     }
 
-    async fn get_roles_by_user_with_perms(&self, user_id: &UserId) -> Vec<(RoleDomain, Vec<Permission>)> {
-        // let roles_with_permissions = roles::Entity::find()
-        //     .join(
-        //         role_user::Entity::find()
-        //             .filter(Expr::col(role_user::Column::UserId).eq(user_id))
-        //             .join(roles::Relation::RoleUser, JoinType::Inner)
-        //     )
-        //     .join(
-        //         role_permissions::Entity::find()
-        //             .join(permissions::Entity::find())
-        //             .on(
-        //                 Expr::tbl(role_permissions::Table::Table, role_permissions::Column::RoleId)
-        //                     .equals(Expr::tbl(roles::Table::Table, roles::Column::Id))
-        //             )
-        //             .on(
-        //                 Expr::tbl(role_permissions::Table::Table, role_permissions::Column::PermissionId)
-        //                     .equals(Expr::tbl(permissions::Table::Table, permissions::Column::Id))
-        //             )
-        //             .join(roles::Relation::RolePermissions, JoinType::Inner)
-        //     )
-        //     .all(&*self.db)
-        //     .await
-        //     .unwrap();
-        // // Step 3: Organize the results into a vector of (role, permissions)
-        // let mut role_map: HashMap<RoleId, (RoleDomain, Vec<Permission>)> = HashMap::new();
-        // for (role, permission) in roles_with_permissions {
-        //     let role_domain = map_role_model_to_domain(role.clone());
-        //     let permission_domain = Permission {
-        //         id: permission.get(0),
-        //         text_id: permission.get(1),
-        //         service_id: permission.get(2),
-        //         title: permission.get(3),
-        //         description: permission.get(4),
-        //         created_at: permission.get(5),
-        //         updated_at: permission.get(6),
-        //     };
-        //     let entry = role_map.entry(role.id).or_insert((role_domain, vec![]));
-        //     entry.1.push(permission_domain);
-        // }
-        // 
-        // role_map.into_iter().map(|(_, v)| v).collect()
-        vec![]
-    }
+    async fn get_user_roles(&self, user_id: &UserId) -> Vec<RoleDomain> {
+        let raw_sql = r#"
+            SELECT
+                roles.*
+            FROM
+                roles
+            JOIN
+                role_user ON roles.id = role_user.role_id
+            WHERE
+                role_user.user_id = $1;
+        "#;
 
+        let roles: Vec<roles::Model> = roles::Entity::find().from_raw_sql(
+            Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                raw_sql,
+                vec![user_id.clone().into()]
+            )
+        )
+            .all(&*self.db)
+            .await.unwrap();
+
+        roles.into_iter().map(map_role_model_to_domain).collect()
+    }
+    
     async fn get_role_by_title_not_sensitive(&self, title: &String) -> Option<RoleDomain> {
         let role: Option<roles::Model> = roles::Entity::find().filter(
                 Expr::col(roles::Column::Title).ilike(title)

@@ -17,6 +17,7 @@ use crate::domain::models::permission::{PermissionId, PermissionTextId};
 use crate::domain::models::service::{ServiceTextId};
 use crate::domain::models::ums_permission::UMSPermission;
 use crate::domain::models::user::UserState;
+use crate::domain::services::external::ExternalService;
 use crate::domain::services::permission::PermissionService;
 use crate::domain::services::role::RoleService;
 use crate::domain::services::user::UserService;
@@ -26,6 +27,7 @@ pub async fn service_permissions(
     permission_gateway: &dyn PermissionGateway,
     permission_service: &PermissionService,
     service_text_id: ServiceTextId,
+    external_service: &ExternalService
 ) {
     let permission_text_ids = UMSPermission::iter().map(|permission| {
         permission.to_string()
@@ -34,7 +36,8 @@ pub async fn service_permissions(
     let executor = ServiceSync { 
         service_gateway, 
         permission_gateway,
-        permission_service
+        permission_service,
+        external_service
     };
 
     executor.execute(
