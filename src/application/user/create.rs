@@ -2,20 +2,19 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use crate::application::common::email_sender::EmailSender;
 
+use crate::application::common::email_sender::EmailSender;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::user_gateway::UserGateway;
 use crate::application::common::role_gateway::RoleGateway;
+use crate::application::common::user_gateway::UserGateway;
 use crate::config::Extra;
 use crate::domain::models::user::{UserId, UserState};
+use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
-use crate::domain::services::access::AccessService;
-
 
 #[derive(Debug, Deserialize)]
 pub struct CreateUserDTO {

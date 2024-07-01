@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
+
+use serde::Serialize;
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::hasher::Hasher;

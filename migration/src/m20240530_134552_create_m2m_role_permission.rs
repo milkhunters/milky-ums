@@ -1,4 +1,5 @@
 use sea_orm_migration::prelude::*;
+
 use crate::m20240530_130156_create_role::Roles;
 use crate::m20240530_133643_create_permission::Permissions;
 

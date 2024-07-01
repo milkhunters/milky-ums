@@ -4,9 +4,9 @@ use sea_orm::ActiveValue::Set;
 
 use crate::adapters::database::models::services;
 use crate::application::common::service_gateway::{
-    ServiceGateway as ServiceGatewayTrait, 
-    ServiceReader, 
-    ServiceRemover, 
+    ServiceGateway as ServiceGatewayTrait,
+    ServiceReader,
+    ServiceRemover,
     ServiceWriter
 };
 use crate::domain::models::service::{Service, ServiceId, ServiceTextId};

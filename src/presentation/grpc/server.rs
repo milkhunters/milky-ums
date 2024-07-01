@@ -2,6 +2,7 @@ use std::io;
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
 use log::error;
 use tonic::transport::Server as TonicGrpcServer;
 

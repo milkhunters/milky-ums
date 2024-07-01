@@ -1,4 +1,5 @@
 use sea_orm_migration::prelude::*;
+
 use crate::m20240530_132130_create_service::Services;
 
 #[derive(DeriveMigrationName)]

@@ -1,5 +1,3 @@
-use core::option::Option;
-
 use async_trait::async_trait;
 use sea_orm::{DbConn, EntityTrait, QueryFilter, QuerySelect};
 use sea_orm::ActiveValue::Set;
@@ -11,7 +9,7 @@ use crate::application::common::access_log_gateway::{
     AccessLogReader,
     AccessLogWriter
 };
-use crate::domain::models::access_log::{AccessLog as AccessLogDomain, AccessLogId};
+use crate::domain::models::access_log::AccessLog as AccessLogDomain;
 use crate::domain::models::user::UserId;
 
 pub struct AccessLogGateway{

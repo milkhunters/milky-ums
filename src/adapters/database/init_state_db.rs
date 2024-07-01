@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sea_orm::{DbConn, EntityTrait};
 use sea_orm::ActiveValue::Set;
-use crate::adapters::database::models::init_state;
 
+use crate::adapters::database::models::init_state;
 use crate::application::common::init_state_gateway::InitStateGateway as InitStateGatewayTrait;
 
 pub struct InitStateGateway{

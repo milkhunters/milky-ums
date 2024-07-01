@@ -3,18 +3,17 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use rand::seq::SliceRandom;
 use strum::IntoEnumIterator;
+
 use crate::application::common::hasher::Hasher;
 use crate::application::common::init_state_gateway::InitStateGateway;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::permission_gateway::PermissionGateway;
 use crate::application::common::role_gateway::RoleGateway;
-
 use crate::application::common::service_gateway::ServiceGateway;
 use crate::application::common::user_gateway::UserGateway;
 use crate::application::service::sync::{ServiceSync, ServiceSyncDTO};
-
 use crate::domain::models::permission::{PermissionId, PermissionTextId};
-use crate::domain::models::service::{ServiceTextId};
+use crate::domain::models::service::ServiceTextId;
 use crate::domain::models::ums_permission::UMSPermission;
 use crate::domain::models::user::UserState;
 use crate::domain::services::external::ExternalService;

@@ -3,7 +3,7 @@ use crate::application::common::interactor::Interactor;
 use crate::application::common::permission_gateway::PermissionGateway;
 use crate::application::common::service_gateway::ServiceGateway;
 use crate::domain::models::permission::{Permission, PermissionTextId};
-use crate::domain::models::service::{Service, ServiceTextId};
+use crate::domain::models::service::ServiceTextId;
 use crate::domain::services::external::ExternalService;
 use crate::domain::services::permission::PermissionService;
 

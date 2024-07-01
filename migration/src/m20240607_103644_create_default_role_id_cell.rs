@@ -1,4 +1,5 @@
 use sea_orm_migration::prelude::*;
+
 use crate::m20240530_130156_create_role::Roles;
 
 #[derive(DeriveMigrationName)]

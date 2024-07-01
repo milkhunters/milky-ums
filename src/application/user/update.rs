@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
@@ -10,7 +11,6 @@ use crate::domain::models::user::{UserId, UserState};
 use crate::domain::services::access::AccessService;
 use crate::domain::services::user::UserService;
 use crate::domain::services::validator::ValidatorService;
-
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateUserDTO {
