@@ -1,11 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
-
 use crate::application::common::interactor::Interactor;
 use crate::application::common::role_gateway::RoleReader;
-
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::role::RoleId;
 use crate::domain::services::access::AccessService;

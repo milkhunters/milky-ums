@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::domain::models::access_log::{AccessLog, AccessLogId};
+use crate::domain::models::access_log::AccessLog;
 use crate::domain::models::user::UserId;
 
 #[async_trait]

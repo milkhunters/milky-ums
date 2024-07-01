@@ -5,7 +5,6 @@ use crate::application::common::session_gateway::SessionRemover;
 use crate::domain::exceptions::DomainError;
 use crate::domain::services::access::AccessService;
 
-
 pub struct DeleteSessionSelf<'a> {
     pub session_remover: &'a dyn SessionRemover,
     pub id_provider: Box<dyn IdProvider>,

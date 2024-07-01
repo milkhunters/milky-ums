@@ -1,15 +1,17 @@
-use std::sync::{Arc, Mutex};
 use std::io;
 use std::net::TcpListener;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use actix_web::{App, web, HttpServer as ActixHttpServer};
+
+use actix_web::{App, HttpServer as ActixHttpServer, web};
 use actix_web::http::KeepAlive;
 use actix_web::middleware::Logger;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+
 use crate::application::common::server::{ConnectionConfig, Server};
-use crate::presentation;
 use crate::domain::models::service::ServiceTextId;
 use crate::ioc::IoC;
+use crate::presentation;
 use crate::presentation::interactor_factory::InteractorFactory;
 
 #[derive(Clone)]
@@ -87,7 +89,7 @@ impl Server for HttpServer {
                     ))
                     .app_data(ioc_data)
                     .default_service(web::route().to(presentation::web::exception::not_found))
-                .wrap(Logger::default())
+                    .wrap(Logger::default())
             };
 
             let available_workers = {

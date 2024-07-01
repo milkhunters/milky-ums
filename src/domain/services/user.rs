@@ -2,7 +2,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use crate::application::common::exceptions::ApplicationError;
-use crate::domain::models::user::{ User, UserState };
+use crate::domain::models::user::{User, UserState};
 
 pub struct UserService { }
 

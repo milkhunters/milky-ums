@@ -1,7 +1,7 @@
-use argon2::{password_hash::{
-    rand_core::OsRng,
-    PasswordHash, PasswordHasher, PasswordVerifier, SaltString
-}, Argon2, Params};
+use argon2::{Argon2, Params, password_hash::{
+    PasswordHash,
+    PasswordHasher, PasswordVerifier, rand_core::OsRng, SaltString
+}};
 use async_trait::async_trait;
 
 use crate::application::common::hasher::Hasher;

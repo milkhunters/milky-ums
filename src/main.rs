@@ -1,14 +1,13 @@
 use std::thread;
 
-use dotenv::dotenv;
-use sea_orm::{ConnectOptions, Database, DbConn};
 use deadpool_redis::{Config, Runtime};
+use dotenv::dotenv;
 use lapin::{Connection as RabbitConnection, ConnectionProperties as RMQConnProps};
+use sea_orm::{ConnectOptions, Database, DbConn};
 use tera::Tera;
 
-use crate::domain::models::service::ServiceTextId;
-
 use crate::application::common::server::Server;
+use crate::domain::models::service::ServiceTextId;
 use crate::ioc::IoC;
 use crate::presentation::grpc::server::GrpcServer;
 use crate::presentation::web::server::{AppConfigProvider, HttpServer};

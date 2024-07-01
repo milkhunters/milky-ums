@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use log::warn;
 use serde::{Deserialize, Serialize};
 use woothee::parser::Parser;

@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+
 use actix_web::{error, HttpResponse, Result};
 use actix_web::http::header::ContentType;
 use actix_web::http::StatusCode;

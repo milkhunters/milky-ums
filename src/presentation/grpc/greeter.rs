@@ -5,8 +5,8 @@ use tonic::codegen::http::HeaderMap;
 
 use proto::{EpRequest, EpResponse};
 use proto::ums_control_server::UmsControl;
-use crate::application::common::interactor::Interactor;
 
+use crate::application::common::interactor::Interactor;
 use crate::application::service::sync::ServiceSyncDTO;
 use crate::domain::models::service::ServiceTextId;
 use crate::presentation::grpc::greeter::proto::{PermissionsList, SsRequest};

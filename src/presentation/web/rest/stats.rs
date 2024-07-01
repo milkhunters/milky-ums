@@ -1,5 +1,6 @@
 use actix_web::{get, HttpResponse, Responder, web};
 use serde_json::json;
+
 use crate::presentation::web::server::AppConfigProvider;
 
 pub fn router(cfg: &mut web::ServiceConfig) {

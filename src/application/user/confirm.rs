@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
 use serde_json::Value;
+
 use crate::application::common::confirm_code::ConfirmCode;
 use crate::application::common::email_sender::EmailSender;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};

@@ -9,12 +9,11 @@ use sea_orm::sea_query::{Condition, Expr};
 use sea_orm::sea_query::extension::postgres::PgExpr;
 
 use crate::adapters::database::models::sea_orm_active_enums::UserState;
-
 use crate::adapters::database::models::users;
 use crate::application::common::user_gateway::{
-    UserReader, 
-    UserWriter, 
-    UserGateway as UserGatewayTrait
+    UserGateway as UserGatewayTrait,
+    UserReader,
+    UserWriter
 };
 use crate::domain::models::user::{User as UserDomain, UserId};
 use crate::domain::models::user::UserState as UserStateDomain;

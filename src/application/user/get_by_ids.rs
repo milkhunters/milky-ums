@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
-
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::models::user::UserId;

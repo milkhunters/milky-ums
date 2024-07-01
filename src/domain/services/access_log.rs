@@ -1,4 +1,3 @@
-
 use crate::domain::models::access_log::{AccessLog, AccessLogId};
 use crate::domain::models::user::UserId;
 
