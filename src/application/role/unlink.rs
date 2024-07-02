@@ -28,8 +28,9 @@ pub struct UnlinkRoleUser<'a> {
 impl Interactor<UnlinkRoleUserDTO, ()> for UnlinkRoleUser<'_> {
     async fn execute(&self, data: UnlinkRoleUserDTO) -> Result<(), ApplicationError> {
         
-        match self.access_service.ensure_can_link_permission(
+        match self.access_service.ensure_can_link_role_user(
             self.id_provider.is_auth(),
+            self.id_provider.user_state(),
             self.id_provider.permissions()
         ) {
             Ok(_) => (),
