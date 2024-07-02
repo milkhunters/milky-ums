@@ -51,7 +51,7 @@ impl Interactor<ServiceId, ServiceResultDTO> for GetService<'_> {
         let service = self.service_reader.get_service_by_id(
             &data
         ).await.ok_or(
-            ApplicationError::InvalidData(
+            ApplicationError::NotFound(
                 ErrorContent::Message("Сервис не найден".to_string())
             )
         )?;
