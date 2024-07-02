@@ -9,14 +9,13 @@ use crate::application::common::interactor::Interactor;
 use crate::application::common::service_gateway::ServiceGateway;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::service::{ServiceId, ServiceTextId};
-use crate::domain::models::user::UserId;
 use crate::domain::services::access::AccessService;
 use crate::domain::services::external::ExternalService;
 use crate::domain::services::validator::ValidatorService;
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateServiceDTO {
-    pub id: UserId,
+    pub id: ServiceId,
     pub title: String,
     pub description: Option<String>
 }
@@ -84,7 +83,7 @@ impl Interactor<UpdateServiceDTO, UpdateServiceResultDTO> for UpdateService<'_> 
         let service = self.service_gateway.get_service_by_id(
             &data.id
         ).await.ok_or(
-            ApplicationError::InvalidData(
+            ApplicationError::NotFound(
                 ErrorContent::Message("Указанный идентификатор сервиса не найден".to_string())
             )
         )?;
