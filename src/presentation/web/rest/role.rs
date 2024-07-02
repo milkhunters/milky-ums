@@ -26,6 +26,8 @@ pub fn router(cfg: &mut web::ServiceConfig) {
             .service(get_roles)
             .service(update_role)
             .service(delete_role)
+            .service(link_role_user)
+            .service(unlink_role_user)
     );
 }
 
@@ -145,7 +147,7 @@ async fn link_role_user(
     Ok(HttpResponse::NoContent().finish())
 }
 
-#[post("unlink")]
+#[delete("link")]
 async fn unlink_role_user(
     data: web::Json<UnlinkRoleUserDTO>,
     ioc: web::Data<dyn InteractorFactory>,
