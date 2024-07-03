@@ -18,6 +18,8 @@ pub fn router(cfg: &mut web::ServiceConfig) {
         web::scope("/permissions")
             .service(get_permissions)
             .service(update_permission)
+            .service(link_role_permission)
+            .service(unlink_role_permission)
     );
 }
 
