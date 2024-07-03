@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::role_gateway::{RoleGateway, RoleReader};
+use crate::application::common::role_gateway::RoleGateway;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::role::RoleId;
