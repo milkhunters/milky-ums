@@ -382,6 +382,27 @@ impl AccessService {
         
         Err(DomainError::AccessDenied)
     }
+
+    pub fn ensure_can_set_default_role(
+        &self,
+        is_auth: &bool,
+        user_state: Option<&UserState>,
+        permissions: &Vec<String>
+    ) -> Result<(), DomainError> {
+
+        if !is_auth {
+            return Err(DomainError::AuthorizationRequired)
+        }
+
+        if
+        user_state.unwrap() == &UserState::Active &&
+            permissions.contains(&UMSPermission::SetDefaultRole.to_string())
+        {
+            return Ok(())
+        }
+
+        Err(DomainError::AccessDenied)
+    }
     
     pub fn ensure_can_delete_role(
         &self,

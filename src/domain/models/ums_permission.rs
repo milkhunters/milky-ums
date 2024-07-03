@@ -26,18 +26,13 @@ pub enum UMSPermission {
     CreateRole,
     UpdateRole,
     DeleteRole,
-
     SetDefaultRole,
-    GetDefaultRole,
-    
     LinkUserRole,
     GetUserRole,
     GetSelfRole,
     
     GetPermission,
     UpdatePermission,
-    DeletePermission,
-    
     LinkRolePermission,
     
     GetService,
