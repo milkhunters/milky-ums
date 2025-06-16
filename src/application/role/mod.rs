@@ -7,3 +7,5 @@ pub mod update;
 pub mod delete;
 pub mod link;
 pub mod unlink;
+pub mod set_default;
+pub mod get_default;

@@ -26,6 +26,10 @@ pub fn router(cfg: &mut web::ServiceConfig) {
             .service(get_roles)
             .service(update_role)
             .service(delete_role)
+            .service(set_default_role)
+            .service(get_default_role)
+            .service(link_role_user)
+            .service(unlink_role_user)
     );
 }
 
@@ -129,6 +133,43 @@ async fn delete_role(
     Ok(HttpResponse::NoContent().finish())
 }
 
+#[derive(Debug, Deserialize)]
+struct DefaultRoleQuery {
+    id: RoleId,
+}
+
+#[post("default")]
+async fn set_default_role(
+    data: web::Json<DefaultRoleQuery>,
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    ioc.set_default_role(id_provider).execute(data.id).await?;
+    Ok(HttpResponse::NoContent().finish())
+}
+
+#[get("default")]
+async fn get_default_role(
+    ioc: web::Data<dyn InteractorFactory>,
+    app_config_provider: web::Data<AppConfigProvider>,
+    req: HttpRequest
+) -> Result<HttpResponse, ApplicationError> {
+    let id_provider = make_id_provider_from_request(
+        &app_config_provider.service_name,
+        app_config_provider.is_intermediate,
+        &req
+    );
+    let data = ioc.get_default_role(id_provider).execute(()).await?;
+    Ok(HttpResponse::Ok().json(data))
+}
+
+
 #[post("link")]
 async fn link_role_user(
     data: web::Json<LinkRoleUserDTO>,
@@ -145,7 +186,7 @@ async fn link_role_user(
     Ok(HttpResponse::NoContent().finish())
 }
 
-#[post("unlink")]
+#[delete("link")]
 async fn unlink_role_user(
     data: web::Json<UnlinkRoleUserDTO>,
     ioc: web::Data<dyn InteractorFactory>,

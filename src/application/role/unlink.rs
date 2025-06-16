@@ -5,7 +5,7 @@ use serde::Deserialize;
 use crate::application::common::exceptions::{ApplicationError, ErrorContent};
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
-use crate::application::common::role_gateway::{RoleGateway, RoleReader};
+use crate::application::common::role_gateway::RoleGateway;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::exceptions::DomainError;
 use crate::domain::models::role::RoleId;
@@ -28,8 +28,9 @@ pub struct UnlinkRoleUser<'a> {
 impl Interactor<UnlinkRoleUserDTO, ()> for UnlinkRoleUser<'_> {
     async fn execute(&self, data: UnlinkRoleUserDTO) -> Result<(), ApplicationError> {
         
-        match self.access_service.ensure_can_link_permission(
+        match self.access_service.ensure_can_link_role_user(
             self.id_provider.is_auth(),
+            self.id_provider.user_state(),
             self.id_provider.permissions()
         ) {
             Ok(_) => (),

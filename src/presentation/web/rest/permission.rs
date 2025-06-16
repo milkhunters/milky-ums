@@ -1,4 +1,4 @@
-use actix_web::{get, HttpRequest, HttpResponse, post, put, Result, web};
+use actix_web::{delete, get, HttpRequest, HttpResponse, post, put, Result, web};
 use serde::Deserialize;
 
 use crate::AppConfigProvider;
@@ -18,6 +18,8 @@ pub fn router(cfg: &mut web::ServiceConfig) {
         web::scope("/permissions")
             .service(get_permissions)
             .service(update_permission)
+            .service(link_role_permission)
+            .service(unlink_role_permission)
     );
 }
 
@@ -95,7 +97,7 @@ async fn link_role_permission(
     Ok(HttpResponse::NoContent().finish())
 }
 
-#[post("unlink")]
+#[delete("link")]
 async fn unlink_role_permission(
     data: web::Json<UnlinkRolePermissionDTO>,
     ioc: web::Data<dyn InteractorFactory>,

@@ -23,8 +23,10 @@ use crate::application::role::delete::DeleteRole;
 use crate::application::role::get_by_id::GetRoleById;
 use crate::application::role::get_by_ids::GetRolesByIds;
 use crate::application::role::get_by_user::GetUserRoles;
+use crate::application::role::get_default::GetDefaultRole;
 use crate::application::role::get_range::GetRoleRange;
 use crate::application::role::link::LinkRoleUser;
+use crate::application::role::set_default::SetDefaultRole;
 use crate::application::role::unlink::UnlinkRoleUser;
 use crate::application::role::update::UpdateRole;
 use crate::application::service::get_by_id::GetService;
@@ -381,6 +383,23 @@ impl InteractorFactory for IoC {
             id_provider,
             access_service: &self.access_service,
             validator: &self.validator,
+        }
+    }
+
+    fn set_default_role(&self, id_provider: Box<dyn IdProvider>) -> SetDefaultRole {
+        SetDefaultRole {
+            role_gateway: &self.role_gateway,
+            access_service: &self.access_service,
+            id_provider,
+        }
+    }
+
+    fn get_default_role(&self, id_provider: Box<dyn IdProvider>) -> GetDefaultRole {
+        GetDefaultRole {
+            role_reader: &self.role_gateway,
+            permission_reader: &self.permission_gateway,
+            access_service: &self.access_service,
+            id_provider,
         }
     }
 

@@ -80,16 +80,12 @@ pub async fn control_account(
                 UMSPermission::DeleteRole,
                 
                 UMSPermission::SetDefaultRole,
-                UMSPermission::GetDefaultRole,
                 
                 UMSPermission::GetPermission,
                 UMSPermission::UpdatePermission,
-                UMSPermission::DeletePermission,
-                
                 UMSPermission::LinkRolePermission,
                 
                 UMSPermission::GetService,
-                
                 UMSPermission::DeleteSessionSelf,
             ].iter().map(|permission| {
                 permission.to_string()
