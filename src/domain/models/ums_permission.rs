@@ -1,7 +1,7 @@
-use strum_macros::{Display, EnumIter};
+use strum_macros::{Display};
 
-#[derive(Display, EnumIter)]
-pub enum UMSPermission {
+#[derive(Display)]
+pub enum Permission {
     GetUserSelf,
     GetUser,
     CreateUser,
