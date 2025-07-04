@@ -1,108 +1,70 @@
 use std::collections::{BTreeMap, HashMap};
 
 use serde::Deserialize;
-use serde_json::Value;
 
-use crate::application::common::confirm_code::ConfirmCode;
+use crate::application::common::code_confirmer::CodeConfirmer;
 use crate::application::common::email_sender::EmailSender;
-use crate::application::common::exceptions::{ApplicationError, ErrorContent};
+use crate::application::common::error::AppError;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserGateway;
-use crate::config::Extra;
+use crate::domain::error::ValidationError;
 use crate::domain::models::user::UserState;
-use crate::domain::services::access::AccessService;
-use crate::domain::services::user::UserService;
-use crate::domain::services::validator::ValidatorService;
+use crate::domain::services::access::ensure_can_confirm_user;
+use crate::domain::services::validator::validate_email;
 
 #[derive(Debug, Deserialize)]
-pub struct ConfirmUserDTO {
+pub struct ConfirmUserInput {
     pub email: String,
     pub code: u32
 }
 
-pub struct ConfirmUser<'a> {
-    pub confirm_code: &'a dyn ConfirmCode,
-    pub user_gateway: &'a dyn UserGateway,
-    pub email_sender: &'a dyn EmailSender,
-    pub extra: &'a Extra,
-    pub user_service: &'a UserService,
-    pub validator: &'a ValidatorService,
-    pub access_service: &'a AccessService,
+pub struct ConfirmUser<'interactor> {
     pub id_provider: Box<dyn IdProvider>,
+    pub code_confirmer: &'interactor dyn CodeConfirmer,
+    pub user_gateway: &'interactor dyn UserGateway,
+    pub email_sender: &'interactor dyn EmailSender
 }
 
-impl Interactor<ConfirmUserDTO, ()> for ConfirmUser<'_> {
-    async fn execute(&self, data: ConfirmUserDTO) -> Result<(), ApplicationError> {
+impl Interactor<ConfirmUserInput, ()> for ConfirmUser<'_> {
+    async fn execute(&self, data: ConfirmUserInput) -> Result<(), AppError> {
+        ensure_can_confirm_user(&self.id_provider.permissions())?;
 
-        match self.access_service.ensure_can_confirm_user(
-            &self.id_provider.is_auth(),
-            &self.id_provider.permissions()
-        ) {
-            Ok(_) => (),
-            Err(e) => return Err(
-                ApplicationError::Forbidden(
-                    ErrorContent::Message(e.to_string())
-                )
-            )
-        };
-
-        let mut validator_err_map: HashMap<String, String> = HashMap::new();
-        self.validator.validate_email(&data.email).unwrap_or_else(|e| {
-            validator_err_map.insert("email".to_string(), e.to_string());
+        let mut validator_err_map: HashMap<String, ValidationError> = HashMap::new();
+        validate_email(&data.email).unwrap_or_else(|e| {
+            let (k, v) = e.to_validation();
+            validator_err_map.insert(k, v);
         });
 
         if !validator_err_map.is_empty() {
-            return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Map(validator_err_map)
-                )
-            )
+            return Err(AppError::Validation(validator_err_map));
         }
 
-        let user = self.user_gateway.get_user_by_email_not_sensitive(&data.email).await.ok_or(
-            ApplicationError::NotFound(
-                ErrorContent::Message("Пользователь не найден".to_string())
-            )
-        )?;
+        let mut user = self.user_gateway.get_user_by_email_not_sensitive(&data.email).await?
+            .ok_or_else(|| AppError::NotFound("email".into()))?;
 
-        match user.state {
-            UserState::Active => return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Message("Пользователь уже активирован".to_string())
-                )
-            ),
-            UserState::Inactive => (),
-            _ => return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Message("Невозможно активировать пользователя".to_string())
-                )
-            )
+        if !matches!(user.state, UserState::NotVerify) {
+            return Err(AppError::Conflict("email".into()));
         }
 
-        self.confirm_code.confirm(&user.email, data.code).await.map_err(
-            |error| ApplicationError::InvalidData(
-                ErrorContent::Message(error.to_string())
-            )
-        )?;
+        self.code_confirmer.confirm(&user.email, data.code).await?;
         
-        let new_user = self.user_service.update_user(
-            user.clone(),
+        user.update(
             user.username.clone(),
             user.email.clone(),
             UserState::Active,
             user.first_name,
             user.last_name,
-            user.hashed_password
+            &user.hashed_password
         );
         
-        self.user_gateway.save_user(&new_user).await;
+        self.user_gateway.save(&user).await?;
 
-        let context: BTreeMap<String, Value> = {
+        let context: BTreeMap<String, String> = {
             let mut context = BTreeMap::new();
-            context.insert("username".to_string(), Value::String(user.username.clone()));
-            context.insert("company".to_string(), Value::String(self.extra.company.to_string()));
-            context.insert("company_url".to_string(), Value::String(self.extra.company_url.to_string()));
+            context.insert("username".to_string(), user.username);
+            // context.insert("company".to_string(), Value::String(self.extra.company.to_string()));
+            // context.insert("company_url".to_string(), Value::String(self.extra.company_url.to_string()));
             context
         };
 
@@ -113,9 +75,8 @@ impl Interactor<ConfirmUserDTO, ()> for ConfirmUser<'_> {
             Some(context),
             13,
             3600
-        ).await;
-
-
+        ).await?;
+        
         Ok(())
     }
 }
