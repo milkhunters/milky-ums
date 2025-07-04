@@ -2,19 +2,23 @@ use async_trait::async_trait;
 
 use crate::domain::models::user::{User as UserDomain, UserId};
 
+pub enum UserGatewayError {
+    Critical(String)
+}
+
 #[async_trait]
 pub trait UserReader {
-    async fn get_user_by_id(&self, user_id: &UserId) -> Option<UserDomain>;
-    async fn get_users_by_ids(&self, user_ids: &Vec<UserId>) -> Option<Vec<UserDomain>>;
-    async fn get_users_list(&self, limit: &u64, offset: &u64) -> Vec<UserDomain>;
-    async fn get_user_by_username_not_sensitive(&self, username: &String) -> Option<UserDomain>;
-    async fn get_user_by_email_not_sensitive(&self, email: &String) -> Option<UserDomain>;
+    async fn get_user_by_id(&self, user_id: &UserId) -> Result<Option<UserDomain>, UserGatewayError>;
+    async fn get_users_by_ids(&self, user_ids: &Vec<UserId>) -> Result<Option<Vec<UserDomain>>, UserGatewayError>;
+    async fn get_users_list(&self, limit: u8, offset: u32) -> Result<Vec<UserDomain>, UserGatewayError>;
+    async fn get_user_by_username_not_sensitive(&self, username: &String) -> Result<Option<UserDomain>, UserGatewayError>;
+    async fn get_user_by_email_not_sensitive(&self, email: &String) -> Result<Option<UserDomain>, UserGatewayError>;
 
 }
 
 #[async_trait]
 pub trait UserWriter {
-    async fn save_user(&self, data: &UserDomain);
+    async fn save(&self, data: &UserDomain) -> Result<(), UserGatewayError>;
 }
 
-pub trait UserGateway: UserReader + UserWriter {}
+pub trait UserGateway: UserReader + UserWriter + Send + Sync {}
