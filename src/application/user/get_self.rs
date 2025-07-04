@@ -1,11 +1,10 @@
 use serde::Serialize;
-
-use crate::application::common::exceptions::{ApplicationError, ErrorContent};
+use crate::application::common::error::AppError;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
 use crate::domain::models::user::{UserId, UserState};
-use crate::domain::services::access::AccessService;
+use crate::domain::services::access::ensure_can_get_user_self;
 
 #[derive(Debug, Serialize)]
 pub struct UserSelfResultDTO{
@@ -18,31 +17,23 @@ pub struct UserSelfResultDTO{
 }
 
 
-pub struct GetUserSelf<'a> {
-    pub user_reader: &'a dyn UserReader,
+pub struct GetUserSelf<'interactor> {
     pub id_provider: Box<dyn IdProvider>,
-    pub access_service: &'a AccessService,
-    
+    pub user_reader: &'interactor dyn UserReader
 }
 
 impl Interactor<(), UserSelfResultDTO> for GetUserSelf<'_> {
-    async fn execute(&self, _data: ()) -> Result<UserSelfResultDTO, ApplicationError> {
-        
-        match self.access_service.ensure_can_get_user_self(
-            self.id_provider.is_auth(),
+    async fn execute(&self, _data: ()) -> Result<UserSelfResultDTO, AppError> {
+        ensure_can_get_user_self(
             self.id_provider.user_state(),
             &self.id_provider.permissions()
-        ) {
-            Ok(_) => (),
-            Err(error) => return Err(
-                ApplicationError::Forbidden(
-                    ErrorContent::Message(error.to_string())
-                )
-            )
-        };
+        )?;
         
-        
-        let user = self.user_reader.get_user_by_id(self.id_provider.user_id().unwrap()).await.unwrap();
+        let user = self.user_reader.get_user_by_id(self.id_provider.user_id()).await?
+            .ok_or_else(|| AppError::Critical(format!(
+                "self user not found: get_user_by_id: id:{}",
+                self.id_provider.user_id()
+            )))?;
 
         Ok(UserSelfResultDTO {
             id: user.id,

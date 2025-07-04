@@ -2,19 +2,19 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::application::common::exceptions::{ApplicationError, ErrorContent};
+use crate::application::common::error::AppError;
 use crate::application::common::id_provider::IdProvider;
 use crate::application::common::interactor::Interactor;
 use crate::application::common::user_gateway::UserReader;
-use crate::domain::exceptions::DomainError;
+use crate::domain::error::ValidationError;
 use crate::domain::models::user::UserId;
-use crate::domain::services::access::AccessService;
-use crate::domain::services::validator::ValidatorService;
+use crate::domain::services::access::ensure_can_get_user_range;
+use crate::domain::services::validator::{validate_page, validate_per_page};
 
 #[derive(Debug, Deserialize)]
 pub struct GetUserRangeDTO {
-    pub page: u64,
-    pub per_page: u64,
+    pub page: u32,
+    pub per_page: u8,
 }
 
 #[derive(Debug, Serialize)]
@@ -28,63 +28,40 @@ pub struct UserItemResult{
 pub type GetUserRangeResultDTO = Vec<UserItemResult>;
 
 
-pub struct GetUserRange<'a> {
-    pub user_reader: &'a dyn UserReader,
+pub struct GetUserRange<'interactor> {
     pub id_provider: Box<dyn IdProvider>,
-    pub access_service: &'a AccessService,
-    pub validator: &'a ValidatorService,
+    pub user_reader: &'interactor dyn UserReader
 }
 
 impl Interactor<GetUserRangeDTO, GetUserRangeResultDTO> for GetUserRange<'_> {
-    async fn execute(&self, data: GetUserRangeDTO) -> Result<GetUserRangeResultDTO, ApplicationError> {
-        
-        match self.access_service.ensure_can_get_user_range(
-            &self.id_provider.permissions()
-        ) {
-            Ok(_) => (),
-            Err(error) => return match error {
-                DomainError::AccessDenied => Err(
-                    ApplicationError::Forbidden(
-                        ErrorContent::Message(error.to_string())
-                    )
-                ),
-                DomainError::AuthorizationRequired => Err(
-                    ApplicationError::Unauthorized(
-                        ErrorContent::Message(error.to_string())
-                    )
-                )
-            }
-        };
+    async fn execute(&self, data: GetUserRangeDTO) -> Result<GetUserRangeResultDTO, AppError> {
+        ensure_can_get_user_range(self.id_provider.permissions())?;
 
-        let mut validator_err_map: HashMap<String, String> = HashMap::new();
-        self.validator.validate_page(&data.page).unwrap_or_else(|e| {
-            validator_err_map.insert("page".to_string(), e.to_string());
+        let mut validator_err_map: HashMap<String, ValidationError> = HashMap::new();
+        validate_page(data.page).unwrap_or_else(|e| {
+            let (k, v) = e.to_validation();
+            validator_err_map.insert(k, v);
         });
         
-        self.validator.validate_per_page(&data.per_page).unwrap_or_else(|e| {
-            validator_err_map.insert("per_page".to_string(), e.to_string());
+        validate_per_page(data.per_page).unwrap_or_else(|e| {
+            let (k, v) = e.to_validation();
+            validator_err_map.insert(k, v);
         });
         
         if !validator_err_map.is_empty() {
-            return Err(
-                ApplicationError::InvalidData(
-                    ErrorContent::Map(validator_err_map)
-                )
-            )
+            return Err(AppError::Validation(validator_err_map));
         }
         
         let users = self.user_reader.get_users_list(
-            &data.per_page,
-            &(data.page * data.per_page)
-        ).await;
+            data.per_page,
+            (data.page * data.per_page as u32).into()
+        ).await?;
         
-        Ok(
-            users.into_iter().map(|u| UserItemResult {
-                id: u.id,
-                username: u.username,
-                first_name: u.first_name,
-                last_name: u.last_name,
-            }).collect()
-        )
+        Ok(users.into_iter().map(|u| UserItemResult {
+            id: u.id,
+            username: u.username,
+            first_name: u.first_name,
+            last_name: u.last_name,
+        }).collect())
     }
 }
