@@ -20,12 +20,12 @@ pub fn ensure_can_create_user(
 }
 
 pub fn ensure_can_get_user_self(
-    user_state: Option<&UserState>,
+    user_state: &UserState,
     permissions: &Vec<String>
 ) -> Result<(), DomainError> {
     if 
         permissions.contains(&Permission::GetUserSelf.to_string()) &&
-        user_state.unwrap() != &UserState::NotVerify
+        user_state != &UserState::NotVerify
     {
         return Ok(())
     }
@@ -33,9 +33,9 @@ pub fn ensure_can_get_user_self(
 }
 
 pub fn ensure_can_get_user(
-    user_id: Option<&Uuid>,
+    user_id: &Uuid,
     get_user_id: &Uuid,
-    user_state: Option<&UserState>,
+    user_state: &UserState,
     permissions: &Vec<String>
 ) -> Result<(), DomainError> {
     
@@ -45,8 +45,8 @@ pub fn ensure_can_get_user(
     
     if 
         permissions.contains(&Permission::GetUserSelf.to_string()) &&
-        user_id.unwrap() == get_user_id &&
-        user_state.unwrap() == &UserState::Active
+        user_id == get_user_id &&
+        user_state == &UserState::Active
     {
         return Ok(())
     }
@@ -54,9 +54,9 @@ pub fn ensure_can_get_user(
 }
 
 pub fn ensure_can_get_users(
-    user_id: Option<&Uuid>,
+    user_id: &Uuid,
     get_user_ids: &Vec<Uuid>,
-    user_state: Option<&UserState>,
+    user_state: &UserState,
     permissions: &Vec<String>
 ) -> Result<(), DomainError> {
 
@@ -67,8 +67,8 @@ pub fn ensure_can_get_users(
     if
         permissions.contains(&Permission::GetUserSelf.to_string()) && 
         get_user_ids.len() == 1 &&
-        get_user_ids.contains(&user_id.unwrap()) &&
-        user_state.unwrap() == &UserState::Active
+        get_user_ids.contains(user_id) &&
+        user_state == &UserState::Active
     {
         return Ok(())
     }
