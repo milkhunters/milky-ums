@@ -103,12 +103,12 @@ pub fn ensure_can_update_user(
 }
 
 pub fn ensure_can_update_user_self(
-    user_state: Option<&UserState>,
+    user_state: &UserState,
     permissions: &Vec<String>
 ) -> Result<(), DomainError> {
     
     if
-        user_state.unwrap() == &UserState::Active &&
+        user_state == &UserState::Active &&
         permissions.contains(&Permission::UpdateUserSelf.to_string())
     {
         return Ok(())
@@ -121,8 +121,7 @@ pub fn ensure_can_reset_password(
     permissions: &Vec<String>
 ) -> Result<(), DomainError> {
     
-    if !permissions.contains(&Permission::ResetUserPassword.to_string())
-    {
+    if !permissions.contains(&Permission::ResetUserPassword.to_string()) {
         return Err(DomainError::Access)
     }
 
@@ -130,8 +129,7 @@ pub fn ensure_can_reset_password(
 }
 
 
-pub fn ensure_can_confirm_user(
-    permissions: &Vec<PermissionTextId>
+pub fn ensure_can_confirm_user(permissions: &Vec<PermissionTextId>
 ) -> Result<(), DomainError> {
     if !permissions.contains(&Permission::ConfirmUser.to_string()) {
         return Err(DomainError::Access)

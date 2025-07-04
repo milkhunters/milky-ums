@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub type ServiceId = Uuid;
-
 pub type ServiceTextId = String;
 pub const SERVICE_TITLE_LENGTH_RANGE: (usize, usize) = (1, 64);
 pub const SERVICE_DESCRIPTION_LENGTH_RANGE: (usize, usize) = (1, 255);
@@ -39,11 +38,7 @@ impl Service {
         }
     }
 
-    pub fn update(
-        &mut self,
-        title: String,
-        description: Option<String>,
-    ) {
+    pub fn update(&mut self, title: String, description: Option<String>, ) {
         self.title = title;
         self.description = description;
         self.updated_at = Some(Utc::now());

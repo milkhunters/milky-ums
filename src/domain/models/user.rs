@@ -43,7 +43,6 @@ pub struct User {
 impl User {
 
     pub fn new(
-        &self,
         username: String,
         email: String,
         state: UserState,
@@ -66,7 +65,6 @@ impl User {
 
     pub fn update(
         &mut self,
-        user: Self,
         username: String,
         email: String,
         state: UserState,
