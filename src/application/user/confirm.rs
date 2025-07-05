@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use serde::Deserialize;
 
@@ -53,29 +53,20 @@ impl Interactor<ConfirmUserInput, ()> for ConfirmUser<'_> {
             user.username.clone(),
             user.email.clone(),
             UserState::Active,
-            user.first_name,
-            user.last_name,
+            user.first_name.clone(),
+            user.last_name.clone(),
             &user.hashed_password
         );
         
-        self.user_gateway.save(&user).await?;
-
-        let context: BTreeMap<String, String> = {
-            let mut context = BTreeMap::new();
-            context.insert("username".to_string(), user.username);
-            // context.insert("company".to_string(), Value::String(self.extra.company.to_string()));
-            // context.insert("company_url".to_string(), Value::String(self.extra.company_url.to_string()));
-            context
-        };
-
-        self.email_sender.send_template(
-            &user.email,
-            "Подтверждение почты",
-            "email_confirm_success.html",
-            Some(context),
-            13,
-            3600
-        ).await?;
+        let (res1, res2) = tokio::join!(
+            self.user_gateway.save(&user),
+            self.email_sender.send_confirm_success(
+                &user.email,
+                &user.username
+            )
+        );
+        res1?;
+        res2?;
         
         Ok(())
     }

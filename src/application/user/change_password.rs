@@ -72,30 +72,13 @@ impl Interactor<ChangePasswordInput, ()> for ChangePassword<'_> {
             &hash
         );
         
+        // todo: gather
         self.user_gateway.save(&user).await?;
-        
-        let context: BTreeMap<String, String> = {
-            let mut context = BTreeMap::new();
-            context.insert("username".to_string(), user.username);
-            context.insert("ip".to_string(), self.id_provider.ip().to_string());
-            context.insert("change_time".to_string(), {
-                let now = chrono::Utc::now();
-                now.format("%d/%m/%Y %H:%M %Z").to_string()
-            });
-            context.insert("email".to_string(), user.email);
-            // context.insert("company".to_string(), Value::String(self.extra.company.clone()));
-            // context.insert("company_url".to_string(), Value::String(self.extra.company_url.clone()));
-            // context.insert("reset_password_url".to_string(), Value::String(self.extra.reset_password_url.clone()));
-            context
-        };
-        
-        self.email_sender.send_template(
+        self.email_sender.send_success_reset_password(
             &user.email,
-            "Изменение пароля",
-            "successfully_reset_password.html",
-            Some(context),
-            13,
-            3600
+            &user.username,
+            &self.id_provider.ip(),
+            &chrono::Utc::now().format("%d/%m/%Y %H:%M %Z").into(),
         ).await?;
         
         Ok(())

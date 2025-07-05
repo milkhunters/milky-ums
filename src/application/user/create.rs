@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -111,17 +111,9 @@ impl Interactor<CreateUserDTO, CreateUserResultDTO> for CreateUser<'_> {
         self.user_gateway.save(&user).await?;
         self.role_gateway.link_role_to_user(&default_role_id, &user.id).await?;
         
-        let mut context = BTreeMap::new();
-        context.insert("username".to_string(), user.username.clone());
-        
-        self.email_sender.send_template(
+        self.email_sender.send_registration_email(
             &user.email,
-            "Регистрация на сайте",
-            "registration.html",
-            Some(context),
-            13,
-            3600
-            
+            &user.username,
         ).await?;
 
         Ok(CreateUserResultDTO {
